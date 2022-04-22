@@ -1,0 +1,24 @@
+action_max_retries: 1
+feedback_watchdog_time_s: 1.0
+enable_watchdog: False
+timeout_s: 1.0
+enable_timeout: False
+enabled: True
+
+#joint states watchdog time
+js_watchdog_time_s: 1.0
+
+#planner_id:
+group_name: "arm_torso"
+max_plan_attempts: 5
+max_plan_time: 10.0
+max_vel_scale: 1.0
+end_effector_tool: "arm_tool_link"
+
+ws_frame_id: "/base_footprint"
+ws_x_min: -1.0
+ws_y_min: -1.0
+ws_z_min: -1.0
+ws_x_max: 1.0
+ws_y_max: 1.0
+ws_z_max: 1.0

@@ -1,0 +1,92 @@
+<!-- LAUNCH FOR EXECUTING THE DEMO INSIDE TIAGO AFTER DEPLOY -->
+
+<launch>
+
+<!-- Load motions -->
+  <rosparam file="$(find pick_garment_demo)/config/motions/set_position.yaml" command="load" />
+  <rosparam file="$(find pick_garment_demo)/config/motions/give_garment.yaml" command="load" />
+  <rosparam file="$(find pick_garment_demo)/config/motions/pregive.yaml" command="load" />
+
+<!-- Table segmentation node -->
+  <arg name="rate"                      default="1"                               />
+  <arg name="cloud"                     default="/xtion/depth_registered/points"  />
+  <arg name="frame"                     default="/base_footprint"                 />
+  <arg name="passthrough_axis"          default="z"                               />
+  <arg name="passthrough_min"           default="0.4"                             />
+  <arg name="passthrough_max"           default="1.6"                             />
+  <arg name="downsampling_size"         default="0.01"                            />
+
+  <node respawn="true" name="segment_table" pkg="tiago_pcl_tutorial" type="segment_table" output="screen">
+    <remap from="cloud"                     to="$(arg cloud)"     />
+    <param name="rate"                      type="double" value="$(arg rate)"  />
+    <param name="frame"                     type="string" value="$(arg frame)"  />
+    <param name="passthrough_axis"          type="string" value="$(arg passthrough_axis)"  />
+    <param name="passthrough_min"           type="double" value="$(arg passthrough_min)"   />
+    <param name="passthrough_max"           type="double" value="$(arg passthrough_max)"   />
+    <param name="downsampling_size"         type="double" value="$(arg downsampling_size)" />
+  </node>
+
+<!-- Launch the pick garment demo node -->
+  <node name="pick_garment_demo"
+        pkg="pick_garment_demo"
+        type="pick_garment_demo"
+        output="screen"
+        ns="/tiago">
+
+    <remap from="~/garment_pose"
+             to="/segment_table/marker"/> 
+
+<!-- Gripper module -->
+    <remap from="~/gripper_module/gripper_trajectory"
+             to="/gripper_controller/follow_joint_trajectory"/>
+    <remap from="~/gripper_module/grasp"
+             to="/gripper_controller/grasp"/>
+    <rosparam file="$(find pick_garment_demo)/config/gripper_module_default.yaml" command="load" ns="gripper_module" />
+
+<!-- Arm module -->
+    <remap from="~/arm_module/joint_states"
+             to="/joint_states"/>
+    <remap from="~/arm_module/arm"
+             to="/move_group"/>
+    <remap from="~/arm_module/planning_scene"
+             to="/planning_scene"/>
+    <remap from="~/arm_module/get_planning_scene"
+             to="/get_planning_scene"/>
+    <rosparam file="$(find pick_garment_demo)/config/arm_module_default.yaml" command="load" ns="arm_module" />
+
+
+<!-- Torso module -->
+    <remap from="~/torso_module/torso_controller"
+             to="/torso_controller/command"/>
+    <remap from="~/torso_module/torso_trajectory"
+             to="/torso_controller/follow_joint_trajectory"/>
+
+    <rosparam file="$(find pick_garment_demo)/config/torso_module_default.yaml" command="load" ns="torso_module" />
+
+
+<!-- Head module -->
+    <remap from="~/head_module/move_head"
+             to="/head_controller/follow_joint_trajectory"/>
+    <remap from="~/head_module/point_head"
+             to="/head_controller/point_head_action"/>
+
+    <rosparam file="$(find pick_garment_demo)/config/head_module_default.yaml" command="load" ns="head_module" />
+
+
+<!-- Play motion module -->
+     <remap from="~/play_motion_module/play_motion"
+             to="/play_motion"/>
+
+    <rosparam file="$(find pick_garment_demo)/config/play_motion_module_default.yaml" command="load" ns="play_motion_module" />
+
+<!-- Move platfrom module -->
+    <remap from="~/move_platform_module/cmd_vel"
+                to="/mobile_base_controller/cmd_vel"/>
+<!--           to="/key_vel"/> -->
+
+    <rosparam file="$(find pick_garment_demo)/config/move_platform_config.yaml" command="load" ns="move_platform_module" />
+
+    </node>
+
+</launch>
+

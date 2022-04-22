@@ -1,0 +1,9 @@
+rate_hz: 100.0
+cmd_vel_rate_hz: 100.0
+enable_timeout: False
+timeout_s: 50.0
+lineal_tol: 0.06
+lineal_velocity: 0.2
+yaw_tol: 0.07
+yaw_velocity: 1
+max_tf_attempts: 5.0

@@ -1,0 +1,20 @@
+play_motion:
+  controllers: [arm_controller, head_controller, torso_controller, gripper_controller]
+
+  motions:
+
+    set_position:
+      joints: ['torso_lift_joint', 'arm_1_joint', 'arm_2_joint', 'arm_3_joint', 'arm_4_joint', 'arm_5_joint', 'arm_6_joint', 'arm_7_joint', 'gripper_right_finger_joint', 'gripper_left_finger_joint']
+      points:
+      - time_from_start: 0.0
+        positions: [0.35, 2.1, -0.07, -2.3, 1.35, -0.608, -0.09, -1.27, 0.007, 0.007]
+      - time_from_start: 3.0
+        positions: [0.35, 1.411, -0.577, -2.344, 1.956, -0.608, -0.09, -1.269, 0.007, 0.007]
+      - time_from_start: 6.0
+        positions: [0.35, 1.458, -1.403, -3.069, 2.158, -0.608, -0.09, -1.269, 0.007, 0.007]
+      - time_from_start: 9.0
+        positions: [0.1, 1.5, -1.5, -3.14, 2.1, -2.05, 0.85, -0.05, 0.007, 0.007]
+      meta:
+        name: Set Position
+        usage: demo
+        description: 'Set Position'
