@@ -47,6 +47,16 @@
 #include <pcl/point_cloud.h>
 
 
+
+#include <pcl/common/time.h> // for StopWatch
+#include <pcl/io/pcd_io.h>
+#include <pcl/keypoints/harris_3d.h>
+#include <sensor_msgs/Image.h>
+#include <opencv2/core.hpp>
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/highgui.hpp>
+
+
 // Std C++ headers
 #include <string>
 
@@ -70,6 +80,7 @@ namespace pal {
 
     void publish(pcl::PointCloud<pcl::PointXYZRGB>::Ptr& planeCloud,
                  pcl::PointCloud<pcl::PointXYZRGB>::Ptr& nonPlaneCloud,
+                 pcl::PointCloud<pcl::PointXYZI>::Ptr& keypointsCloud,
                  pcl::uint64_t& stamp,
                  const std::string& frameId);
 
@@ -101,7 +112,10 @@ namespace pal {
     // ROS publishers
     ros::Publisher _planeCloudPub;
     ros::Publisher _nonPlaneCloudPub;
+    ros::Publisher _keypointsCloudPub;
     ros::Publisher _mainPlanePosePub;
+    sensor_msgs::Image image_;
+    ros::Publisher _imagePub;
 
   };
 
@@ -144,7 +158,9 @@ namespace pal {
 
     _planeCloudPub    = _pnh.advertise< pcl::PointCloud<pcl::PointXYZRGB> >("plane", 1);
     _nonPlaneCloudPub = _pnh.advertise< pcl::PointCloud<pcl::PointXYZRGB> >("nonplane", 1);
+    _keypointsCloudPub = _pnh.advertise< pcl::PointCloud<pcl::PointXYZI> >("keypoints", 1);
     _mainPlanePosePub = _pnh.advertise<geometry_msgs::PoseStamped>("plane_pose", 1);
+    _imagePub    = _pnh.advertise<sensor_msgs::Image>("image", 1);
   }
 
   SegmentPlane::~SegmentPlane()
@@ -156,8 +172,10 @@ namespace pal {
   {
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr emptyPlaneCloud(new pcl::PointCloud<pcl::PointXYZRGB>);
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr emptyNonPlaneCloud(new pcl::PointCloud<pcl::PointXYZRGB>);
+    pcl::PointCloud<pcl::PointXYZI>::Ptr emptyKeypointsCloud(new pcl::PointCloud<pcl::PointXYZI>);
     publish(emptyPlaneCloud,
             emptyNonPlaneCloud,
+            emptyKeypointsCloud,
             stamp,
             frameId);
 
@@ -244,6 +262,13 @@ namespace pal {
     else
       pal::statisticalOutlierRemoval<pcl::PointXYZRGB>(pclNonPlaneCloud, 25, 1.0, pclFilteredNonPlaneCloud);
 
+   /* //filter outliers in the keypoints
+    pcl::PointCloud<pcl::PointXYZI>::Ptr pclFilteredKeypointsCloud(new pcl::PointCloud<pcl::PointXYZI>);
+    if ( keypointsCloud->empty() )
+      pclFilteredKeypointsCloud = keypointsCloud;
+    else
+      pal::statisticalOutlierRemoval<pcl::PointXYZI>(keypointsCloud, 25, 1.0, pclFilteredKeypointsCloud);
+*/
     ROS_INFO_STREAM("Processing:");
     ROS_INFO_STREAM("\tInput cloud:                 " << pclCloud->points.size() << " points");
     ROS_INFO_STREAM("\tAfter pass-through:          " << passThroughCloud->points.size() << " points");
@@ -252,15 +277,96 @@ namespace pal {
     ROS_INFO_STREAM("\tNon-plane points:            " << pclNonPlaneCloud->points.size() << " points");
     ROS_INFO_STREAM("\tOutliers in plane:           " << pclPlaneCloud->points.size() - pclFilteredPlaneCloud->points.size() << " points");
     ROS_INFO_STREAM("\tOutliers in non-plane:       " << pclNonPlaneCloud->points.size() - pclFilteredNonPlaneCloud->points.size() << " points");
+ //   ROS_INFO_STREAM("\tOutliers in keypoints:       " << keypointsCloud->points.size() - pclFilteredkeypointsCloud->points.size() << " points");
+
+    pcl::toROSMsg (*passThroughCloud, image_);
+    _imagePub.publish (image_);
+
+/*    cv::Mat OpenCVPointCloud(3, pclNonPlaneCloud->points.size(), CV_64FC1);
+    for(int i=0; i < pclNonPlaneCloud->points.size();i++){
+        OpenCVPointCloud.at<double>(0,i) = pclNonPlaneCloud->points.at(i).x;
+        OpenCVPointCloud.at<double>(1,i) = pclNonPlaneCloud->points.at(i).y;
+        OpenCVPointCloud.at<double>(2,i) = pclNonPlaneCloud->points.at(i).z;
+    }
+    cv::imshow("hola", OpenCVPointCloud);
+    cv::waitKey();
+*/
+//HARRIS corner detector
+    pcl::HarrisKeypoint3D <pcl::PointXYZRGB, pcl::PointXYZI> detector;
+    pcl::PointCloud<pcl::PointXYZI>::Ptr keypoints (new pcl::PointCloud<pcl::PointXYZI>);
+    detector.setNonMaxSupression (true);
+    detector.setInputCloud (pclFilteredNonPlaneCloud);
+    detector.setThreshold (1e-3);//1e-6);
+    pcl::StopWatch watch;
+    detector.compute (*keypoints);
+    pcl::console::print_highlight ("Detected %zd points in %lfs\n", keypoints->size (), watch.getTimeSeconds ());
+	for (size_t i = 0; i < keypoints->size(); i++)
+	{
+	    pcl::console::print_highlight("Intensity %f \n", keypoints->points[i].intensity);
+    }
+    pcl::PointIndicesConstPtr keypoints_indices = detector.getKeypointsIndices ();
+    if (!keypoints_indices->indices.empty ())
+    {
+        pcl::io::savePCDFile ("keypoints.pcd", *keypoints, keypoints_indices->indices, true);
+        pcl::console::print_info ("Saved keypoints to keypoints.pcd\n");
+    }
+    else{
+        pcl::console::print_warn ("Keypoints indices are empty!\n");
+    }
+    
+  /*  pcl::HarrisKeypoint3D<pcl::PointXYZRGB, pcl::PointXYZI>* detector = new pcl::HarrisKeypoint3D<pcl::PointXYZRGB, pcl::PointXYZI>(pcl::HarrisKeypoint3D<pcl::PointXYZRGB, pcl::PointXYZI>::HARRIS);
+
+	detector->setNonMaxSupression(false);
+	detector->setRadius(120);
+	detector->setInputCloud(pclFilteredNonPlaneCloud);
+	pcl::PointCloud<pcl::PointXYZI>::Ptr keypoints(new pcl::PointCloud<pcl::PointXYZI>);
+	pcl::PointCloud<pcl::PointXYZ>::Ptr key_regions(new pcl::PointCloud<pcl::PointXYZ>);
+	detector->compute(*keypoints);
+	pcl::StopWatch watch;
+	pcl::console::print_highlight("Detected %zd points in %lfs\n", keypoints->size(), watch.getTimeSeconds());
+
+	//if (!keypoints->size())
+	//{
+	int size_pt = 0;
+	std::vector<int> pointIdxKeypoints;
+	float intensity_thresh = 0;//.0116f;
+	for (size_t i = 0; i < keypoints->size(); i++)
+	{
+	    pcl::console::print_highlight("Intensity %f \n", keypoints->points[i].intensity);
+		if (keypoints->points[i].intensity >= intensity_thresh)
+		{
+			pointIdxKeypoints.push_back(i);
+			++size_pt;
+		}
+	}
+	pcl::console::print_highlight("Filtered keypoints %zd \n", size_pt);
+	key_regions->width = size_pt;
+	key_regions->height = 1;
+	key_regions->is_dense = false;
+	key_regions->points.resize(key_regions->width * key_regions->height);
+	for (size_t i = 0; i < size_pt; i++)
+	{
+			key_regions->points[i].x = keypoints->points[pointIdxKeypoints[i]].x;
+			key_regions->points[i].y = keypoints->points[pointIdxKeypoints[i]].y;
+			key_regions->points[i].z = keypoints->points[pointIdxKeypoints[i]].z;
+	}
+*/
+
+
+
+
 
     publish(pclFilteredPlaneCloud,
             pclFilteredNonPlaneCloud,
+            keypoints,
             pclCloud->header.stamp,
             pclCloud->header.frame_id);
+    
   }
 
   void SegmentPlane::publish(pcl::PointCloud<pcl::PointXYZRGB>::Ptr& planeCloud,
                                  pcl::PointCloud<pcl::PointXYZRGB>::Ptr& nonPlaneCloud,
+                                 pcl::PointCloud<pcl::PointXYZI>::Ptr& keypoints,
                                  pcl::uint64_t& stamp,
                                  const std::string& frameId)
   {
@@ -276,6 +382,12 @@ namespace pal {
       nonPlaneCloud->header.stamp    = stamp;
       nonPlaneCloud->header.frame_id = frameId;
       _nonPlaneCloudPub.publish(nonPlaneCloud);
+    }
+    if ( _keypointsCloudPub.getNumSubscribers() > 0 )
+    {
+      keypoints->header.stamp    = stamp;
+      keypoints->header.frame_id = frameId;
+      _keypointsCloudPub.publish(keypoints);
     }
   }
 

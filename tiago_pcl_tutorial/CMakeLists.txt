@@ -12,6 +12,9 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
 )
 
+find_package(OpenCV 3 REQUIRED
+        )
+
 add_message_files(
   FILES
     PlaneCoefficients.msg
@@ -36,15 +39,16 @@ catkin_package(
 include_directories(SYSTEM 
   include
   ${catkin_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
 )
 
 
 add_library(${PROJECT_NAME}
             src/pcl_filters.cpp)
-target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
 add_executable(segment_table src/nodes/segment_table.cpp)
-target_link_libraries(segment_table ${catkin_LIBRARIES})
+target_link_libraries(segment_table ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
 add_executable(detect_main_plane src/nodes/detect_main_plane.cpp)
 add_dependencies(detect_main_plane tiago_pcl_tutorial_generate_messages_cpp)
