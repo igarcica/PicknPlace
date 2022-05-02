@@ -4,6 +4,7 @@
 <!-- Launch Segment table node to remove plane -->
   <arg name="rate"                      default="1"                               />
   <arg name="cloud"                     default="/camera/depth/color/points"  />
+  <arg name="segm_cloud"                 default="/segment_table/nonplane"  />
   <arg name="frame"                     default="/camera_link"                 />
   <arg name="passthrough_axis"          default="y"                               />
   <arg name="passthrough_min"           default="-0.2"                             />
@@ -13,6 +14,7 @@
 
   <node name="segment_table" pkg="tiago_pcl_tutorial" type="segment_table" output="screen">
     <remap from="cloud"                     to="$(arg cloud)"     />
+    <remap from="segmcloud"                 to="$(arg segm_cloud)"     />
     <param name="rate"                      type="double" value="$(arg rate)"  />
     <param name="frame"                     type="string" value="$(arg frame)"  />
     <param name="passthrough_axis"          type="string" value="$(arg passthrough_axis)"  />
