@@ -17,6 +17,7 @@ from dynamic_reconfigure.server import Server
 class hsv_segm:
     def __init__(self):
 #        self.img = cv2.imread('towel_segm.png')
+        self.area_thres = 70000
         self.bridge = CvBridge()
         self.sub = rospy.Subscriber("/camera/color/image_raw", Image, self.callback)
         self.pub = rospy.Publisher("/hola",Image,queue_size=1)
@@ -61,13 +62,20 @@ class hsv_segm:
         ## HSV range
         #light_white = (71, 15, 0)
         #dark_white = (135, 255, 255)
-        light_white = (71, 30, 155)
-        dark_white = (100, 255, 255)
+        #light_white = (71, 30, 155)
+        #dark_white = (100, 255, 255)
+
+        light_white = (0,0,183) #real setup without robot
+        dark_white = (255, 9, 255) #real setup without robot
+        light_white = (0,0,193) #real setup without robot
+        #dark_white = (255, 18, 255) #real setup without robot
+        dark_white = (255, 40, 255) #real setup without robot
         edge_white = (135, 40, 255)
         
         mask = cv2.inRange(hsv_towel, light_white, dark_white)
         
         result = cv2.bitwise_and(towel, towel, mask=mask)
+#        print("publishing..")
         self.pub.publish(self.bridge.cv2_to_imgmsg(result, "bgr8"))
         
 #        plt.subplot(1, 2, 1)
@@ -75,6 +83,13 @@ class hsv_segm:
 #        plt.subplot(1, 2, 2)
 #        plt.imshow(result)
 #        plt.show()
+
+        area = np.count_nonzero(mask)
+        print(area)
+        if(area > self.area_thres):
+            print("place diagonally")
+        else:
+            print("dont place")
     
 #    def plots(self):
  

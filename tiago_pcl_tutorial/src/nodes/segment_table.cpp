@@ -435,28 +435,28 @@ namespace pal {
         if(min_sum > sum)
         {
             min_sum=sum;
-            pt_down_right.x=0.52;
+            pt_down_right.x=cloud_hull->points[i].x;
             pt_down_right.y=cloud_hull->points[i].y;
             pt_down_right.z=cloud_hull->points[i].z;
         }
         if(max_sum < sum)
         {
             max_sum=sum;
-            pt_up_left.x=0.52;
+            pt_up_left.x=cloud_hull->points[i].x;
             pt_up_left.y=cloud_hull->points[i].y;
             pt_up_left.z=cloud_hull->points[i].z;
         }
         if(min_diff > diff)
         {
             min_diff=diff;
-            pt_up_right.x=0.52;
+            pt_up_right.x=cloud_hull->points[i].x;
             pt_up_right.y=cloud_hull->points[i].y;
             pt_up_right.z=cloud_hull->points[i].z;
         }
         if(max_diff < diff)
         {
             max_diff=diff;
-            pt_down_left.x=0.52;
+            pt_down_left.x=cloud_hull->points[i].x;
             pt_down_left.y=cloud_hull->points[i].y;
             pt_down_left.z=cloud_hull->points[i].z;
         }
@@ -507,7 +507,7 @@ namespace pal {
       //grasp_point = pt_down_left;
       //grasp_point.y = pt_down_left.y-mid_pt;
 
-      grasp_marker.pose.position.x=0.5;
+      grasp_marker.pose.position.x=grasp_point.x;
       grasp_marker.pose.position.y=grasp_point.y;
       grasp_marker.pose.position.z=grasp_point.z;
       _graspPointPub.publish(grasp_marker);
