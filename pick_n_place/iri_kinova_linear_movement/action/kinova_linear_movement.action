@@ -1,0 +1,11 @@
+#goal definition
+geometry_msgs/Pose goal_position
+uint32 reference_frame
+float32 maximum_velocity
+---
+#result definition
+geometry_msgs/Pose final_position
+---
+#feedback
+geometry_msgs/Pose current_position
+float32 current_time
