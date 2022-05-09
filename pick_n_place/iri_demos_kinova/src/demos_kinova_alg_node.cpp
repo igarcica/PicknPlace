@@ -4,6 +4,13 @@ DemosKinovaAlgNode::DemosKinovaAlgNode(void) :
   algorithm_base::IriBaseAlgorithm<DemosKinovaAlgorithm>(),
   kinova_linear_move_client_(private_node_handle_,"kinova_linear_move", true)
 {
+
+  this->start=false;
+
+  /* Publish external camera frame */
+  this->handeye_frame_pub_timer = this->public_node_handle_.createTimer(ros::Duration(1.0),&DemosKinovaAlgNode::handeye_frame_pub,this);
+  this->handeye_frame_pub_timer.stop();
+
   //init class attributes if necessary
   if(!this->private_node_handle_.getParam("rate", this->config_.rate))
   {
@@ -138,13 +145,17 @@ void DemosKinovaAlgNode::mainNodeThread(void)
   // OPEN GRIPPER
   if (state == 0)
   {
-    ROS_INFO("Opening the gripper.");
-    this->success &= send_gripper_command(open_gripper);
-    if (this->success)
+    if(this->start)
     {
-      state++;
-      ros::Duration(0.5).sleep();
-    }
+      ROS_INFO("Opening the gripper.");
+      this->success &= send_gripper_command(open_gripper);
+      if (this->success)
+      {
+        state++;
+        ros::Duration(0.5).sleep();
+        this->start=false;
+      }
+    } 
   }
   // HOME POSITION
   if (state == 1)
@@ -476,6 +487,29 @@ void DemosKinovaAlgNode::mainNodeThread(void)
   this->alg_.unlock();
 }
 
+/* Starts grasp point marker and grasping frame topics with given rates */
+void DemosKinovaAlgNode::set_config(void)
+{
+  ROS_INFO("DemosKinovaAlgNode: Set configuration");
+
+  /* Start publisher rates */
+  this->handeye_frame_pub_timer.setPeriod(ros::Duration(1.0/50.0));
+  this->handeye_frame_pub_timer.start();
+}
+
+/* Create and publish finger tip and garment's corner frames */
+void DemosKinovaAlgNode::handeye_frame_pub(const ros::TimerEvent& event)
+{
+  
+  /* Create finger tip frame */
+  tf::Transform transform;
+  transform.setOrigin(tf::Vector3(0.65, 0.45, 1.04));
+  tf::Quaternion q;
+  q.setRPY(0,1.5,-1.5);
+  transform.setRotation(q); 
+  this->broadcaster.sendTransform(tf::StampedTransform(transform,ros::Time::now(),"base_link","eye"));
+}
+
 /*  [subscriber callbacks] */
 void DemosKinovaAlgNode::base_feedback_callback(const kortex_driver::BaseCyclic_Feedback::ConstPtr& msg)
 {
@@ -615,8 +649,14 @@ void DemosKinovaAlgNode::node_config_update(Config &config, uint32_t level)
   if(config.rate!=this->getRate())
     this->setRate(config.rate);
   if(config.diagonal_move != this->diagonal_move)
+  {
     this->diagonal_move = config.diagonal_move;
-  std::cout << this->diagonal_move << std::endl;
+    std::cout << this->diagonal_move << std::endl;
+  }
+  if(config.start)
+    this->start=true;
+  if(config.set_config)
+    this->set_config();
   this->config_=config;
   this->alg_.unlock();
 }
