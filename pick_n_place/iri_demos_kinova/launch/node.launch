@@ -9,7 +9,8 @@
   <arg name="diagonal_m" default="true"/>
   <arg name="garment_width" default="0.26"/>
   <arg name="garment_height" default="0.24"/>
-  <arg name="pre_grasp_corner" default="[0.550, 0.372, 0.055, 0.0, -125.5, 180.0]"/>
+  <!--<arg name="pre_grasp_corner" default="[0.550, 0.372, 0.055, 0.0, -125.5, 180.0]"/>-->
+  <arg name="pre_grasp_corner" default="[0.635, 0.17, 0.055, 0.0, -125.5, 180.0]"/>
 
 
   <node name="$(arg node_name)"

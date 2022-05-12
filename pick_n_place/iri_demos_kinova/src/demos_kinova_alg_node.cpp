@@ -7,6 +7,10 @@ DemosKinovaAlgNode::DemosKinovaAlgNode(void) :
 
   this->start=false;
 
+  /* Garment pose subscriber */
+  this->garment_pose_subscriber = this->public_node_handle_.subscribe("/segment_table/grasp_point",1,&DemosKinovaAlgNode::garment_pose_callback,this);
+  this->get_garment_pose=false;
+
   /* Publish external camera frame */
   this->handeye_frame_pub_timer = this->public_node_handle_.createTimer(ros::Duration(1.0),&DemosKinovaAlgNode::handeye_frame_pub,this);
   this->handeye_frame_pub_timer.stop();
@@ -54,8 +58,8 @@ DemosKinovaAlgNode::DemosKinovaAlgNode(void) :
   else
     this->diagonal_move = this->config_.diagonal_move;
 
-  this->pre_grasp_center.x = this->pre_grasp_corner[0];
-  this->pre_grasp_center.y = this->pre_grasp_corner[1] - this->garment_width/2;
+  this->pre_grasp_center.x = this->pre_grasp_corner[0]-0.05;
+  this->pre_grasp_center.y = this->pre_grasp_corner[1];// - this->garment_width/2;
   this->pre_grasp_center.z = this->pre_grasp_corner[2];
   this->pre_grasp_center.theta_x = this->pre_grasp_corner[3];
   this->pre_grasp_center.theta_y = this->pre_grasp_corner[4];
@@ -138,10 +142,17 @@ void DemosKinovaAlgNode::mainNodeThread(void)
   // [fill srv structure and make request to the server]
 
 
+//  ROS_WARN("State: %s", state);
   //activate_publishing_srv_.request.data = my_var;
   double open_gripper = 0.35;
   double close_gipper = 0.81;
 
+  if(this->stop)
+  {
+    ROS_WARN("Demo Pick n Place has stopped!");
+    state=0;
+    this->start=false;
+  }
   // OPEN GRIPPER
   if (state == 0)
   {
@@ -503,11 +514,38 @@ void DemosKinovaAlgNode::handeye_frame_pub(const ros::TimerEvent& event)
   
   /* Create finger tip frame */
   tf::Transform transform;
-  transform.setOrigin(tf::Vector3(0.65, 0.45, 1.04));
+  transform.setOrigin(tf::Vector3(config_.x, config_.y, config_.z));
   tf::Quaternion q;
-  q.setRPY(0,1.5,-1.5);
+  q.setRPY(config_.r,config_.p,config_.yaw);
   transform.setRotation(q); 
-  this->broadcaster.sendTransform(tf::StampedTransform(transform,ros::Time::now(),"base_link","eye"));
+  this->broadcaster.sendTransform(tf::StampedTransform(transform,ros::Time::now(),"base_link","ext_camera_link"));
+}
+
+// Transform point obtained through camera wrt robot frame base_link
+void DemosKinovaAlgNode::garment_pose_callback(const visualization_msgs::Marker::ConstPtr& msg)
+{
+  ROS_DEBUG("DemosKinovaAlgNode: garment pose callback");
+
+  geometry_msgs::PointStamped point_in;
+  geometry_msgs::PointStamped point_out;
+
+  point_in.header.frame_id = msg->header.frame_id;
+  point_in.header.stamp = msg->header.stamp;
+  point_in.point = msg->pose.position;
+
+  if(this->get_garment_pose)
+  {
+    this->listener.transformPoint("base_link", point_in, point_out);
+//    this->grasp_pose.pose.position = point_out.point;
+//    this->grasp_pose.pose.orientation = 
+//    std::cout << "\033[1;36m Grasp position -> \033[1;36m  x: " << grasp_pose.pose.position.x << ", y: " << grasp_pose.pose.position.y << ", z: " << grasp_pose.pose.position.z << std::endl;
+
+    this->pre_grasp_center.x = point_out.point.x-0.05;
+    this->pre_grasp_center.y = point_out.point.y;
+    std::cout << "\033[1;36m Grasp position -> \033[1;36m  x: " << this->pre_grasp_center.x << ", y: " << this-> pre_grasp_center.y << ", z: " << this->pre_grasp_center.z << std::endl;
+    std::cout << "\033[1;36m Grasp orientation -> \033[1;36m  x: " << this->pre_grasp_center.theta_x << ", y: " << this-> pre_grasp_center.theta_y << ", z: " << this->pre_grasp_center.theta_z << std::endl;
+    this->get_garment_pose=false;
+  }
 }
 
 /*  [subscriber callbacks] */
@@ -655,8 +693,13 @@ void DemosKinovaAlgNode::node_config_update(Config &config, uint32_t level)
   }
   if(config.start)
     this->start=true;
+  if(config.stop)
+    this->stop=true;
   if(config.set_config)
     this->set_config();
+  if(config.test)
+    this->get_garment_pose=true;
+
   this->config_=config;
   this->alg_.unlock();
 }

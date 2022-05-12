@@ -57,6 +57,7 @@
 
 #include <tf/transform_listener.h>
 #include <tf/transform_broadcaster.h>
+#include <visualization_msgs/Marker.h>
 
 /**
  * \brief IRI ROS Specific Algorithm Class
@@ -71,6 +72,7 @@ class DemosKinovaAlgNode : public algorithm_base::IriBaseAlgorithm<DemosKinovaAl
     bool success = true;
     int state = 0;
     bool start=false;
+    bool stop=false;
     std::vector<double> pre_grasp_corner;
     kortex_driver::Pose pre_grasp_center;
     float garment_width;
@@ -89,6 +91,10 @@ class DemosKinovaAlgNode : public algorithm_base::IriBaseAlgorithm<DemosKinovaAl
     tf::TransformBroadcaster broadcaster;
     ros::Timer handeye_frame_pub_timer;
     void handeye_frame_pub(const ros::TimerEvent& event);
+    geometry_msgs::PoseStamped grasp_pose;
+    bool get_garment_pose;
+    ros::Subscriber garment_pose_subscriber;
+    void garment_pose_callback(const visualization_msgs::Marker::ConstPtr& msg);
     void set_config(void);
 
     // [publisher attributes]
