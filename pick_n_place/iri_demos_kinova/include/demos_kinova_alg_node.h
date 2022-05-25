@@ -59,6 +59,28 @@
 #include <tf/transform_broadcaster.h>
 #include <visualization_msgs/Marker.h>
 
+typedef enum {IDLE,
+              HOME,
+              PRE_GRASP,
+              GRASP,
+              WAIT_GRASP,
+              CLOSE_GRIPPER,
+              POST_GRASP,
+              WAIT_POST_GRASP,
+              GO_TO_PLACE,
+              WAIT_GO_TO_PLACE,
+              PRE_PLACE_DIAGONAL,
+              WAIT_PRE_PLACE_DIAGONAL,
+              PLACE_DIAGONAL,
+              WAIT_PLACE_DIAGONAL,
+              PLACE,
+              WAIT_PLACE,
+              OPEN_GRIPPER,
+              POST_PLACE,
+              WAIT_POST_PLACE,
+              HIGH_POSITION,
+              END} pick_place_states_t;
+
 /**
  * \brief IRI ROS Specific Algorithm Class
  *
@@ -73,6 +95,8 @@ class DemosKinovaAlgNode : public algorithm_base::IriBaseAlgorithm<DemosKinovaAl
     int state = 0;
     bool start=false;
     bool stop=false;
+    pick_place_states_t state;
+
     std::vector<double> pre_grasp_corner;
     kortex_driver::Pose pre_grasp_center;
     float garment_width;
@@ -96,6 +120,7 @@ class DemosKinovaAlgNode : public algorithm_base::IriBaseAlgorithm<DemosKinovaAl
     ros::Subscriber garment_pose_subscriber;
     void garment_pose_callback(const visualization_msgs::Marker::ConstPtr& msg);
     void set_config(void);
+    void get_params(void);
 
     ros::Publisher grasp_marker_publisher;
 
