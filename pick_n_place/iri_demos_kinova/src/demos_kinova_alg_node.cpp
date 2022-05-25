@@ -6,12 +6,16 @@ DemosKinovaAlgNode::DemosKinovaAlgNode(void) :
 {
 
   this->start=false;
+  this->stop=false;
 
-  /* Garment pose subscriber */
+  // Garment pose subscriber
   this->garment_pose_subscriber = this->public_node_handle_.subscribe("/segment_table/grasp_point",1,&DemosKinovaAlgNode::garment_pose_callback,this);
   this->get_garment_pose=false;
 
-  /* Publish external camera frame */
+  // Publish grasp marker
+  this->grasp_marker_publisher = this->public_node_handle_.advertise<visualization_msgs::Marker>("grasp_marker", 1);
+
+  // Publish external camera frame 
   this->handeye_frame_pub_timer = this->public_node_handle_.createTimer(ros::Duration(1.0),&DemosKinovaAlgNode::handeye_frame_pub,this);
   this->handeye_frame_pub_timer.stop();
 
@@ -58,7 +62,7 @@ DemosKinovaAlgNode::DemosKinovaAlgNode(void) :
   else
     this->diagonal_move = this->config_.diagonal_move;
 
-  this->pre_grasp_center.x = this->pre_grasp_corner[0]-0.05;
+  this->pre_grasp_center.x = this->pre_grasp_corner[0]-0.08;
   this->pre_grasp_center.y = this->pre_grasp_corner[1];// - this->garment_width/2;
   this->pre_grasp_center.z = this->pre_grasp_corner[2];
   this->pre_grasp_center.theta_x = this->pre_grasp_corner[3];
@@ -142,16 +146,16 @@ void DemosKinovaAlgNode::mainNodeThread(void)
   // [fill srv structure and make request to the server]
 
 
-//  ROS_WARN("State: %s", state);
   //activate_publishing_srv_.request.data = my_var;
+
   double open_gripper = 0.35;
-  double close_gipper = 0.81;
+  double close_gipper = 0.97; //0.81;
 
   if(this->stop)
   {
     ROS_WARN("Demo Pick n Place has stopped!");
     state=0;
-    this->start=false;
+    this->stop=false;
   }
   // OPEN GRIPPER
   if (state == 0)
@@ -184,6 +188,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
   if (state == 2)
   {
     ROS_INFO("Sending to pre-grasp position.");
+    std::cout << "\033[1;36m Groing to: -> \033[1;36m  x: " << this->pre_grasp_center.x << ", y: " << this-> pre_grasp_center.y << ", z: " << this->pre_grasp_center.z << std::endl;
     this->success &= send_cartesian_pose(this->pre_grasp_center);
     if (this->success)
     {
@@ -205,6 +210,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
       desired_pose.position.x = tool_pose.x + 0.04;
       desired_pose.position.y = tool_pose.y;
       desired_pose.position.z = tool_pose.z;
+      std::cout << "\033[1;36m Groing to: -> \033[1;36m  x: " << desired_pose.position.x << ", y: " <<  desired_pose.position.y << ", z: " << desired_pose.position.z << std::endl;
       kinova_linear_moveMakeActionRequest(desired_pose, kortex_driver::CartesianReferenceFrame::CARTESIAN_REFERENCE_FRAME_MIXED, 0.1);
     }
     // to get the state of the current goal
@@ -498,21 +504,21 @@ void DemosKinovaAlgNode::mainNodeThread(void)
   this->alg_.unlock();
 }
 
-/* Starts grasp point marker and grasping frame topics with given rates */
+// Starts grasp point marker and grasping frame topics with given rates 
 void DemosKinovaAlgNode::set_config(void)
 {
   ROS_INFO("DemosKinovaAlgNode: Set configuration");
 
-  /* Start publisher rates */
+  // Start publisher rates 
   this->handeye_frame_pub_timer.setPeriod(ros::Duration(1.0/50.0));
   this->handeye_frame_pub_timer.start();
 }
 
-/* Create and publish finger tip and garment's corner frames */
+// Create and publish finger tip and garment's corner frames 
 void DemosKinovaAlgNode::handeye_frame_pub(const ros::TimerEvent& event)
 {
   
-  /* Create finger tip frame */
+  // Create finger tip frame 
   tf::Transform transform;
   transform.setOrigin(tf::Vector3(config_.x, config_.y, config_.z));
   tf::Quaternion q;
@@ -525,6 +531,19 @@ void DemosKinovaAlgNode::handeye_frame_pub(const ros::TimerEvent& event)
 void DemosKinovaAlgNode::garment_pose_callback(const visualization_msgs::Marker::ConstPtr& msg)
 {
   ROS_DEBUG("DemosKinovaAlgNode: garment pose callback");
+
+  visualization_msgs::Marker marker;
+  marker.header.frame_id = "base_link";
+  marker.id = 0;
+  marker.type = visualization_msgs::Marker::SPHERE;
+  marker.scale.x=0.01;
+  marker.scale.y=0.01;
+  marker.scale.z=0.01;
+  marker.color.r = 1.0f;
+  marker.color.g = 0.0f;
+  marker.color.b = 1.0f;
+  marker.color.a = 1.0;
+  marker.lifetime = ros::Duration();
 
   geometry_msgs::PointStamped point_in;
   geometry_msgs::PointStamped point_out;
@@ -540,13 +559,20 @@ void DemosKinovaAlgNode::garment_pose_callback(const visualization_msgs::Marker:
 //    this->grasp_pose.pose.orientation = 
 //    std::cout << "\033[1;36m Grasp position -> \033[1;36m  x: " << grasp_pose.pose.position.x << ", y: " << grasp_pose.pose.position.y << ", z: " << grasp_pose.pose.position.z << std::endl;
 
-    this->pre_grasp_center.x = point_out.point.x-0.05;
+    this->pre_grasp_center.x = point_out.point.x-0.09;
     this->pre_grasp_center.y = point_out.point.y;
     std::cout << "\033[1;36m Grasp position -> \033[1;36m  x: " << this->pre_grasp_center.x << ", y: " << this-> pre_grasp_center.y << ", z: " << this->pre_grasp_center.z << std::endl;
     std::cout << "\033[1;36m Grasp orientation -> \033[1;36m  x: " << this->pre_grasp_center.theta_x << ", y: " << this-> pre_grasp_center.theta_y << ", z: " << this->pre_grasp_center.theta_z << std::endl;
+
+    marker.pose.position.x=point_out.point.x;
+    marker.pose.position.y=point_out.point.y;
+    marker.pose.position.z=point_out.point.z;
+    grasp_marker_publisher.publish(marker);
+
     this->get_garment_pose=false;
   }
 }
+
 
 /*  [subscriber callbacks] */
 void DemosKinovaAlgNode::base_feedback_callback(const kortex_driver::BaseCyclic_Feedback::ConstPtr& msg)

@@ -269,7 +269,7 @@ namespace pal {
       // Mandatory
       seg.setModelType(pcl::SACMODEL_PLANE);
       seg.setMethodType(pcl::SAC_RANSAC);
-      seg.setDistanceThreshold(0.02);
+      seg.setDistanceThreshold(0.006);
       seg.setInputCloud(inputCloud);
       seg.segment(*inliers, *coefficients);
 

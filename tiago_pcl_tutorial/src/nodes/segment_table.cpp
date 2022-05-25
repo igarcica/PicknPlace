@@ -260,9 +260,9 @@ namespace pal {
     if ( pclNonPlaneCloud->empty() )
       pclFilteredNonPlaneCloud = pclNonPlaneCloud;
     else
-      pal::statisticalOutlierRemoval<pcl::PointXYZRGB>(pclNonPlaneCloud, 25, 1.0, pclFilteredNonPlaneCloud);
+      pal::statisticalOutlierRemoval<pcl::PointXYZRGB>(pclNonPlaneCloud, 50, 0.1, pclFilteredNonPlaneCloud);
 
-    ROS_INFO_STREAM("Processing:");
+/*    ROS_INFO_STREAM("Processing:");
     ROS_INFO_STREAM("\tInput cloud:                 " << pclCloud->points.size() << " points");
     ROS_INFO_STREAM("\tAfter pass-through:          " << passThroughCloud->points.size() << " points");
     ROS_INFO_STREAM("\tAfter downsmapling:          " << pclDownSampledCloud->points.size() << " points");
@@ -270,8 +270,11 @@ namespace pal {
     ROS_INFO_STREAM("\tNon-plane points:            " << pclNonPlaneCloud->points.size() << " points");
     ROS_INFO_STREAM("\tOutliers in plane:           " << pclPlaneCloud->points.size() - pclFilteredPlaneCloud->points.size() << " points");
     ROS_INFO_STREAM("\tOutliers in non-plane:       " << pclNonPlaneCloud->points.size() - pclFilteredNonPlaneCloud->points.size() << " points");
-
-
+*/
+/*    for(int i=0; i<pclCloud->points.size(); i++){
+      ROS_INFO_STREAM("\tInput cloud:                 " << pclCloud->points[i].x);
+    }
+*/
     publish(pclFilteredPlaneCloud,
             pclFilteredNonPlaneCloud,
             pclCloud->header.stamp,
@@ -414,9 +417,9 @@ namespace pal {
       marker2=marker;
       marker3=marker;
       marker4=marker;
-      marker.color.r = 1.0f;
-      marker.color.g = 0.0f;
       grasp_marker=marker;
+      grasp_marker.color.r = 1.0f;
+      grasp_marker.color.g = 0.0f;
 
 // GET CORNERS
       std::cout << "CONVEX SIZE: " << cloud_hull->points.size() << std::endl;
@@ -425,8 +428,8 @@ namespace pal {
       float min_sum = cloud_hull->points[0].y + cloud_hull->points[0].z;
       float min_diff = max_diff;
       float max_sum = min_sum;
-      std::cout << "pre diff: " << max_diff << std::endl;
-      std::cout << "pre sum: " << min_sum << std::endl;
+      //std::cout << "pre diff: " << max_diff << std::endl;
+      //std::cout << "pre sum: " << min_sum << std::endl;
 
       for(int i=0; i<cloud_hull->points.size(); i++)
       {
@@ -460,9 +463,12 @@ namespace pal {
             pt_down_left.y=cloud_hull->points[i].y;
             pt_down_left.z=cloud_hull->points[i].z;
         }
-            
-
       }
+      std::cout << "\033[1;36m PT DOWN LEFT: " << pt_down_left.z << ", " << pt_down_left.y << ", " << pt_down_left.x << std::endl;
+      std::cout << "\033[1;36m PT UP LEFT: " << pt_up_left.z << ", " << pt_up_left.y << ", " << pt_up_left.x << std::endl;
+      std::cout << "\033[1;36m PT DOWN RIGHT: " << pt_down_right.z << ", " << pt_down_right.y << ", " << pt_down_right.x << std::endl;
+      std::cout << "\033[1;36m PT UP RIGHT: " << pt_up_right.z << ", " << pt_up_right.y << ", " << pt_up_right.x << std::endl;
+
       marker.pose.position.x=pt_down_right.x;
       marker.pose.position.y=pt_down_right.y;
       marker.pose.position.z=pt_down_right.z;
@@ -484,29 +490,64 @@ namespace pal {
 //EDGES and GRASP POINT (Should take the closest edge to the robot (TF robot))
       // Compute edges size
       pcl::PointXYZ grasp_point;
-      float edge1 = abs(pt_up_left.y - pt_up_right.y);
+      float edge1 = abs(pt_down_left.y - pt_down_right.y);
       float edge2 = abs(pt_up_left.z - pt_down_left.z);
-      std::cout << "Edges: " << edge1 << ", " << edge2 << std::endl;
-      
-      // Get mid point of longest edge
+      std::cout << "Edges antes: " << edge1 << ", " << edge2 << std::endl;
+      edge1 = sqrt(pow(abs(pt_up_left.z-pt_down_left.z),2)+pow(abs(pt_up_left.y-pt_down_left.y),2));
+      edge1 = sqrt(pow(abs(pt_down_right.z-pt_down_left.z),2)+pow(abs(pt_down_right.y-pt_down_left.y),2));
+      std::cout << "Edges ahora: " << edge1 << ", " << edge2 << std::endl;
       float mid_pt;
-      if(edge1 > edge2)
-      {
-        mid_pt = edge1/2;
-        grasp_point = pt_down_left;
-        grasp_point.y = pt_down_left.y-mid_pt;
-      }
-      else
+
+      // Check if the object's shape is square or a rectangle 
+      if(abs(edge1-edge2)>0.05)
       { 
-        mid_pt = edge2/2;
-        grasp_point = pt_down_left;
-        grasp_point.z = pt_down_left.z+mid_pt;
+        // Get mid point of longest edge
+        if(edge1 > edge2)
+        {
+          std::cout << "Edge1!" << std::endl;
+//          mid_pt = edge1/2;
+          grasp_point.z = pt_down_left.z + (pt_down_right.z - pt_down_left.z)/2;
+          grasp_point.y = pt_down_left.y - (abs(pt_down_left.y - pt_down_right.y)/2); //REVISAR?
+          grasp_point.x = pt_down_left.x-0.02;
+          /*grasp_point.z = pt_down_left.z+mid_pt;
+          grasp_point.y = pt_down_left.y-mid_pt;
+          grasp_point.y = pt_down_left.x-0.02;*/
+          //grasp_point = pt_down_left;
+          //grasp_point.y = pt_down_left.y-mid_pt;
+        }
+        else
+        { 
+          std::cout << "Edge2!" << std::endl;
+//          mid_pt = edge2/2;
+          grasp_point.z = pt_down_left.z + (abs(pt_down_left.z - pt_up_left.z)/2); //REVISAR!
+          grasp_point.y = pt_down_left.y + (abs(pt_down_left.y - pt_up_left.y)/2); //REVISAR!
+          grasp_point.x = pt_down_left.x-0.02;
+          /*grasp_point.z = pt_down_left.z+mid_pt;
+          grasp_point.y = pt_down_left.y+mid_pt;
+          grasp_point.y = pt_down_left.x-0.02;*/
+          //grasp_point = pt_down_left;
+          //grasp_point.z = pt_down_left.z+mid_pt;
+        }
+      }
+      else //Squared object -> Get mid point of closet edge
+      {
+        std::cout << "Square!" << std::endl;
+        mid_pt = edge1/2;
+        grasp_point.z = pt_down_left.z + (pt_down_right.z - pt_down_left.z)/2;
+        grasp_point.y = pt_down_left.y - (abs(pt_down_left.y - pt_down_right.y)/2);
+        grasp_point.x = pt_down_left.x-0.02;
+        /*grasp_point.z = pt_down_left.z-mid_pt;
+        grasp_point.y = pt_down_left.y-mid_pt;
+        grasp_point.y = pt_down_left.x-0.02;*/
+        //grasp_point = pt_down_left;
+        //grasp_point.y = pt_down_left.y-mid_pt;
       }
       std::cout << "Mid pt: " << mid_pt << std::endl;
 
       //grasp_point = pt_down_left;
       //grasp_point.y = pt_down_left.y-mid_pt;
 
+      std::cout << "\033[1;36m GRASP POINT: " << grasp_point.z << ", " << grasp_point.y << ", " << grasp_point.x << std::endl;
       grasp_marker.pose.position.x=grasp_point.x;
       grasp_marker.pose.position.y=grasp_point.y;
       grasp_marker.pose.position.z=grasp_point.z;

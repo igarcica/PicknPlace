@@ -97,6 +97,8 @@ class DemosKinovaAlgNode : public algorithm_base::IriBaseAlgorithm<DemosKinovaAl
     void garment_pose_callback(const visualization_msgs::Marker::ConstPtr& msg);
     void set_config(void);
 
+    ros::Publisher grasp_marker_publisher;
+
     // [publisher attributes]
     ros::Publisher cartesian_velocity_publisher_;
     kortex_driver::TwistCommand cartesian_velocity_TwistCommand_msg_;

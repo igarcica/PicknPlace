@@ -19,7 +19,7 @@ class hsv_segm:
 #        self.img = cv2.imread('towel_segm.png')
         self.area_thres = 70000
         self.bridge = CvBridge()
-        self.sub = rospy.Subscriber("/camera/color/image_raw", Image, self.callback)
+        self.sub = rospy.Subscriber("/ext_camera/color/image_raw", Image, self.callback)
         self.pub = rospy.Publisher("/hola",Image,queue_size=1)
 #        self.result
 
