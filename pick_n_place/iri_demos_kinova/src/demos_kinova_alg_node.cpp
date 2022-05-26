@@ -8,6 +8,8 @@ DemosKinovaAlgNode::DemosKinovaAlgNode(void) :
   this->state=IDLE;
   this->start=false;
   this->stop=false;
+  double open_gripper = 0.35;
+  double close_gripper = 0.97; //0.81;
 
   // Garment pose subscriber
   this->garment_pose_subscriber = this->public_node_handle_.subscribe("/segment_table/grasp_point",1,&DemosKinovaAlgNode::garment_pose_callback,this);
@@ -108,13 +110,12 @@ void DemosKinovaAlgNode::mainNodeThread(void)
 
   //activate_publishing_srv_.request.data = my_var;
 
-  double open_gripper = 0.35;
-  double close_gipper = 0.97; //0.81;
 
   if(this->state!=IDLE && this->stop)
   {
     ROS_WARN("Demo Pick n Place has stopped!");
-    this->state=END;
+    this->state=IDLE;
+    this->start=false;
     this->stop=false;
   }
   else
@@ -126,7 +127,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
                  if(this->start)
                  {
                    ROS_INFO("Opening the gripper.");
-                   this->success &= send_gripper_command(open_gripper);
+                   this->success &= send_gripper_command(this->open_gripper);
                    if (this->success)
                    {
                      this->state=HOME;
@@ -139,7 +140,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
       break; 
 
       // HOME POSITION
-      case HOME: ROS_DEBUG("");
+      case HOME: ROS_INFO("DemosKinovaAlgNode: state HOME");
                  // Move the robot to the Home position with an Action
                  ROS_INFO("Moving to home position.");
                  this->success &= home_the_robot();
@@ -151,12 +152,13 @@ void DemosKinovaAlgNode::mainNodeThread(void)
       break;
   
       // PRE-GRASP POSITION
-      case PRE_GRASP: ROS_DEBUG("");
+      case PRE_GRASP: ROS_INFO("DemosKinovaAlgNode: state PRE GRASP");
                       ROS_INFO("Sending to pre-grasp position.");
                       std::cout << "\033[1;36m Groing to: -> \033[1;36m  x: " << this->pre_grasp_center.x << ", y: " << this-> pre_grasp_center.y << ", z: " << this->pre_grasp_center.z << std::endl;
                       this->success &= send_cartesian_pose(this->pre_grasp_center);
                       if (this->success)
                       {
+                        ROS_INFO("Success PRE GRASP");
                         this->state=GRASP;
                         ros::Duration(0.5).sleep();
                       }
@@ -164,49 +166,53 @@ void DemosKinovaAlgNode::mainNodeThread(void)
       
 
       // GRASP POSITION
-      case GRASP: ROS_DEBUG("");
-           // [fill action structure and make request to the action server]
-           // variable to hold the state of the current goal on the server
-           actionlib::SimpleClientGoalState kinova_linear_move_state(actionlib::SimpleClientGoalState::PENDING);
-           static bool first=true;
-           if(first){
-             ROS_INFO("Sending to grasp position.");
-             first=false;
-             geometry_msgs::Pose desired_pose;
-             desired_pose.position.x = tool_pose.x + 0.04;
-             desired_pose.position.y = tool_pose.y;
-             desired_pose.position.z = tool_pose.z;
-             std::cout << "\033[1;36m Groing to: -> \033[1;36m  x: " << desired_pose.position.x << ", y: " <<  desired_pose.position.y << ", z: " << desired_pose.position.z << std::endl;
-             kinova_linear_moveMakeActionRequest(desired_pose, kortex_driver::CartesianReferenceFrame::CARTESIAN_REFERENCE_FRAME_MIXED, 0.1);
-           }
-           this->state=WAIT_GRASP;
+      case GRASP: ROS_INFO("DemosKinovaAlgNode: state GRASP");
+                  {
+//                    static bool first=true;
+//                    if(first){
+                      ROS_INFO("Sending to grasp position.");
+                      //first=false;
+                      geometry_msgs::Pose desired_pose;
+                      desired_pose.position.x = tool_pose.x + 0.04;
+                      desired_pose.position.y = tool_pose.y;
+                      desired_pose.position.z = tool_pose.z;
+                      std::cout << "\033[1;36m Groing to: -> \033[1;36m  x: " << desired_pose.position.x << ", y: " <<  desired_pose.position.y << ", z: " << desired_pose.position.z << std::endl;
+                      kinova_linear_moveMakeActionRequest(desired_pose, kortex_driver::CartesianReferenceFrame::CARTESIAN_REFERENCE_FRAME_MIXED, 0.1);
+//                    }
+                    this->state=WAIT_GRASP;
+                  }
       break;
 
-      case WAIT_GRASP: ROS_DEBUG("");
-                       // to get the state of the current goal
-                       this->alg_.unlock();
-                       kinova_linear_move_state=kinova_linear_move_client_.getState(); // Possible state values are: PENDING,ACTIVE,RECALLED,REJECTED,PREEMPTED,ABORTED,SUCCEEDED and LOST
-                       this->alg_.lock();
-
-                       ROS_INFO("DemosKinovaAlgNode::mainNodeThread: kinova_linear_move_client_ action state = %s", kinova_linear_move_state.toString().c_str());;
-                       if(kinova_linear_move_state==actionlib::SimpleClientGoalState::ABORTED)
+      case WAIT_GRASP: ROS_INFO("DemosKinovaAlgNode: state WAIT GRASP");
                        {
-                         ROS_INFO("Action aborted!");
-                         this->state=END; //
-                       }
-                       else if(kinova_linear_move_state==actionlib::SimpleClientGoalState::SUCCEEDED)
-                       {
-                         this->success = true;
-                         this->state=CLOSE_GRIPPER;
-                         ros::Duration(0.5).sleep();
+                         // [fill action structure and make request to the action server]
+                         // variable to hold the state of the current goal on the server
+                         actionlib::SimpleClientGoalState kinova_linear_move_state(actionlib::SimpleClientGoalState::PENDING);
+                         // to get the state of the current goal
+                         this->alg_.unlock();
+                         kinova_linear_move_state=kinova_linear_move_client_.getState(); // Possible state values are: PENDING,ACTIVE,RECALLED,REJECTED,PREEMPTED,ABORTED,SUCCEEDED and LOST
+                         this->alg_.lock();
+  
+                         ROS_INFO("DemosKinovaAlgNode::mainNodeThread: kinova_linear_move_client_ action state = %s", kinova_linear_move_state.toString().c_str());;
+                         if(kinova_linear_move_state==actionlib::SimpleClientGoalState::ABORTED)
+                         {
+                           ROS_INFO("Action aborted!");
+                           this->state=END; //
+                         }
+                         else if(kinova_linear_move_state==actionlib::SimpleClientGoalState::SUCCEEDED)
+                         {
+                           this->success = true;
+                           this->state=CLOSE_GRIPPER;
+                           ros::Duration(0.5).sleep();
+                         }
                        }
       break;
   
 
       // CLOSE GRIPPER
-      case CLOSE_GRIPPER: ROS_DEBUG("");
+      case CLOSE_GRIPPER: ROS_INFO("DemosKinovaAlgNode: state CLOSE GRIPPER");
                           ROS_INFO("Closing the gripper.");
-                          this->success &= send_gripper_command(close_gipper);
+                          this->success &= send_gripper_command(this->close_gripper);
                           if (this->success)
                           {
                             this->state=POST_GRASP;
@@ -216,271 +222,74 @@ void DemosKinovaAlgNode::mainNodeThread(void)
  
 
       // POST-GRASP POSITION
-      case POST_GRASP: ROS_DEBUG("");
-                       // [fill action structure and make request to the action server]
-                       // variable to hold the state of the current goal on the server
-                       actionlib::SimpleClientGoalState kinova_linear_move_state(actionlib::SimpleClientGoalState::PENDING);
-                       static bool first=true;
-                       if(first){
-                         ROS_INFO("Sending to post-grasp position.");
-                         first=false;
-                         geometry_msgs::Pose desired_pose;
-                         desired_pose.position.x = tool_pose.x;
-                         desired_pose.position.y = tool_pose.y;
-                         desired_pose.position.z = tool_pose.z + this->garment_height*1.5;
-                         kinova_linear_moveMakeActionRequest(desired_pose, kortex_driver::CartesianReferenceFrame::CARTESIAN_REFERENCE_FRAME_MIXED, 0.08);
+      case POST_GRASP: ROS_INFO("DemosKinovaAlgNode: state POST GRASP");
+                       {
+//                         static bool first=true;
+//                         if(first){
+                           ROS_INFO("Sending to post-grasp position.");
+                           //first=false;
+                           geometry_msgs::Pose desired_pose;
+                           desired_pose.position.x = tool_pose.x;
+                           desired_pose.position.y = tool_pose.y;
+                           desired_pose.position.z = tool_pose.z + this->garment_height*1.5;
+                           kinova_linear_moveMakeActionRequest(desired_pose, kortex_driver::CartesianReferenceFrame::CARTESIAN_REFERENCE_FRAME_MIXED, 0.08);
+//                         }
+                         this->state=WAIT_POST_GRASP;
                        }
-                       this->state=WAIT_GRASP;
       break;
 
-      case WAIT_POST_GRASP: ROS_DEBUG("");
-                       // to get the state of the current goal
-                       this->alg_.unlock();
-                       kinova_linear_move_state=kinova_linear_move_client_.getState(); // Possible state values are: PENDING,ACTIVE,RECALLED,REJECTED,PREEMPTED,ABORTED,SUCCEEDED and LOST
-                       this->alg_.lock();
-
-                       ROS_INFO("DemosKinovaAlgNode::mainNodeThread: kinova_linear_move_client_ action state = %s", kinova_linear_move_state.toString().c_str());;
-                       if(kinova_linear_move_state==actionlib::SimpleClientGoalState::ABORTED)
-                       {
-                         ROS_INFO("Action aborted!");
-                         this->state=END; //
-                       }
-                       else if(kinova_linear_move_state==actionlib::SimpleClientGoalState::SUCCEEDED)
-                       {
-                         this->success = true;
-                         this->state=GO_TO_PLACE;
-                         ros::Duration(0.5).sleep();
-                       }
+      case WAIT_POST_GRASP: ROS_INFO("DemosKinovaAlgNode: state WAIT POST GRASP");
+                            {
+                              // [fill action structure and make request to the action server]
+                              // variable to hold the state of the current goal on the server
+                              actionlib::SimpleClientGoalState kinova_linear_move_state(actionlib::SimpleClientGoalState::PENDING);
+                              // to get the state of the current goal
+                              this->alg_.unlock();
+                              kinova_linear_move_state=kinova_linear_move_client_.getState(); // Possible state values are: PENDING,ACTIVE,RECALLED,REJECTED,PREEMPTED,ABORTED,SUCCEEDED and LOST
+                              this->alg_.lock();
+       
+                              ROS_INFO("DemosKinovaAlgNode::mainNodeThread: kinova_linear_move_client_ action state = %s", kinova_linear_move_state.toString().c_str());;
+                              if(kinova_linear_move_state==actionlib::SimpleClientGoalState::ABORTED)
+                              {
+                                ROS_INFO("Action aborted!");
+                                this->state=END; //
+                              }
+                              else if(kinova_linear_move_state==actionlib::SimpleClientGoalState::SUCCEEDED)
+                              {
+                                this->success = true;
+                                this->state=GO_TO_PLACE;
+                                ros::Duration(0.5).sleep();
+                              }
+                            }
       break;
 
       // PRE-PLACE POSITION
-      case GO_TO_PLACE: ROS_DEBUG("");
-                      // [fill action structure and make request to the action server]
-                      // variable to hold the state of the current goal on the server
-                      actionlib::SimpleClientGoalState kinova_linear_move_state(actionlib::SimpleClientGoalState::PENDING);
-                      static bool first=true;
-                      if(first){
-                        ROS_INFO("Sending to post-grasp position.");
-                        first=false;
-                        geometry_msgs::Pose desired_pose;
-                        desired_pose.position.x = 0.7;
-                        desired_pose.position.y = -this->garment_width/2;
-                        desired_pose.position.z = tool_pose.z;
-                        kinova_linear_moveMakeActionRequest(desired_pose, kortex_driver::CartesianReferenceFrame::CARTESIAN_REFERENCE_FRAME_MIXED, 0.08);
-                      }
-                      this->state=WAIT_GO_TO_PLACE;
-      break;
-
-      case WAIT_GO_TO_PLACE: ROS_DEBUG("");
-                           // to get the state of the current goal
-                           this->alg_.unlock();
-                           kinova_linear_move_state=kinova_linear_move_client_.getState(); // Possible state values are: PENDING,ACTIVE,RECALLED,REJECTED,PREEMPTED,ABORTED,SUCCEEDED and LOST
-                           this->alg_.lock();
-
-                           ROS_INFO("DemosKinovaAlgNode::mainNodeThread: kinova_linear_move_client_ action state = %s", kinova_linear_move_state.toString().c_str());;
-                           if(kinova_linear_move_state==actionlib::SimpleClientGoalState::ABORTED)
-                           {
-                             ROS_INFO("Action aborted!");
-                             this->state=END;
-                           }
-                           else if(kinova_linear_move_state==actionlib::SimpleClientGoalState::SUCCEEDED)
-                           {
-                             this->success = true;
-                             if(this->diagonal_move)
-                               this->state=PRE_PLACE_DIAGONAL;
-                             else
-                               this->state=;
-                             ros::Duration(0.5).sleep();
-                           }
-      break;
-
-      case PRE_PLACE_DIAGONAL: ROS_DEBUG("");
-                           // [fill action structure and make request to the action server]
-                           // variable to hold the state of the current goal on the server
-                           actionlib::SimpleClientGoalState kinova_linear_move_state(actionlib::SimpleClientGoalState::PENDING);
-                           static bool first=true;
-                           if(first){
-                             ROS_INFO("Sending to diagonal position.");
-                             first=false;
-                             geometry_msgs::Pose desired_pose;
-                             desired_pose.position.x = tool_pose.x;
-                             desired_pose.position.y = tool_pose.y;
-                             desired_pose.position.z = this->garment_height;
-                             kinova_linear_moveMakeActionRequest(desired_pose, kortex_driver::CartesianReferenceFrame::CARTESIAN_REFERENCE_FRAME_MIXED, 0.08);
-                           }
-                           this->state=WAIT_PRE_PLACE_DIAGONAL;
-      break;
-      
-      case WAIT_PRE_PLACE_DIAGONAL: ROS_DEBUG("");
-                                // to get the state of the current goal
-                                this->alg_.unlock();
-                                kinova_linear_move_state=kinova_linear_move_client_.getState(); // Possible state values are: PENDING,ACTIVE,RECALLED,REJECTED,PREEMPTED,ABORTED,SUCCEEDED and LOST
-                                this->alg_.lock();
-
-                                ROS_INFO("DemosKinovaAlgNode::mainNodeThread: kinova_linear_move_client_ action state = %s", kinova_linear_move_state.toString().c_str());;
-                                if(kinova_linear_move_state==actionlib::SimpleClientGoalState::ABORTED)
-                                {
-                                  ROS_INFO("Action aborted!");
-                                  this->state=END; //
-                                }
-                                else if(kinova_linear_move_state==actionlib::SimpleClientGoalState::SUCCEEDED)
-                                {
-                                  this->success = true;
-                                  this->state=PLACE_DIAGONAL;
-                                  ros::Duration(0.5).sleep();
-                                }
-      break;
-
-      // PLACE POSITION
-      case PLACE_DIAGONAL: ROS_DEBUG("");
-                  // [fill action structure and make request to the action server]
-                  // variable to hold the state of the current goal on the server
-                  actionlib::SimpleClientGoalState kinova_linear_move_state(actionlib::SimpleClientGoalState::PENDING);
-                  static bool first=true;
-                  if(first){
-                    ROS_INFO("Sending to place position.");
-                    first=false;
-                    geometry_msgs::Pose desired_pose;
-                    desired_pose.position.x = tool_pose.x-this->garment_height/1.5;
-                    desired_pose.position.y = tool_pose.y;
-                    desired_pose.position.z = this->pre_grasp_center.z;
-                    kinova_linear_moveMakeActionRequest(desired_pose, kortex_driver::CartesianReferenceFrame::CARTESIAN_REFERENCE_FRAME_MIXED, 0.08);
-                  }
-                  this->state=WAIT_PLACE_DIAGONAL;
-      break;
-
-      case WAIT_PLACE_DIAGONAL: ROS_DEBUG("");
-                       // to get the state of the current goal
-                       this->alg_.unlock();
-                       kinova_linear_move_state=kinova_linear_move_client_.getState(); // Possible state values are: PENDING,ACTIVE,RECALLED,REJECTED,PREEMPTED,ABORTED,SUCCEEDED and LOST
-                       this->alg_.lock();
-
-                       ROS_INFO("DemosKinovaAlgNode::mainNodeThread: kinova_linear_move_client_ action state = %s", kinova_linear_move_state.toString().c_str());;
-                       if(kinova_linear_move_state==actionlib::SimpleClientGoalState::ABORTED)
-                       {
-                         ROS_INFO("Action aborted!");
-                         this->state=END;
-                       }
-                       else if(kinova_linear_move_state==actionlib::SimpleClientGoalState::SUCCEEDED)
-                       {
-                         this->success = true;
-                         this->state=OPEN_GRIPPER;
-                         ros::Duration(0.5).sleep();
-                       }
-      break;
-
-// PLACE RECTO!
-    
-      // PLACE POSITION
-      case PLACE: ROS_DEBUG("");
-                  // [fill action structure and make request to the action server]
-                  // variable to hold the state of the current goal on the server
-                  actionlib::SimpleClientGoalState kinova_linear_move_state(actionlib::SimpleClientGoalState::PENDING);
-                  static bool first=true;
-                  if(first){
-                    ROS_INFO("Sending to place position.");
-                    first=false;
-                    geometry_msgs::Pose desired_pose;
-                    desired_pose.position.x = tool_pose.x;
-                    desired_pose.position.y = tool_pose.y;
-                    desired_pose.position.z = 0.11;
-                    kinova_linear_moveMakeActionRequest(desired_pose, kortex_driver::CartesianReferenceFrame::CARTESIAN_REFERENCE_FRAME_MIXED, 0.08);
-                  }
-                  this->state=WAIT_PLACE;
-      break;
-
-      case WAIT_PLACE: ROS_DEBUG("");
-                      // to get the state of the current goal
-                      this->alg_.unlock();
-                      kinova_linear_move_state=kinova_linear_move_client_.getState();
-                      // Possible state values are: PENDING,ACTIVE,RECALLED,REJECTED,PREEMPTED,ABORTED,SUCCEEDED and LOST
-                      this->alg_.lock();
-                      ROS_INFO("DemosKinovaAlgNode::mainNodeThread: kinova_linear_move_client_ action state = %s", kinova_linear_move_state.toString().c_str());;
-                      if(kinova_linear_move_state==actionlib::SimpleClientGoalState::ABORTED)
-                      {
-                        ROS_INFO("Action aborted!");
-                        this->state=END;
-                      }
-                      else if(kinova_linear_move_state==actionlib::SimpleClientGoalState::SUCCEEDED)
-                      {
-                        this->success = true;
-                        state=OPEN_GRIPPER;
-                        ros::Duration(0.5).sleep();
-                      }
-      break;
-
-      // OPEN GRIPPER
-      case OPEN_GRIPPER: ROS_DEBUG("");  
-                         ROS_INFO("Opening the gripper.");
-                         this->success &= send_gripper_command(open_gripper);
-                         if (this->success)
-                         {
-                           this->state=POST_PLACE;
-                           ros::Duration(0.5).sleep();
-                         }
-      break;
-
-      // POST-PLACE POSITION
-      case POST_PLACE: ROS_DEBUG("");
-                       // [fill action structure and make request to the action server]
-                       // variable to hold the state of the current goal on the server
-                       actionlib::SimpleClientGoalState kinova_linear_move_state(actionlib::SimpleClientGoalState::PENDING);
-                       static bool first=true;
-                       if(first){
-                         ROS_INFO("Sending to place position.");
-                         first=false;
-                         geometry_msgs::Pose desired_pose;
-                         desired_pose.position.x = tool_pose.x-0.05;
-                         desired_pose.position.y = tool_pose.y;
-                         desired_pose.position.z = tool_pose.z;
-                         kinova_linear_moveMakeActionRequest(desired_pose, kortex_driver::CartesianReferenceFrame::CARTESIAN_REFERENCE_FRAME_MIXED, 0.08);
-                       }
-                       this->state=WAIT_POST_PLACE;
-      break;
-
-      case WAIT_POST_PLACE: ROS_DEBUG("");
-                            // to get the state of the current goal
-                            this->alg_.unlock();
-                            kinova_linear_move_state=kinova_linear_move_client_.getState(); // Possible state values are: PENDING,ACTIVE,RECALLED,REJECTED,PREEMPTED,ABORTED,SUCCEEDED and LOST
-                            this->alg_.lock();
-                        
-                            ROS_INFO("DemosKinovaAlgNode::mainNodeThread: kinova_linear_move_client_ action state = %s", kinova_linear_move_state.toString().c_str());;
-                            if(kinova_linear_move_state==actionlib::SimpleClientGoalState::ABORTED)
-                            {
-                              ROS_INFO("Action aborted!");
-                              this->state=END;
-                            }
-                            else if(kinova_linear_move_state==actionlib::SimpleClientGoalState::SUCCEEDED)
-                            {
-                              this->success = true;
-                              this->state=HIGH_POSITION;
-                              ros::Duration(0.5).sleep();
-                            }
-      break;
-
-      // HIGH POSITION
-      case HIGH_POSITION: ROS_DEBUG("");
-                          // [fill action structure and make request to the action server]
-                          // variable to hold the state of the current goal on the server
-                          actionlib::SimpleClientGoalState kinova_linear_move_state(actionlib::SimpleClientGoalState::PENDING);
-                          static bool first=true;
-                          if(first){
-                            ROS_INFO("Sending to place position.");
-                            first=false;
+      case GO_TO_PLACE: ROS_INFO("DemosKinovaAlgNode: state GO TO PLACE");
+                        {
+//                          static bool first=true;
+//                          if(first){
+                            ROS_INFO("Sending to post-grasp position.");
+                            //first=false;
                             geometry_msgs::Pose desired_pose;
-                            desired_pose.position.x = tool_pose.x;
-                            desired_pose.position.y = tool_pose.y;
-                            desired_pose.position.z = 0.50;
+                            desired_pose.position.x = 0.7;
+                            desired_pose.position.y = -this->garment_width/2;
+                            desired_pose.position.z = tool_pose.z;
                             kinova_linear_moveMakeActionRequest(desired_pose, kortex_driver::CartesianReferenceFrame::CARTESIAN_REFERENCE_FRAME_MIXED, 0.08);
-                          }
-                          this->state=WAIT_HIGH_POSITION;
+//                          }
+                          this->state=WAIT_GO_TO_PLACE;
+                        }
       break;
 
-      case WAIT_HIGH_POSITION: ROS_DEBUG("");
+      case WAIT_GO_TO_PLACE: ROS_INFO("DemosKinovaAlgNode: state WAIT GO TO PLACE");
+                             {
+                               // [fill action structure and make request to the action server]
+                               // variable to hold the state of the current goal on the server
+                               actionlib::SimpleClientGoalState kinova_linear_move_state(actionlib::SimpleClientGoalState::PENDING);
                                // to get the state of the current goal
                                this->alg_.unlock();
                                kinova_linear_move_state=kinova_linear_move_client_.getState(); // Possible state values are: PENDING,ACTIVE,RECALLED,REJECTED,PREEMPTED,ABORTED,SUCCEEDED and LOST
                                this->alg_.lock();
+    
                                ROS_INFO("DemosKinovaAlgNode::mainNodeThread: kinova_linear_move_client_ action state = %s", kinova_linear_move_state.toString().c_str());;
                                if(kinova_linear_move_state==actionlib::SimpleClientGoalState::ABORTED)
                                {
@@ -490,12 +299,237 @@ void DemosKinovaAlgNode::mainNodeThread(void)
                                else if(kinova_linear_move_state==actionlib::SimpleClientGoalState::SUCCEEDED)
                                {
                                  this->success = true;
-                                 this->state=END;
+                                 if(this->diagonal_move)
+                                   this->state=PRE_PLACE_DIAGONAL;
+                                 else
+                                   this->state=PLACE;
                                  ros::Duration(0.5).sleep();
+                               }
+                             }
+      break;
+
+      case PRE_PLACE_DIAGONAL: ROS_INFO("DemosKinovaAlgNode: state PRE PLACE DIAGONAL");
+                               {
+//                                 static bool first=true;
+//                                 if(first){
+                                   ROS_INFO("Sending to diagonal position.");
+                                   //first=false;
+                                   geometry_msgs::Pose desired_pose;
+                                   desired_pose.position.x = tool_pose.x;
+                                   desired_pose.position.y = tool_pose.y;
+                                   desired_pose.position.z = this->garment_height;
+                                   kinova_linear_moveMakeActionRequest(desired_pose, kortex_driver::CartesianReferenceFrame::CARTESIAN_REFERENCE_FRAME_MIXED, 0.08);
+//                                 }
+                                 this->state=WAIT_PRE_PLACE_DIAGONAL;
+                               }
+      break;
+      
+      case WAIT_PRE_PLACE_DIAGONAL: ROS_INFO("DemosKinovaAlgNode: state WAIT PRE PLACE DIAGONAL");
+                                    {
+                                      // [fill action structure and make request to the action server]
+                                      // variable to hold the state of the current goal on the server
+                                      actionlib::SimpleClientGoalState kinova_linear_move_state(actionlib::SimpleClientGoalState::PENDING);
+                                      // to get the state of the current goal
+                                      this->alg_.unlock();
+                                      kinova_linear_move_state=kinova_linear_move_client_.getState(); // Possible state values are: PENDING,ACTIVE,RECALLED,REJECTED,PREEMPTED,ABORTED,SUCCEEDED and LOST
+                                      this->alg_.lock();
+      
+                                      ROS_INFO("DemosKinovaAlgNode::mainNodeThread: kinova_linear_move_client_ action state = %s", kinova_linear_move_state.toString().c_str());;
+                                      if(kinova_linear_move_state==actionlib::SimpleClientGoalState::ABORTED)
+                                      {
+                                        ROS_INFO("Action aborted!");
+                                        this->state=END; //
+                                      }
+                                      else if(kinova_linear_move_state==actionlib::SimpleClientGoalState::SUCCEEDED)
+                                      {
+                                        this->success = true;
+                                        this->state=PLACE_DIAGONAL;
+                                        ros::Duration(0.5).sleep();
+                                      }
+                                    }
+      break;
+
+      // PLACE POSITION
+      case PLACE_DIAGONAL: ROS_INFO("DemosKinovaAlgNode: state PLACE DIAGONAL");
+                           {
+//                             static bool first=true;
+//                             if(first){
+                               ROS_INFO("Sending to place position.");
+                               //first=false;
+                               geometry_msgs::Pose desired_pose;
+                               desired_pose.position.x = tool_pose.x-this->garment_height/1.5;
+                               desired_pose.position.y = tool_pose.y;
+                               desired_pose.position.z = this->pre_grasp_center.z;
+                               kinova_linear_moveMakeActionRequest(desired_pose, kortex_driver::CartesianReferenceFrame::CARTESIAN_REFERENCE_FRAME_MIXED, 0.08);
+//                             }
+                             this->state=WAIT_PLACE_DIAGONAL;
+                           }
+      break;
+
+      case WAIT_PLACE_DIAGONAL: ROS_INFO("DemosKinovaAlgNode: state WAIT PLACE DIAGONAL");
+                                {
+                                  // [fill action structure and make request to the action server]
+                                  // variable to hold the state of the current goal on the server
+                                  actionlib::SimpleClientGoalState kinova_linear_move_state(actionlib::SimpleClientGoalState::PENDING);
+                                  // to get the state of the current goal
+                                  this->alg_.unlock();
+                                  kinova_linear_move_state=kinova_linear_move_client_.getState(); // Possible state values are: PENDING,ACTIVE,RECALLED,REJECTED,PREEMPTED,ABORTED,SUCCEEDED and LOST
+                                  this->alg_.lock();
+           
+                                  ROS_INFO("DemosKinovaAlgNode::mainNodeThread: kinova_linear_move_client_ action state = %s", kinova_linear_move_state.toString().c_str());;
+                                  if(kinova_linear_move_state==actionlib::SimpleClientGoalState::ABORTED)
+                                  {
+                                    ROS_INFO("Action aborted!");
+                                    this->state=END;
+                                  }
+                                  else if(kinova_linear_move_state==actionlib::SimpleClientGoalState::SUCCEEDED)
+                                  {
+                                    this->success = true;
+                                    this->state=OPEN_GRIPPER;
+                                    ros::Duration(0.5).sleep();
+                                  }
+                                }
+      break;
+
+// PLACE RECTO!
+    
+      // PLACE POSITION
+      case PLACE: ROS_INFO("DemosKinovaAlgNode: state PLACE");
+                  {
+//                    static bool first=true;
+//                    if(first){
+                      ROS_INFO("Sending to place position.");
+                      //first=false;
+                      geometry_msgs::Pose desired_pose;
+                      desired_pose.position.x = tool_pose.x;
+                      desired_pose.position.y = tool_pose.y;
+                      desired_pose.position.z = 0.11;
+                      kinova_linear_moveMakeActionRequest(desired_pose, kortex_driver::CartesianReferenceFrame::CARTESIAN_REFERENCE_FRAME_MIXED, 0.08);
+//                    }
+                    this->state=WAIT_PLACE;
+                  }
+      break;
+
+      case WAIT_PLACE: ROS_INFO("DemosKinovaAlgNode: state WAIT PLACE");
+                       {
+                         // [fill action structure and make request to the action server]
+                         // variable to hold the state of the current goal on the server
+                         actionlib::SimpleClientGoalState kinova_linear_move_state(actionlib::SimpleClientGoalState::PENDING);
+                         // to get the state of the current goal
+                         this->alg_.unlock();
+                         kinova_linear_move_state=kinova_linear_move_client_.getState();
+                         // Possible state values are: PENDING,ACTIVE,RECALLED,REJECTED,PREEMPTED,ABORTED,SUCCEEDED and LOST
+                         this->alg_.lock();
+                         ROS_INFO("DemosKinovaAlgNode::mainNodeThread: kinova_linear_move_client_ action state = %s", kinova_linear_move_state.toString().c_str());;
+                         if(kinova_linear_move_state==actionlib::SimpleClientGoalState::ABORTED)
+                         {
+                           ROS_INFO("Action aborted!");
+                           this->state=END;
+                         }
+                         else if(kinova_linear_move_state==actionlib::SimpleClientGoalState::SUCCEEDED)
+                         {
+                           this->success = true;
+                           state=OPEN_GRIPPER;
+                           ros::Duration(0.5).sleep();
+                         }
+                       }
+      break;
+
+      // OPEN GRIPPER
+      case OPEN_GRIPPER: ROS_INFO("DemosKinovaAlgNode: state OPEN GRIPPER");  
+                         ROS_INFO("Opening the gripper.");
+                         this->success &= send_gripper_command(this->open_gripper);
+                         if (this->success)
+                         {
+                           this->state=POST_PLACE;
+                           ros::Duration(0.5).sleep();
+                         }
+      break;
+
+      // POST-PLACE POSITION
+      case POST_PLACE: ROS_INFO("DemosKinovaAlgNode: state POST PLACE");
+                       {
+ //                        static bool first=true;
+ //                        if(first){
+                           ROS_INFO("Sending to place position.");
+                           //first=false;
+                           geometry_msgs::Pose desired_pose;
+                           desired_pose.position.x = tool_pose.x-0.05;
+                           desired_pose.position.y = tool_pose.y;
+                           desired_pose.position.z = tool_pose.z;
+                           kinova_linear_moveMakeActionRequest(desired_pose, kortex_driver::CartesianReferenceFrame::CARTESIAN_REFERENCE_FRAME_MIXED, 0.08);
+//                         }
+                         this->state=WAIT_POST_PLACE;
+                       }
+      break;
+
+      case WAIT_POST_PLACE: ROS_INFO("DemosKinovaAlgNode: state WAIT POST PLACE");
+                            {
+                              // [fill action structure and make request to the action server]
+                              // variable to hold the state of the current goal on the server
+                              actionlib::SimpleClientGoalState kinova_linear_move_state(actionlib::SimpleClientGoalState::PENDING);
+                              // to get the state of the current goal
+                              this->alg_.unlock();
+                              kinova_linear_move_state=kinova_linear_move_client_.getState(); // Possible state values are: PENDING,ACTIVE,RECALLED,REJECTED,PREEMPTED,ABORTED,SUCCEEDED and LOST
+                              this->alg_.lock();
+                          
+                              ROS_INFO("DemosKinovaAlgNode::mainNodeThread: kinova_linear_move_client_ action state = %s", kinova_linear_move_state.toString().c_str());;
+                              if(kinova_linear_move_state==actionlib::SimpleClientGoalState::ABORTED)
+                              {
+                                ROS_INFO("Action aborted!");
+                                this->state=END;
+                              }
+                              else if(kinova_linear_move_state==actionlib::SimpleClientGoalState::SUCCEEDED)
+                              {
+                                this->success = true;
+                                this->state=HIGH_POSITION;
+                                ros::Duration(0.5).sleep();
+                              }
+                            }
+      break;
+
+      // HIGH POSITION
+      case HIGH_POSITION: ROS_INFO("DemosKinovaAlgNode: state HIGH POSITION");
+                          {
+//                            static bool first=true;
+//                            if(first){
+                              ROS_INFO("Sending to place position.");
+                              //first=false;
+                              geometry_msgs::Pose desired_pose;
+                              desired_pose.position.x = tool_pose.x;
+                              desired_pose.position.y = tool_pose.y;
+                              desired_pose.position.z = 0.50;
+                              kinova_linear_moveMakeActionRequest(desired_pose, kortex_driver::CartesianReferenceFrame::CARTESIAN_REFERENCE_FRAME_MIXED, 0.08);
+//                            }
+                            this->state=WAIT_HIGH_POSITION;
+                          }
+      break;
+
+      case WAIT_HIGH_POSITION: ROS_INFO("DemosKinovaAlgNode: state WAIT HIGH POSITION");
+                               {
+                                 // [fill action structure and make request to the action server]
+                                 // variable to hold the state of the current goal on the server
+                                 actionlib::SimpleClientGoalState kinova_linear_move_state(actionlib::SimpleClientGoalState::PENDING);
+                                 // to get the state of the current goal
+                                 this->alg_.unlock();
+                                 kinova_linear_move_state=kinova_linear_move_client_.getState(); // Possible state values are: PENDING,ACTIVE,RECALLED,REJECTED,PREEMPTED,ABORTED,SUCCEEDED and LOST
+                                 this->alg_.lock();
+                                 ROS_INFO("DemosKinovaAlgNode::mainNodeThread: kinova_linear_move_client_ action state = %s", kinova_linear_move_state.toString().c_str());;
+                                 if(kinova_linear_move_state==actionlib::SimpleClientGoalState::ABORTED)
+                                 {
+                                   ROS_INFO("Action aborted!");
+                                   this->state=END;
+                                 }
+                                 else if(kinova_linear_move_state==actionlib::SimpleClientGoalState::SUCCEEDED)
+                                 {
+                                   this->success = true;
+                                   this->state=END;
+                                   ros::Duration(0.5).sleep();
+                                 }
                                }
       break;
 
-      case END: ROS_INFO("END!");
+      case END: ROS_INFO("DemosKinovaAlgNode: state END");
 
       break;
 
@@ -541,6 +575,12 @@ void DemosKinovaAlgNode::get_params(void)
    } else {
        ROS_INFO("pre_grasp_corner: [%f, %f, %f, %f, %f, %f]", this->pre_grasp_corner[0], this->pre_grasp_corner[1], this->pre_grasp_corner[2], this->pre_grasp_corner[3], this->pre_grasp_corner[4], this->pre_grasp_corner[5]);
    }
+  if(!this->private_node_handle_.getParam("close_gripper", this->config_.close_gripper))
+  {
+    ROS_WARN("DemosKinovaAlgNode::DemosKinovaAlgNode: param 'close_gripper' not found");
+  }
+  else
+    this->close_gripper = this->config_.close_gripper;
 
   if(!this->private_node_handle_.getParam("garment_width", this->config_.garment_width))
   {
@@ -778,7 +818,10 @@ void DemosKinovaAlgNode::node_config_update(Config &config, uint32_t level)
     std::cout << this->diagonal_move << std::endl;
   }
   if(config.start)
+  {
     this->start=true;
+    this->close_gripper=config.close_gripper;
+  }
   if(config.stop)
     this->stop=true;
   if(config.set_config)

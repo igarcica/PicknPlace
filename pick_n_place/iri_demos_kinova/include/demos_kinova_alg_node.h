@@ -79,6 +79,7 @@ typedef enum {IDLE,
               POST_PLACE,
               WAIT_POST_PLACE,
               HIGH_POSITION,
+              WAIT_HIGH_POSITION,
               END} pick_place_states_t;
 
 /**
@@ -92,10 +93,12 @@ class DemosKinovaAlgNode : public algorithm_base::IriBaseAlgorithm<DemosKinovaAl
     std::atomic<int> last_action_notification_event{0};
     kortex_driver::Pose tool_pose;
     bool success = true;
-    int state = 0;
+    //int state = 0;
     bool start=false;
     bool stop=false;
     pick_place_states_t state;
+    double close_gripper;
+    double open_gripper;
 
     std::vector<double> pre_grasp_corner;
     kortex_driver::Pose pre_grasp_center;
