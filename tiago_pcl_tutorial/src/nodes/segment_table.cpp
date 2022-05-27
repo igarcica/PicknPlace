@@ -47,7 +47,7 @@
 #include <pcl/point_cloud.h>
 #include <pcl/surface/convex_hull.h>
 #include <visualization_msgs/MarkerArray.h>
-
+#include <std_msgs/Float64.h>
 
 // Std C++ headers
 #include <string>
@@ -114,6 +114,13 @@ namespace pal {
     ros::Publisher _pointMarkerPub4;
     ros::Publisher _graspPointPub;
 
+    //Variables globales:
+    int n_frames;
+    pcl::PointXYZ current_sum_c1;
+    pcl::PointXYZ current_sum_c2;
+    pcl::PointXYZ current_sum_c3;
+    pcl::PointXYZ current_sum_c4;
+    ros::Publisher _graspPointAnglePub;
   };
 
   SegmentPlane::SegmentPlane(ros::NodeHandle& nh,
@@ -163,6 +170,10 @@ namespace pal {
     _pointMarkerPub3  = _pnh.advertise<visualization_msgs::Marker>("corner_ur", 1);
     _pointMarkerPub4  = _pnh.advertise<visualization_msgs::Marker>("corner_dl", 1);
     _graspPointPub    = _pnh.advertise<visualization_msgs::Marker>("grasp_point", 1);
+
+    n_frames=0;
+    _graspPointAnglePub    = _pnh.advertise<std_msgs::Float64>("grasp_angle", 1);
+      
   }
 
   SegmentPlane::~SegmentPlane()
@@ -192,7 +203,7 @@ namespace pal {
     if ( !_processingFrame.empty() )
     {
       cloudInProcFrame.reset(new sensor_msgs::PointCloud2);
-      ROS_INFO_STREAM("Transforming point cloud from frame " << cloud->header.frame_id << " to frame " << _processingFrame);
+      ROS_DEBUG_STREAM("Transforming point cloud from frame " << cloud->header.frame_id << " to frame " << _processingFrame);
       pcl_ros::transformPointCloud(_processingFrame, *cloud, *cloudInProcFrame, _tfListener);
       cloudInProcFrame->header.frame_id = _processingFrame;
     }
@@ -296,7 +307,7 @@ namespace pal {
     if ( !_processingFrame.empty() )
     {
       xyzcloudInProcFrame.reset(new sensor_msgs::PointCloud2);
-      ROS_INFO_STREAM("Transforming point cloud from frame " << segmCloud->header.frame_id << " to frame " << _processingFrame);
+      ROS_DEBUG_STREAM("Transforming point cloud from frame " << segmCloud->header.frame_id << " to frame " << _processingFrame);
       pcl_ros::transformPointCloud(_processingFrame, *segmCloud, *xyzcloudInProcFrame, _tfListener);
       xyzcloudInProcFrame->header.frame_id = _processingFrame;
     }
@@ -354,116 +365,102 @@ namespace pal {
 //    pcl::PointCloud<pcl::PointXYZ> cloud_xyz;
 //    pcl::copyPointCloud(cloud_xyz, pclFilteredNonPlaneCloud);
 
-    pcl::PointXYZ minPt, maxPt;
+/*    pcl::PointXYZ minPt, maxPt;
     pcl::getMinMax3D (*cloud_hull, minPt, maxPt);
     std::cout << "Max x: " << maxPt.x << std::endl;
     std::cout << "Max y: " << maxPt.y << std::endl;
     std::cout << "Max z: " << maxPt.z << std::endl;
     std::cout << "Min x: " << minPt.x << std::endl;
     std::cout << "Min y: " << minPt.y << std::endl;
-    std::cout << "Min z: " << minPt.z << std::endl;
+    std::cout << "Min z: " << minPt.z << std::endl;*/
 
 // Create markers to visualise corners in RVIZ
-    if ( _graspPointPub.getNumSubscribers() > 0 )
-    {
-      /*visualization_msgs::MarkerArray corners;
-      for(int i=0; i<4; i++)
-      {
-        corners.markers[0].header.frame_id = cloud_hull->header.frame_id;
-        corners.markers[0].id = 0;
-        corners.markers[0].type = visualization_msgs::Marker::SPHERE;
-        corners.markers[0].scale.x=0.01;
-        corners.markers[0].scale.y=0.01;
-        corners.markers[0].scale.z=0.01;
-        corners.markers[0].color.r = 1.0f;
-        corners.markers[0].color.g = 0.0f;
-        corners.markers[0].color.b = 1.0f;
-        corners.markers[0].color.a = 1.0;
-        corners.markers[0].lifetime = ros::Duration();
-      }
-      corners.markers[0].pose.position.x = 0.51;
-      corners.markers[0].pose.position.y = maxPt.y;
-      corners.markers[0].pose.position.z = 0.2;*/
-/*      corners.markers[1].pose.position.x = 0.51;
-      corners.markers[1].pose.position.y = minPt.y;
-      corners.markers[1].pose.position.z = 0.2;
-      corners.markers[2].pose.position.x = 0.51;
-      corners.markers[2].pose.position.y = 0.2;
-      corners.markers[2].pose.position.z = maxPt.z;
-      corners.markers[3].pose.position.x = 0.51;
-      corners.markers[3].pose.position.y = 0.2;
-      corners.markers[3].pose.position.z = minPt.z;
-      _pointCornersPub.publish(corners);
-    }
-*/
-      visualization_msgs::Marker marker;
-      visualization_msgs::Marker marker2;
-      visualization_msgs::Marker marker3;
-      visualization_msgs::Marker marker4;
-      visualization_msgs::Marker grasp_marker;
+    visualization_msgs::Marker marker;
+    visualization_msgs::Marker marker2;
+    visualization_msgs::Marker marker3;
+    visualization_msgs::Marker marker4;
+    visualization_msgs::Marker grasp_marker;
 
-      marker.header.frame_id = cloud_hull->header.frame_id;
-      marker.id = 0;
-      marker.type = visualization_msgs::Marker::SPHERE;
-      marker.scale.x=0.01;
-      marker.scale.y=0.01;
-      marker.scale.z=0.01;
-      marker.color.r = 0.0f;
-      marker.color.g = 1.0f;
-      marker.color.b = 1.0f;
-      marker.color.a = 1.0;
-      marker.lifetime = ros::Duration();
+    marker.header.frame_id = cloud_hull->header.frame_id;
+    marker.id = 0;
+    marker.type = visualization_msgs::Marker::SPHERE;
+    marker.scale.x=0.01;
+    marker.scale.y=0.01;
+    marker.scale.z=0.01;
+    marker.color.r = 0.0f;
+    marker.color.g = 1.0f;
+    marker.color.b = 1.0f;
+    marker.color.a = 1.0;
+    marker.lifetime = ros::Duration();
 
-      marker2=marker;
-      marker3=marker;
-      marker4=marker;
-      grasp_marker=marker;
-      grasp_marker.color.r = 1.0f;
-      grasp_marker.color.g = 0.0f;
+    marker2=marker;
+    marker3=marker;
+    marker4=marker;
+    grasp_marker=marker;
+    grasp_marker.color.r = 1.0f;
+    grasp_marker.color.g = 0.0f;
 
 // GET CORNERS
-      std::cout << "CONVEX SIZE: " << cloud_hull->points.size() << std::endl;
-      pcl::PointXYZ pt_down_right, pt_down_left, pt_up_right, pt_up_left;
-      float max_diff = cloud_hull->points[0].y - cloud_hull->points[0].z;
-      float min_sum = cloud_hull->points[0].y + cloud_hull->points[0].z;
-      float min_diff = max_diff;
-      float max_sum = min_sum;
-      //std::cout << "pre diff: " << max_diff << std::endl;
-      //std::cout << "pre sum: " << min_sum << std::endl;
+    //std::cout << "CONVEX SIZE: " << cloud_hull->points.size() << std::endl;
+    pcl::PointXYZ pt_down_right, pt_down_left, pt_up_right, pt_up_left;
+    float max_diff = cloud_hull->points[0].y - cloud_hull->points[0].z;
+    float min_sum = cloud_hull->points[0].y + cloud_hull->points[0].z;
+    float min_diff = max_diff;
+    float max_sum = min_sum;
+    std::cout << "max diff: " << max_diff << std::endl;
+    std::cout << "min sum: " << min_sum << std::endl;
 
-      for(int i=0; i<cloud_hull->points.size(); i++)
+    //Init
+    pt_down_right.x=cloud_hull->points[0].x;
+    pt_down_right.y=cloud_hull->points[0].y;
+    pt_down_right.z=cloud_hull->points[0].z;
+    pt_up_left.x=cloud_hull->points[0].x;
+    pt_up_left.y=cloud_hull->points[0].y;
+    pt_up_left.z=cloud_hull->points[0].z;
+    pt_up_right.x=cloud_hull->points[0].x;
+    pt_up_right.y=cloud_hull->points[0].y;
+    pt_up_right.z=cloud_hull->points[0].z;
+    pt_down_left.x=cloud_hull->points[0].x;
+    pt_down_left.y=cloud_hull->points[0].y;
+    pt_down_left.z=cloud_hull->points[0].z;
+
+    //Get corners
+    for(int i=0; i<cloud_hull->points.size(); i++)
+    {
+      float diff = cloud_hull->points[i].y - cloud_hull->points[i].z;
+      float sum = cloud_hull->points[i].y + cloud_hull->points[i].z;
+      if(min_sum > sum)
       {
-        float diff = cloud_hull->points[i].y - cloud_hull->points[i].z;
-        float sum = cloud_hull->points[i].y + cloud_hull->points[i].z;
-        if(min_sum > sum)
-        {
-            min_sum=sum;
-            pt_down_right.x=cloud_hull->points[i].x;
-            pt_down_right.y=cloud_hull->points[i].y;
-            pt_down_right.z=cloud_hull->points[i].z;
-        }
-        if(max_sum < sum)
-        {
-            max_sum=sum;
-            pt_up_left.x=cloud_hull->points[i].x;
-            pt_up_left.y=cloud_hull->points[i].y;
-            pt_up_left.z=cloud_hull->points[i].z;
-        }
-        if(min_diff > diff)
-        {
-            min_diff=diff;
-            pt_up_right.x=cloud_hull->points[i].x;
-            pt_up_right.y=cloud_hull->points[i].y;
-            pt_up_right.z=cloud_hull->points[i].z;
-        }
-        if(max_diff < diff)
-        {
-            max_diff=diff;
-            pt_down_left.x=cloud_hull->points[i].x;
-            pt_down_left.y=cloud_hull->points[i].y;
-            pt_down_left.z=cloud_hull->points[i].z;
-        }
+          min_sum=sum;
+          pt_down_right.x=cloud_hull->points[i].x;
+          pt_down_right.y=cloud_hull->points[i].y;
+          pt_down_right.z=cloud_hull->points[i].z;
       }
+      if(max_sum < sum)
+      {
+          max_sum=sum;
+          pt_up_left.x=cloud_hull->points[i].x;
+          pt_up_left.y=cloud_hull->points[i].y;
+          pt_up_left.z=cloud_hull->points[i].z;
+      }
+      if(min_diff > diff)
+      {
+          min_diff=diff;
+          pt_up_right.x=cloud_hull->points[i].x;
+          pt_up_right.y=cloud_hull->points[i].y;
+          pt_up_right.z=cloud_hull->points[i].z;
+      }
+      if(max_diff < diff)
+      {
+          max_diff=diff;
+          pt_down_left.x=cloud_hull->points[i].x;
+          pt_down_left.y=cloud_hull->points[i].y;
+          pt_down_left.z=cloud_hull->points[i].z;
+      }
+    }
+
+//Real time detected points
+/*
       std::cout << "\033[1;36m PT DOWN LEFT: " << pt_down_left.z << ", " << pt_down_left.y << ", " << pt_down_left.x << std::endl;
       std::cout << "\033[1;36m PT UP LEFT: " << pt_up_left.z << ", " << pt_up_left.y << ", " << pt_up_left.x << std::endl;
       std::cout << "\033[1;36m PT DOWN RIGHT: " << pt_down_right.z << ", " << pt_down_right.y << ", " << pt_down_right.x << std::endl;
@@ -486,72 +483,203 @@ namespace pal {
       _pointMarkerPub2.publish(marker2);
       _pointMarkerPub3.publish(marker3);
       _pointMarkerPub4.publish(marker4);
+*/
 
+
+//Robust corner points - sliding window
+
+    std::cout << "\043[1;36m PT UP RIGHT: " << pt_up_right.z << ", " << pt_up_right.y << ", " << pt_up_right.x << std::endl;
+    //sliding window
+    current_sum_c1.x += pt_down_right.x;
+    current_sum_c1.y += pt_down_right.y;
+    current_sum_c1.z += pt_down_right.z;
+    current_sum_c2.x += pt_up_left.x;
+    current_sum_c2.y += pt_up_left.y;
+    current_sum_c2.z += pt_up_left.z;
+    current_sum_c3.x += pt_up_right.x;
+    current_sum_c3.y += pt_up_right.y;
+    current_sum_c3.z += pt_up_right.z;
+    current_sum_c4.x += pt_down_left.x;
+    current_sum_c4.y += pt_down_left.y;
+    current_sum_c4.z += pt_down_left.z;
+
+    n_frames+=1;
+    std::cout << "n frames ------> " << n_frames << std::endl;
+    if(n_frames>4)
+    {
+      std::cout << "\033[1;36m PT DOWN LEFT: " << current_sum_c4.z/5 << ", " << current_sum_c4.y/5 << ", " << current_sum_c4.x/5 << std::endl;
+      std::cout << "\033[1;36m PT UP LEFT: " << current_sum_c2.z/5 << ", " << current_sum_c2.y/5 << ", " << current_sum_c2.x/5 << std::endl;
+      std::cout << "\033[1;36m PT DOWN RIGHT: " << current_sum_c1.z/5 << ", " << current_sum_c1.y/5 << ", " << current_sum_c1.x/5 << std::endl;
+      std::cout << "\033[1;36m PT UP RIGHT: " << current_sum_c3.z/5 << ", " << current_sum_c3.y/5 << ", " << current_sum_c3.x/5 << std::endl;
+
+      marker.pose.position.x=current_sum_c1.x/5;
+      marker.pose.position.y=current_sum_c1.y/5;
+      marker.pose.position.z=current_sum_c1.z/5;
+      marker2.pose.position.x=current_sum_c2.x/5;
+      marker2.pose.position.y=current_sum_c2.y/5;
+      marker2.pose.position.z=current_sum_c2.z/5;
+      marker3.pose.position.x=current_sum_c3.x/5;
+      marker3.pose.position.y=current_sum_c3.y/5;
+      marker3.pose.position.z=current_sum_c3.z/5;
+      marker4.pose.position.x=current_sum_c4.x/5;
+      marker4.pose.position.y=current_sum_c4.y/5;
+      marker4.pose.position.z=current_sum_c4.z/5;
+
+      _pointMarkerPub.publish(marker);
+      _pointMarkerPub2.publish(marker2);
+      _pointMarkerPub3.publish(marker3);
+      _pointMarkerPub4.publish(marker4);
+
+      pt_down_right.x = current_sum_c1.x/5;
+      pt_down_right.y = current_sum_c1.y/5;
+      pt_down_right.z = current_sum_c1.z/5;
+      pt_up_left.x = current_sum_c2.x/5;
+      pt_up_left.y = current_sum_c2.y/5;
+      pt_up_left.z = current_sum_c2.z/5;
+      pt_up_right.x = current_sum_c3.x/5;
+      pt_up_right.y = current_sum_c3.y/5;
+      pt_up_right.z = current_sum_c3.z/5;
+      pt_down_left.x = current_sum_c4.x/5;
+      pt_down_left.y = current_sum_c4.y/5;
+      pt_down_left.z = current_sum_c4.z/5;
+      n_frames=0;
+      current_sum_c1.x = 0;
+      current_sum_c1.y = 0;
+      current_sum_c1.z = 0;
+      current_sum_c2.x = 0;
+      current_sum_c2.y = 0;
+      current_sum_c2.z = 0;
+      current_sum_c3.x = 0;
+      current_sum_c3.y = 0;
+      current_sum_c3.z = 0;
+      current_sum_c4.x = 0;
+      current_sum_c4.y = 0;
+      current_sum_c4.z = 0;
+    
+      
 //EDGES and GRASP POINT (Should take the closest edge to the robot (TF robot))
-      // Compute edges size
-      pcl::PointXYZ grasp_point;
-      float edge1 = abs(pt_down_left.y - pt_down_right.y);
-      float edge2 = abs(pt_up_left.z - pt_down_left.z);
-      std::cout << "Edges antes: " << edge1 << ", " << edge2 << std::endl;
-      edge1 = sqrt(pow(abs(pt_up_left.z-pt_down_left.z),2)+pow(abs(pt_up_left.y-pt_down_left.y),2));
-      edge1 = sqrt(pow(abs(pt_down_right.z-pt_down_left.z),2)+pow(abs(pt_down_right.y-pt_down_left.y),2));
-      std::cout << "Edges ahora: " << edge1 << ", " << edge2 << std::endl;
-      float mid_pt;
-
-      // Check if the object's shape is square or a rectangle 
-      if(abs(edge1-edge2)>0.05)
-      { 
-        // Get mid point of longest edge
-        if(edge1 > edge2)
+        // Compute edges size
+        pcl::PointXYZ grasp_point;
+        float edge1 = abs(pt_down_left.y - pt_down_right.y);
+        float edge2 = abs(pt_up_left.z - pt_down_left.z);
+        std::cout << "Edges antes: " << edge1 << ", " << edge2 << std::endl;
+        edge2 = sqrt(pow(abs(pt_up_left.z-pt_down_left.z),2)+pow(abs(pt_up_left.y-pt_down_left.y),2));
+        edge1 = sqrt(pow(abs(pt_down_right.z-pt_down_left.z),2)+pow(abs(pt_down_right.y-pt_down_left.y),2));
+        std::cout << "Edges ahora: " << edge1 << ", " << edge2 << std::endl;
+        float mid_pt;
+        double u1, u2; //Edge direction vector components
+        std_msgs::Float64 grasp_angle; 
+        float cos_alpha, alpha;
+  
+        // Check if the object's shape is square or a rectangle 
+        if(abs(edge1-edge2)>0.05)
+        { 
+          // Get mid point of longest edge
+          if(edge1 > edge2)
+          {
+            std::cout << "Edge1!" << std::endl;
+  //          mid_pt = edge1/2;
+            grasp_point.z = pt_down_left.z + (pt_down_right.z - pt_down_left.z)/2;
+            grasp_point.y = pt_down_left.y - (abs(pt_down_left.y - pt_down_right.y)/2); //REVISAR?
+            grasp_point.x = pt_down_left.x-0.02;
+            /*grasp_point.z = pt_down_left.z+mid_pt;
+            grasp_point.y = pt_down_left.y-mid_pt;
+            grasp_point.y = pt_down_left.x-0.02;*/
+            //grasp_point = pt_down_left;
+            //grasp_point.y = pt_down_left.y-mid_pt;
+            u1 = pt_down_left.z - pt_down_right.z;    //X direction of edge vector
+            u2 = pt_down_left.y - pt_down_right.y;    //Y direction of edge vector
+            cos_alpha = (abs(u2))/(sqrt(pow(u1,2)+pow(u2,2)));
+            alpha = acos(cos_alpha);
+            if(0.4 > alpha > 0)
+            {
+              grasp_angle.data = 0;
+              std::cout << "HORIZONTAL: E1 > 0-0.4" << std::endl;
+            }
+            if(alpha > 0.4)
+            {
+              grasp_angle.data = 1;
+              std::cout << "DIAGONAL IZQ: E1 > 0.4" << std::endl;
+            }
+          }
+          else
+          { 
+            std::cout << "Edge2!" << std::endl;
+  //          mid_pt = edge2/2;
+            grasp_point.z = pt_down_left.z + (abs(pt_down_left.z - pt_up_left.z)/2); //REVISAR!
+            grasp_point.y = pt_down_left.y + (pt_up_left.y - pt_down_left.y)/2; //REVISAR?
+            grasp_point.x = pt_down_left.x-0.02;
+            /*grasp_point.z = pt_down_left.z+mid_pt;
+            grasp_point.y = pt_down_left.y+mid_pt;
+            grasp_point.y = pt_down_left.x-0.02;*/
+            //grasp_point = pt_down_left;
+            //grasp_point.z = pt_down_left.z+mid_pt;
+            u1 = pt_up_left.z - pt_down_left.z;    //X direction of edge vector
+            u2 = pt_up_left.y - pt_down_left.y;    //Y direction of edge vector
+            cos_alpha = (abs(u2))/(sqrt(pow(u1,2)+pow(u2,2)));
+            alpha = acos(cos_alpha);
+            if(alpha>1.0)
+            {
+              grasp_point.z = pt_down_right.z + (abs(pt_down_right.z - pt_up_right.z)/2); //REVISAR!
+              grasp_point.y = pt_down_right.y + (pt_up_right.y - pt_down_right.y)/2; //REVISAR?
+              grasp_point.x = pt_down_right.x-0.02;
+              grasp_angle.data = 3;
+              std::cout << "VERTICAL: E2 > 1" << std::endl;
+            }
+            if(1 >alpha > 0.4)
+            {
+              std::cout << "DIAGONAL DER: E2 > 0.4-1" << std::endl;
+              grasp_angle.data = 2;
+            }
+              
+          }
+        }
+        else //Squared object -> Get mid point of closet edge
         {
-          std::cout << "Edge1!" << std::endl;
-//          mid_pt = edge1/2;
+          std::cout << "Square!" << std::endl;
+          mid_pt = edge1/2;
           grasp_point.z = pt_down_left.z + (pt_down_right.z - pt_down_left.z)/2;
-          grasp_point.y = pt_down_left.y - (abs(pt_down_left.y - pt_down_right.y)/2); //REVISAR?
+          grasp_point.y = pt_down_left.y - (abs(pt_down_left.y - pt_down_right.y)/2);
           grasp_point.x = pt_down_left.x-0.02;
-          /*grasp_point.z = pt_down_left.z+mid_pt;
+          /*grasp_point.z = pt_down_left.z-mid_pt;
           grasp_point.y = pt_down_left.y-mid_pt;
           grasp_point.y = pt_down_left.x-0.02;*/
           //grasp_point = pt_down_left;
           //grasp_point.y = pt_down_left.y-mid_pt;
+           u1 = pt_down_left.z - pt_down_right.z;    //X direction of edge vector
+           u2 = pt_down_left.y - pt_down_right.y;    //Y direction of edge vector
         }
-        else
-        { 
-          std::cout << "Edge2!" << std::endl;
-//          mid_pt = edge2/2;
-          grasp_point.z = pt_down_left.z + (abs(pt_down_left.z - pt_up_left.z)/2); //REVISAR!
-          grasp_point.y = pt_down_left.y + (abs(pt_down_left.y - pt_up_left.y)/2); //REVISAR!
-          grasp_point.x = pt_down_left.x-0.02;
-          /*grasp_point.z = pt_down_left.z+mid_pt;
-          grasp_point.y = pt_down_left.y+mid_pt;
-          grasp_point.y = pt_down_left.x-0.02;*/
-          //grasp_point = pt_down_left;
-          //grasp_point.z = pt_down_left.z+mid_pt;
-        }
-      }
-      else //Squared object -> Get mid point of closet edge
-      {
-        std::cout << "Square!" << std::endl;
-        mid_pt = edge1/2;
-        grasp_point.z = pt_down_left.z + (pt_down_right.z - pt_down_left.z)/2;
-        grasp_point.y = pt_down_left.y - (abs(pt_down_left.y - pt_down_right.y)/2);
-        grasp_point.x = pt_down_left.x-0.02;
-        /*grasp_point.z = pt_down_left.z-mid_pt;
-        grasp_point.y = pt_down_left.y-mid_pt;
-        grasp_point.y = pt_down_left.x-0.02;*/
+        std::cout << "Mid pt: " << mid_pt << std::endl;
+  
         //grasp_point = pt_down_left;
         //grasp_point.y = pt_down_left.y-mid_pt;
-      }
-      std::cout << "Mid pt: " << mid_pt << std::endl;
+  
+        std::cout << "\033[1;36m GRASP POINT: " << grasp_point.z << ", " << grasp_point.y << ", " << grasp_point.x << std::endl;
+        grasp_marker.pose.position.x=grasp_point.x;
+        grasp_marker.pose.position.y=grasp_point.y;
+        grasp_marker.pose.position.z=grasp_point.z;
+        _graspPointPub.publish(grasp_marker);
 
-      //grasp_point = pt_down_left;
-      //grasp_point.y = pt_down_left.y-mid_pt;
 
-      std::cout << "\033[1;36m GRASP POINT: " << grasp_point.z << ", " << grasp_point.y << ", " << grasp_point.x << std::endl;
-      grasp_marker.pose.position.x=grasp_point.x;
-      grasp_marker.pose.position.y=grasp_point.y;
-      grasp_marker.pose.position.z=grasp_point.z;
-      _graspPointPub.publish(grasp_marker);
+// Get angle edge
+        //Tendre que cambiarlo para cada edge!!
+        //double u1 = pt_up_left.z - pt_down_left.z;    //X direction of edge vector
+        //double u2 = pt_up_left.y - pt_down_left.y;    //Y direction of edge vector
+        //double cos_alpha = (abs(pow(pt_down_left.z,2)))/(sqrt(pow(pt_down_left.z,2)+pow(pt_down_left.y))*sqrt(pow(pt_down_left.z,2)));
+        double hola1 = abs(u2);
+        double hola2 = sqrt(pow(u1,2)+pow(u2,2));
+        cos_alpha = (abs(u2))/(sqrt(pow(u1,2)+pow(u2,2)));
+        alpha = acos(cos_alpha);
+        std::cout << "DOWN LEFT X: " << pt_down_left.z << "  -UP LEFT X: " << pt_up_left.z << std::endl;
+        std::cout << "DOWN LEFT Y: " << pt_down_left.y << "  -UP LEFT Y: " << pt_up_left.y << std::endl;
+        std::cout << "U1: " << u1 << "   U2: " << u2 << std::endl;
+        std::cout << "HOLA: " << hola1 << "   HOLA2: " << hola2 << std::endl;
+        std::cout << "COS ALPHA: " << cos_alpha << std::endl;
+        std::cout << "ALPHA: " << alpha << std::endl;
+  
+//        std_msgs::Float64 grasp_angle;
+//        grasp_angle.data = alpha; 
+        _graspPointAnglePub.publish(grasp_angle);
     }
 
   }

@@ -14,6 +14,7 @@ DemosKinovaAlgNode::DemosKinovaAlgNode(void) :
   // Garment pose subscriber
   this->garment_pose_subscriber = this->public_node_handle_.subscribe("/segment_table/grasp_point",1,&DemosKinovaAlgNode::garment_pose_callback,this);
   this->get_garment_pose=false;
+  this->garment_angle_subscriber = this->public_node_handle_.subscribe("/segment_table/grasp_angle",1,&DemosKinovaAlgNode::garment_angle_callback,this);
 
   // Publish grasp marker
   this->grasp_marker_publisher = this->public_node_handle_.advertise<visualization_msgs::Marker>("grasp_marker", 1);
@@ -673,6 +674,21 @@ void DemosKinovaAlgNode::garment_pose_callback(const visualization_msgs::Marker:
   }
 }
 
+void DemosKinovaAlgNode::garment_angle_callback(const std_msgs::Float64::ConstPtr& msg)
+{
+  ROS_INFO("DemosKinovaAlgNode: garment angle callback");
+/*  if(0.4 > msg->data > 0) //horizontal
+    //0,-125,180
+  if(1 > msg->data > 0.39) //diagonal
+    //Pose diagonal 1
+  if(msg->data > 1) //vertical
+  */
+  if(msg->data == 0)
+  if(msg->data == 1)
+  if(msg->data ==32)
+  if(msg->data == 3)
+
+}
 
 /*  [subscriber callbacks] */
 void DemosKinovaAlgNode::base_feedback_callback(const kortex_driver::BaseCyclic_Feedback::ConstPtr& msg)
