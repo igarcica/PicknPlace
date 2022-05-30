@@ -58,6 +58,7 @@
 #include <tf/transform_listener.h>
 #include <tf/transform_broadcaster.h>
 #include <visualization_msgs/Marker.h>
+#include <std_msgs/Float64.h>
 
 typedef enum {IDLE,
               HOME,
@@ -119,11 +120,15 @@ class DemosKinovaAlgNode : public algorithm_base::IriBaseAlgorithm<DemosKinovaAl
     ros::Timer handeye_frame_pub_timer;
     void handeye_frame_pub(const ros::TimerEvent& event);
     geometry_msgs::PoseStamped grasp_pose;
-    bool get_garment_pose;
+    bool get_garment_position;
+    bool get_garment_angle;
     ros::Subscriber garment_pose_subscriber;
+    ros::Subscriber garment_angle_subscriber;
     void garment_pose_callback(const visualization_msgs::Marker::ConstPtr& msg);
+    void garment_angle_callback(const std_msgs::Float64::ConstPtr& msg);
     void set_config(void);
     void get_params(void);
+    kortex_driver::Pose pre_grasp_distance;
 
     ros::Publisher grasp_marker_publisher;
 

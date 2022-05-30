@@ -460,7 +460,7 @@ namespace pal {
     }
 
 //Real time detected points
-/*
+
       std::cout << "\033[1;36m PT DOWN LEFT: " << pt_down_left.z << ", " << pt_down_left.y << ", " << pt_down_left.x << std::endl;
       std::cout << "\033[1;36m PT UP LEFT: " << pt_up_left.z << ", " << pt_up_left.y << ", " << pt_up_left.x << std::endl;
       std::cout << "\033[1;36m PT DOWN RIGHT: " << pt_down_right.z << ", " << pt_down_right.y << ", " << pt_down_right.x << std::endl;
@@ -483,11 +483,11 @@ namespace pal {
       _pointMarkerPub2.publish(marker2);
       _pointMarkerPub3.publish(marker3);
       _pointMarkerPub4.publish(marker4);
-*/
+
 
 
 //Robust corner points - sliding window
-
+/*
     std::cout << "\043[1;36m PT UP RIGHT: " << pt_up_right.z << ", " << pt_up_right.y << ", " << pt_up_right.x << std::endl;
     //sliding window
     current_sum_c1.x += pt_down_right.x;
@@ -555,7 +555,7 @@ namespace pal {
       current_sum_c4.x = 0;
       current_sum_c4.y = 0;
       current_sum_c4.z = 0;
-    
+*/    
       
 //EDGES and GRASP POINT (Should take the closest edge to the robot (TF robot))
         // Compute edges size
@@ -578,47 +578,44 @@ namespace pal {
           if(edge1 > edge2)
           {
             std::cout << "Edge1!" << std::endl;
-  //          mid_pt = edge1/2;
             grasp_point.z = pt_down_left.z + (pt_down_right.z - pt_down_left.z)/2;
             grasp_point.y = pt_down_left.y - (abs(pt_down_left.y - pt_down_right.y)/2); //REVISAR?
             grasp_point.x = pt_down_left.x-0.02;
-            /*grasp_point.z = pt_down_left.z+mid_pt;
-            grasp_point.y = pt_down_left.y-mid_pt;
-            grasp_point.y = pt_down_left.x-0.02;*/
-            //grasp_point = pt_down_left;
-            //grasp_point.y = pt_down_left.y-mid_pt;
             u1 = pt_down_left.z - pt_down_right.z;    //X direction of edge vector
             u2 = pt_down_left.y - pt_down_right.y;    //Y direction of edge vector
             cos_alpha = (abs(u2))/(sqrt(pow(u1,2)+pow(u2,2)));
             alpha = acos(cos_alpha);
-            if(0.4 > alpha > 0)
+            std::cout << "U!: " << u1 << " / " << u2 << std::endl;
+            if(0.2 > alpha > 0)
             {
               grasp_angle.data = 0;
               std::cout << "HORIZONTAL: E1 > 0-0.4" << std::endl;
             }
-            if(alpha > 0.4)
+            else //alpha > 0.2
             {
-              grasp_angle.data = 1;
-              std::cout << "DIAGONAL IZQ: E1 > 0.4" << std::endl;
+              if(u1>0) //pt_down_left.z > pt_down_right.z = Diagonal izq
+              {
+                grasp_angle.data = 1;
+                std::cout << "DIAGONAL IZQ: E1>0.2 y U1>0" << std::endl;
+              }
+              else // Diagonal der
+              {  //REVISAR!!!!
+                std::cout << "DIAGONAL DER: E1>0.2 y U1<0" << std::endl;
+                grasp_angle.data = 2;
+              }
             }
           }
           else
           { 
             std::cout << "Edge2!" << std::endl;
-  //          mid_pt = edge2/2;
             grasp_point.z = pt_down_left.z + (abs(pt_down_left.z - pt_up_left.z)/2); //REVISAR!
             grasp_point.y = pt_down_left.y + (pt_up_left.y - pt_down_left.y)/2; //REVISAR?
             grasp_point.x = pt_down_left.x-0.02;
-            /*grasp_point.z = pt_down_left.z+mid_pt;
-            grasp_point.y = pt_down_left.y+mid_pt;
-            grasp_point.y = pt_down_left.x-0.02;*/
-            //grasp_point = pt_down_left;
-            //grasp_point.z = pt_down_left.z+mid_pt;
             u1 = pt_up_left.z - pt_down_left.z;    //X direction of edge vector
             u2 = pt_up_left.y - pt_down_left.y;    //Y direction of edge vector
             cos_alpha = (abs(u2))/(sqrt(pow(u1,2)+pow(u2,2)));
             alpha = acos(cos_alpha);
-            if(alpha>1.0)
+            if(alpha > 1)
             {
               grasp_point.z = pt_down_right.z + (abs(pt_down_right.z - pt_up_right.z)/2); //REVISAR!
               grasp_point.y = pt_down_right.y + (pt_up_right.y - pt_down_right.y)/2; //REVISAR?
@@ -626,9 +623,12 @@ namespace pal {
               grasp_angle.data = 3;
               std::cout << "VERTICAL: E2 > 1" << std::endl;
             }
-            if(1 >alpha > 0.4)
+            if(1 > alpha > 0.3)
             {
-              std::cout << "DIAGONAL DER: E2 > 0.4-1" << std::endl;
+              grasp_point.z = pt_down_right.z + (abs(pt_down_right.z - pt_up_right.z)/2); //REVISAR!
+              grasp_point.y = pt_down_right.y + (pt_up_right.y - pt_down_right.y)/2; //REVISAR?
+              grasp_point.x = pt_down_right.x-0.02;
+              std::cout << "DIAGONAL DER: E2 > 0.3-1.2" << std::endl;
               grasp_angle.data = 2;
             }
               
@@ -641,18 +641,9 @@ namespace pal {
           grasp_point.z = pt_down_left.z + (pt_down_right.z - pt_down_left.z)/2;
           grasp_point.y = pt_down_left.y - (abs(pt_down_left.y - pt_down_right.y)/2);
           grasp_point.x = pt_down_left.x-0.02;
-          /*grasp_point.z = pt_down_left.z-mid_pt;
-          grasp_point.y = pt_down_left.y-mid_pt;
-          grasp_point.y = pt_down_left.x-0.02;*/
-          //grasp_point = pt_down_left;
-          //grasp_point.y = pt_down_left.y-mid_pt;
-           u1 = pt_down_left.z - pt_down_right.z;    //X direction of edge vector
-           u2 = pt_down_left.y - pt_down_right.y;    //Y direction of edge vector
+          u1 = pt_down_left.z - pt_down_right.z;    //X direction of edge vector
+          u2 = pt_down_left.y - pt_down_right.y;    //Y direction of edge vector
         }
-        std::cout << "Mid pt: " << mid_pt << std::endl;
-  
-        //grasp_point = pt_down_left;
-        //grasp_point.y = pt_down_left.y-mid_pt;
   
         std::cout << "\033[1;36m GRASP POINT: " << grasp_point.z << ", " << grasp_point.y << ", " << grasp_point.x << std::endl;
         grasp_marker.pose.position.x=grasp_point.x;
@@ -680,7 +671,7 @@ namespace pal {
 //        std_msgs::Float64 grasp_angle;
 //        grasp_angle.data = alpha; 
         _graspPointAnglePub.publish(grasp_angle);
-    }
+    //}
 
   }
 

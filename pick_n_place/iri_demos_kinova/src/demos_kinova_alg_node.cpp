@@ -13,7 +13,8 @@ DemosKinovaAlgNode::DemosKinovaAlgNode(void) :
 
   // Garment pose subscriber
   this->garment_pose_subscriber = this->public_node_handle_.subscribe("/segment_table/grasp_point",1,&DemosKinovaAlgNode::garment_pose_callback,this);
-  this->get_garment_pose=false;
+  this->get_garment_position=false;
+  this->get_garment_angle=false;
   this->garment_angle_subscriber = this->public_node_handle_.subscribe("/segment_table/grasp_angle",1,&DemosKinovaAlgNode::garment_angle_callback,this);
 
   // Publish grasp marker
@@ -169,18 +170,19 @@ void DemosKinovaAlgNode::mainNodeThread(void)
       // GRASP POSITION
       case GRASP: ROS_INFO("DemosKinovaAlgNode: state GRASP");
                   {
-//                    static bool first=true;
-//                    if(first){
+//                    if(config.ok)
+//                    { 
                       ROS_INFO("Sending to grasp position.");
-                      //first=false;
                       geometry_msgs::Pose desired_pose;
-                      desired_pose.position.x = tool_pose.x + 0.04;
-                      desired_pose.position.y = tool_pose.y;
+                      desired_pose.position.x = tool_pose.x + this->pre_grasp_distance.x;  // + 0.05;
+                      desired_pose.position.y = tool_pose.y + this->pre_grasp_distance.y;
                       desired_pose.position.z = tool_pose.z;
                       std::cout << "\033[1;36m Groing to: -> \033[1;36m  x: " << desired_pose.position.x << ", y: " <<  desired_pose.position.y << ", z: " << desired_pose.position.z << std::endl;
                       kinova_linear_moveMakeActionRequest(desired_pose, kortex_driver::CartesianReferenceFrame::CARTESIAN_REFERENCE_FRAME_MIXED, 0.1);
+                      this->state=WAIT_GRASP;
 //                    }
-                    this->state=WAIT_GRASP;
+//                    else
+//                      this->state=GRASP;
                   }
       break;
 
@@ -225,8 +227,8 @@ void DemosKinovaAlgNode::mainNodeThread(void)
       // POST-GRASP POSITION
       case POST_GRASP: ROS_INFO("DemosKinovaAlgNode: state POST GRASP");
                        {
-//                         static bool first=true;
-//                         if(first){
+//                         if(config.ok)
+//                         { 
                            ROS_INFO("Sending to post-grasp position.");
                            //first=false;
                            geometry_msgs::Pose desired_pose;
@@ -234,8 +236,10 @@ void DemosKinovaAlgNode::mainNodeThread(void)
                            desired_pose.position.y = tool_pose.y;
                            desired_pose.position.z = tool_pose.z + this->garment_height*1.5;
                            kinova_linear_moveMakeActionRequest(desired_pose, kortex_driver::CartesianReferenceFrame::CARTESIAN_REFERENCE_FRAME_MIXED, 0.08);
+                           this->state=WAIT_POST_GRASP;
 //                         }
-                         this->state=WAIT_POST_GRASP;
+//                         else
+//                         this->state=POST_GRASP;
                        }
       break;
 
@@ -272,6 +276,9 @@ void DemosKinovaAlgNode::mainNodeThread(void)
                             ROS_INFO("Sending to post-grasp position.");
                             //first=false;
                             geometry_msgs::Pose desired_pose;
+/*                            desired_pose.position.x = 0.7;
+                            desired_pose.position.y = -0.12
+                            desired_pose.position.z = tool_pose.z;*/
                             desired_pose.position.x = 0.7;
                             desired_pose.position.y = -this->garment_width/2;
                             desired_pose.position.z = tool_pose.z;
@@ -653,41 +660,83 @@ void DemosKinovaAlgNode::garment_pose_callback(const visualization_msgs::Marker:
   point_in.header.stamp = msg->header.stamp;
   point_in.point = msg->pose.position;
 
-  if(this->get_garment_pose)
+  if(this->get_garment_position)
   {
     this->listener.transformPoint("base_link", point_in, point_out);
 //    this->grasp_pose.pose.position = point_out.point;
 //    this->grasp_pose.pose.orientation = 
 //    std::cout << "\033[1;36m Grasp position -> \033[1;36m  x: " << grasp_pose.pose.position.x << ", y: " << grasp_pose.pose.position.y << ", z: " << grasp_pose.pose.position.z << std::endl;
 
-    this->pre_grasp_center.x = point_out.point.x-0.09;
-    this->pre_grasp_center.y = point_out.point.y;
+    this->pre_grasp_center.x = point_out.point.x-this->pre_grasp_distance.x;
+    this->pre_grasp_center.y = point_out.point.y-this->pre_grasp_distance.y;
     std::cout << "\033[1;36m Grasp position -> \033[1;36m  x: " << this->pre_grasp_center.x << ", y: " << this-> pre_grasp_center.y << ", z: " << this->pre_grasp_center.z << std::endl;
     std::cout << "\033[1;36m Grasp orientation -> \033[1;36m  x: " << this->pre_grasp_center.theta_x << ", y: " << this-> pre_grasp_center.theta_y << ", z: " << this->pre_grasp_center.theta_z << std::endl;
 
-    marker.pose.position.x=point_out.point.x;
+/*    marker.pose.position.x=point_out.point.x;
     marker.pose.position.y=point_out.point.y;
-    marker.pose.position.z=point_out.point.z;
+    marker.pose.position.z=point_out.point.z;*/
+    marker.pose.position.x=this->pre_grasp_center.x;
+    marker.pose.position.y=this->pre_grasp_center.y;
+    marker.pose.position.z=this->pre_grasp_center.z;
     grasp_marker_publisher.publish(marker);
 
-    this->get_garment_pose=false;
+    this->get_garment_position=false;
   }
 }
 
 void DemosKinovaAlgNode::garment_angle_callback(const std_msgs::Float64::ConstPtr& msg)
 {
-  ROS_INFO("DemosKinovaAlgNode: garment angle callback");
+  ROS_DEBUG("DemosKinovaAlgNode: garment angle callback");
 /*  if(0.4 > msg->data > 0) //horizontal
     //0,-125,180
   if(1 > msg->data > 0.39) //diagonal
     //Pose diagonal 1
   if(msg->data > 1) //vertical
   */
-  if(msg->data == 0)
-  if(msg->data == 1)
-  if(msg->data ==32)
-  if(msg->data == 3)
-
+  if(this->get_garment_angle)
+  {
+    if(msg->data == 0)
+    {
+      ROS_INFO("DemosKinovaAlgNode: Orientation 0 - HORIZONTAL");
+      this->pre_grasp_distance.x = 0.04;
+      this->pre_grasp_distance.y = 0;
+      this->pre_grasp_center.theta_x = 0;
+      this->pre_grasp_center.theta_y = -125.5;
+      this->pre_grasp_center.theta_z = 180;
+    }
+    else if(msg->data == 1)
+    {
+      ROS_INFO("DemosKinovaAlgNode: Orientation 1 - DIAGONAL IZQ");
+      this->pre_grasp_distance.x = 0.04;
+      this->pre_grasp_distance.y = -0.04;
+      this->pre_grasp_center.theta_x = 0;
+      this->pre_grasp_center.theta_y = -120;
+      this->pre_grasp_center.theta_z = 135;
+    }
+    else if(msg->data == 2)
+    {
+      ROS_INFO("DemosKinovaAlgNode: Orientation 2 - DIAGONAL DER");
+      this->pre_grasp_distance.x = 0.08;
+      this->pre_grasp_distance.y = 0.08;
+      this->pre_grasp_center.theta_x = -170;
+      this->pre_grasp_center.theta_y = -52;
+      this->pre_grasp_center.theta_z = 30;
+    }
+    else if(msg->data == 3)
+    {
+      ROS_INFO("DemosKinovaAlgNode: Orientation 3 - VERTICAL");
+      this->pre_grasp_distance.x = 0;
+      this->pre_grasp_distance.y = 0.04;
+      this->pre_grasp_center.theta_x = -170;
+      this->pre_grasp_center.theta_y = -52;
+      this->pre_grasp_center.theta_z = 55;
+    }
+    this->get_garment_angle=false;
+    this->get_garment_position=true;
+  
+    std::cout << "\033[1;36m Defined orientation: -> \033[1;36m  x: " << this->pre_grasp_center.theta_x << ", y: " << this-> pre_grasp_center.theta_y << ", z: " << this->pre_grasp_center.theta_z << std::endl;
+    std::cout << "\033[1;36m Distances: -> \033[1;36m  x: " << this->pre_grasp_distance.x << ", y: " << this-> pre_grasp_distance.y << ", z: " << std::endl;
+  }
 }
 
 /*  [subscriber callbacks] */
@@ -837,13 +886,29 @@ void DemosKinovaAlgNode::node_config_update(Config &config, uint32_t level)
   {
     this->start=true;
     this->close_gripper=config.close_gripper;
+    config.start=false;
   }
   if(config.stop)
     this->stop=true;
   if(config.set_config)
     this->set_config();
+  if(config.get_grasp_point)
+  {
+    this->get_garment_angle=true;
+    config.get_grasp_point=false;
+  }
   if(config.test)
-    this->get_garment_pose=true;
+  {
+    this->pre_grasp_center.x = config.grasp_x;
+    this->pre_grasp_center.y = config.grasp_y;
+    this->pre_grasp_center.z = config.grasp_z;
+    this->pre_grasp_center.theta_x = config.grasp_thetax;
+    this->pre_grasp_center.theta_y = config.grasp_thetay;
+    this->pre_grasp_center.theta_z = config.grasp_thetaz;
+    std::cout << "\033[1;36m Groing to: -> \033[1;36m  x: " << this->pre_grasp_center.x << ", y: " << this-> pre_grasp_center.y << ", z: " << this->pre_grasp_center.z << std::endl;
+    std::cout << "\033[1;36m Groing to: -> \033[1;36m  x: " << this->pre_grasp_center.theta_x << ", y: " << this-> pre_grasp_center.theta_y << ", z: " << this->pre_grasp_center.theta_z << std::endl;
+    config.test=false;
+  }
 
   this->config_=config;
   this->alg_.unlock();
@@ -997,6 +1062,9 @@ bool DemosKinovaAlgNode::wait_for_action_end_or_abort(void)
       ROS_INFO("Received ACTION_ABORT notification");
       return false;
     }
+    else
+      ROS_INFO("Wait for action end or abort"); //print state
+
     ros::spinOnce();
   }
   return false;
