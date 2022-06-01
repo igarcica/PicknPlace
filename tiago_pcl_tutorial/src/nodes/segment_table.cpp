@@ -481,10 +481,14 @@ namespace pal {
       marker4.pose.position.y=pt_down_left.y;
       marker4.pose.position.z=pt_down_left.z;
 
-      _pointMarkerPub.publish(marker);
-      _pointMarkerPub2.publish(marker2);
-      _pointMarkerPub3.publish(marker3);
-      _pointMarkerPub4.publish(marker4);
+
+      if ( _graspPointPub.getNumSubscribers() > 1 )
+      {
+        _pointMarkerPub.publish(marker);
+        _pointMarkerPub2.publish(marker2);
+        _pointMarkerPub3.publish(marker3);
+        _pointMarkerPub4.publish(marker4);
+      }
 
 
 
@@ -653,7 +657,9 @@ namespace pal {
         grasp_marker.pose.position.x=grasp_point.x;
         grasp_marker.pose.position.y=grasp_point.y;
         grasp_marker.pose.position.z=grasp_point.z;
-        _graspPointPub.publish(grasp_marker);
+        
+        if ( _graspPointPub.getNumSubscribers() > 1 )
+          _graspPointPub.publish(grasp_marker);
         _garmentEdgePub.publish(garment_edge);
 
 

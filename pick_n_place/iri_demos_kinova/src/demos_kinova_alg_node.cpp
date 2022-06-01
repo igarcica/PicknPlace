@@ -227,7 +227,8 @@ void DemosKinovaAlgNode::mainNodeThread(void)
                            geometry_msgs::Pose desired_pose;
                            desired_pose.position.x = tool_pose.x;
                            desired_pose.position.y = tool_pose.y;
-                           desired_pose.position.z = tool_pose.z + this->garment_height*1.2;
+                           desired_pose.position.z = this->garment_height*1.2;
+                           std::cout << "\033[1;36m Groing to: -> \033[1;36m  x: " << desired_pose.position.x << ", y: " <<  desired_pose.position.y << ", z: " << desired_pose.position.z << std::endl;
                            kinova_linear_moveMakeActionRequest(desired_pose, kortex_driver::CartesianReferenceFrame::CARTESIAN_REFERENCE_FRAME_MIXED, 0.08);
                            this->state=WAIT_POST_GRASP;
                        }
@@ -288,8 +289,9 @@ void DemosKinovaAlgNode::mainNodeThread(void)
                             desired_pose.position.y = -0.12
                             desired_pose.position.z = tool_pose.z;*/
                             desired_pose.position.x = 0.7;
-                            desired_pose.position.y = -0.12; //-this->garment_width/2;
+                            desired_pose.position.y = 0.0; //-0.12; //-this->garment_width/2;
                             desired_pose.position.z = tool_pose.z;
+                            std::cout << "\033[1;36m Groing to: -> \033[1;36m  x: " << desired_pose.position.x << ", y: " <<  desired_pose.position.y << ", z: " << desired_pose.position.z << std::endl;
                             kinova_linear_moveMakeActionRequest(desired_pose, kortex_driver::CartesianReferenceFrame::CARTESIAN_REFERENCE_FRAME_MIXED, 0.08);
                             config_.ok=false;
                             this->state=WAIT_GO_TO_PLACE;
@@ -361,6 +363,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
                                desired_pose.position.x = tool_pose.x-this->garment_height/1.5;
                                desired_pose.position.y = tool_pose.y;
                                desired_pose.position.z = 0.055; //this->pre_grasp_center.z;
+                               std::cout << "\033[1;36m Groing to: -> \033[1;36m  x: " << desired_pose.position.x << ", y: " <<  desired_pose.position.y << ", z: " << desired_pose.position.z << std::endl;
                                kinova_linear_moveMakeActionRequest(desired_pose, kortex_driver::CartesianReferenceFrame::CARTESIAN_REFERENCE_FRAME_MIXED, 0.08);
 //                             }
                              this->state=WAIT_PLACE_DIAGONAL;
@@ -439,16 +442,13 @@ void DemosKinovaAlgNode::mainNodeThread(void)
       // PLACE POSITION
       case PLACE_RECTO: ROS_INFO("DemosKinovaAlgNode: state PLACE RECTO");
                   {
-//                    static bool first=true;
-//                    if(first){
                       ROS_INFO("Sending to place position.");
-                      //first=false;
                       geometry_msgs::Pose desired_pose;
                       desired_pose.position.x = tool_pose.x;
                       desired_pose.position.y = tool_pose.y;
                       desired_pose.position.z = 0.11;
+                      std::cout << "\033[1;36m Groing to: -> \033[1;36m  x: " << desired_pose.position.x << ", y: " <<  desired_pose.position.y << ", z: " << desired_pose.position.z << std::endl;
                       kinova_linear_moveMakeActionRequest(desired_pose, kortex_driver::CartesianReferenceFrame::CARTESIAN_REFERENCE_FRAME_MIXED, 0.08);
-//                    }
                     this->state=WAIT_PLACE_RECTO;
                   }
       break;
@@ -492,16 +492,13 @@ void DemosKinovaAlgNode::mainNodeThread(void)
       // POST-PLACE POSITION
       case POST_PLACE: ROS_INFO("DemosKinovaAlgNode: state POST PLACE");
                        {
- //                        static bool first=true;
- //                        if(first){
                            ROS_INFO("Sending to place position.");
-                           //first=false;
                            geometry_msgs::Pose desired_pose;
                            desired_pose.position.x = tool_pose.x-0.05;
                            desired_pose.position.y = tool_pose.y;
                            desired_pose.position.z = tool_pose.z;
+                           std::cout << "\033[1;36m Groing to: -> \033[1;36m  x: " << desired_pose.position.x << ", y: " <<  desired_pose.position.y << ", z: " << desired_pose.position.z << std::endl;
                            kinova_linear_moveMakeActionRequest(desired_pose, kortex_driver::CartesianReferenceFrame::CARTESIAN_REFERENCE_FRAME_MIXED, 0.08);
-//                         }
                          this->state=WAIT_POST_PLACE;
                        }
       break;
@@ -534,16 +531,13 @@ void DemosKinovaAlgNode::mainNodeThread(void)
       // HIGH POSITION
       case HIGH_POSITION: ROS_INFO("DemosKinovaAlgNode: state HIGH POSITION");
                           {
-//                            static bool first=true;
-//                            if(first){
                               ROS_INFO("Sending to place position.");
-                              //first=false;
                               geometry_msgs::Pose desired_pose;
                               desired_pose.position.x = tool_pose.x;
                               desired_pose.position.y = tool_pose.y;
                               desired_pose.position.z = 0.50;
+                              std::cout << "\033[1;36m Groing to: -> \033[1;36m  x: " << desired_pose.position.x << ", y: " <<  desired_pose.position.y << ", z: " << desired_pose.position.z << std::endl;
                               kinova_linear_moveMakeActionRequest(desired_pose, kortex_driver::CartesianReferenceFrame::CARTESIAN_REFERENCE_FRAME_MIXED, 0.08);
-//                            }
                             this->state=WAIT_HIGH_POSITION;
                           }
       break;
@@ -711,12 +705,12 @@ void DemosKinovaAlgNode::garment_pose_callback(const visualization_msgs::Marker:
     std::cout << "\033[1;36m Grasp position -> \033[1;36m  x: " << this->pre_grasp_center.x << ", y: " << this-> pre_grasp_center.y << ", z: " << this->pre_grasp_center.z << std::endl;
     std::cout << "\033[1;36m Grasp orientation -> \033[1;36m  x: " << this->pre_grasp_center.theta_x << ", y: " << this-> pre_grasp_center.theta_y << ", z: " << this->pre_grasp_center.theta_z << std::endl;
 
-/*    marker.pose.position.x=point_out.point.x;
+    marker.pose.position.x=point_out.point.x;
     marker.pose.position.y=point_out.point.y;
-    marker.pose.position.z=point_out.point.z;*/
-    marker.pose.position.x=this->pre_grasp_center.x;
+    marker.pose.position.z=point_out.point.z;
+/*    marker.pose.position.x=this->pre_grasp_center.x;
     marker.pose.position.y=this->pre_grasp_center.y;
-    marker.pose.position.z=this->pre_grasp_center.z;
+    marker.pose.position.z=this->pre_grasp_center.z;*/
     grasp_marker_publisher.publish(marker);
 
     this->get_garment_position=false;
@@ -758,18 +752,18 @@ void DemosKinovaAlgNode::garment_angle_callback(const std_msgs::Float64::ConstPt
       ROS_INFO("DemosKinovaAlgNode: Orientation 2 - DIAGONAL DER");
       this->pre_grasp_distance.x = 0.08;
       this->pre_grasp_distance.y = 0.08;
-      this->pre_grasp_center.theta_x = -170;
+      this->pre_grasp_center.theta_x = -176;
       this->pre_grasp_center.theta_y = -52;
-      this->pre_grasp_center.theta_z = 30;
+      this->pre_grasp_center.theta_z = 37;
     }
     else if(msg->data == 3)
     {
       ROS_INFO("DemosKinovaAlgNode: Orientation 3 - VERTICAL");
       this->pre_grasp_distance.x = 0;
       this->pre_grasp_distance.y = 0.04;
-      this->pre_grasp_center.theta_x = -170;
-      this->pre_grasp_center.theta_y = -52;
-      this->pre_grasp_center.theta_z = 55;
+      this->pre_grasp_center.theta_x = -179; //-170;
+      this->pre_grasp_center.theta_y = -50; //-52;
+      this->pre_grasp_center.theta_z = 85; //55;
     }
     this->get_garment_angle=false;
     this->get_garment_position=true;
