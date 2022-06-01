@@ -113,6 +113,7 @@ namespace pal {
     ros::Publisher _pointMarkerPub3;
     ros::Publisher _pointMarkerPub4;
     ros::Publisher _graspPointPub;
+    ros::Publisher _garmentEdgePub;
 
     //Variables globales:
     int n_frames;
@@ -173,6 +174,7 @@ namespace pal {
 
     n_frames=0;
     _graspPointAnglePub    = _pnh.advertise<std_msgs::Float64>("grasp_angle", 1);
+    _garmentEdgePub   = _pnh.advertise<std_msgs::Float64>("garment_edge", 1);
       
   }
 
@@ -489,7 +491,6 @@ namespace pal {
 //Robust corner points - sliding window
 /*
     std::cout << "\043[1;36m PT UP RIGHT: " << pt_up_right.z << ", " << pt_up_right.y << ", " << pt_up_right.x << std::endl;
-    //sliding window
     current_sum_c1.x += pt_down_right.x;
     current_sum_c1.y += pt_down_right.y;
     current_sum_c1.z += pt_down_right.z;
@@ -505,43 +506,43 @@ namespace pal {
 
     n_frames+=1;
     std::cout << "n frames ------> " << n_frames << std::endl;
-    if(n_frames>4)
+    if(n_frames>2)
     {
-      std::cout << "\033[1;36m PT DOWN LEFT: " << current_sum_c4.z/5 << ", " << current_sum_c4.y/5 << ", " << current_sum_c4.x/5 << std::endl;
-      std::cout << "\033[1;36m PT UP LEFT: " << current_sum_c2.z/5 << ", " << current_sum_c2.y/5 << ", " << current_sum_c2.x/5 << std::endl;
-      std::cout << "\033[1;36m PT DOWN RIGHT: " << current_sum_c1.z/5 << ", " << current_sum_c1.y/5 << ", " << current_sum_c1.x/5 << std::endl;
-      std::cout << "\033[1;36m PT UP RIGHT: " << current_sum_c3.z/5 << ", " << current_sum_c3.y/5 << ", " << current_sum_c3.x/5 << std::endl;
+      std::cout << "\033[1;36m PT DOWN LEFT: " << current_sum_c4.z/n_frames << ", " << current_sum_c4.y/n_frames << ", " << current_sum_c4.x/n_frames << std::endl;
+      std::cout << "\033[1;36m PT UP LEFT: " << current_sum_c2.z/n_frames << ", " << current_sum_c2.y/n_frames << ", " << current_sum_c2.x/n_frames << std::endl;
+      std::cout << "\033[1;36m PT DOWN RIGHT: " << current_sum_c1.z/n_frames << ", " << current_sum_c1.y/n_frames << ", " << current_sum_c1.x/n_frames << std::endl;
+      std::cout << "\033[1;36m PT UP RIGHT: " << current_sum_c3.z/n_frames << ", " << current_sum_c3.y/n_frames << ", " << current_sum_c3.x/n_frames << std::endl;
 
-      marker.pose.position.x=current_sum_c1.x/5;
-      marker.pose.position.y=current_sum_c1.y/5;
-      marker.pose.position.z=current_sum_c1.z/5;
-      marker2.pose.position.x=current_sum_c2.x/5;
-      marker2.pose.position.y=current_sum_c2.y/5;
-      marker2.pose.position.z=current_sum_c2.z/5;
-      marker3.pose.position.x=current_sum_c3.x/5;
-      marker3.pose.position.y=current_sum_c3.y/5;
-      marker3.pose.position.z=current_sum_c3.z/5;
-      marker4.pose.position.x=current_sum_c4.x/5;
-      marker4.pose.position.y=current_sum_c4.y/5;
-      marker4.pose.position.z=current_sum_c4.z/5;
+      marker.pose.position.x=current_sum_c1.x/n_frames;
+      marker.pose.position.y=current_sum_c1.y/n_frames;
+      marker.pose.position.z=current_sum_c1.z/n_frames;
+      marker2.pose.position.x=current_sum_c2.x/n_frames;
+      marker2.pose.position.y=current_sum_c2.y/n_frames;
+      marker2.pose.position.z=current_sum_c2.z/n_frames;
+      marker3.pose.position.x=current_sum_c3.x/n_frames;
+      marker3.pose.position.y=current_sum_c3.y/n_frames;
+      marker3.pose.position.z=current_sum_c3.z/n_frames;
+      marker4.pose.position.x=current_sum_c4.x/n_frames;
+      marker4.pose.position.y=current_sum_c4.y/n_frames;
+      marker4.pose.position.z=current_sum_c4.z/n_frames;
 
       _pointMarkerPub.publish(marker);
       _pointMarkerPub2.publish(marker2);
       _pointMarkerPub3.publish(marker3);
       _pointMarkerPub4.publish(marker4);
 
-      pt_down_right.x = current_sum_c1.x/5;
-      pt_down_right.y = current_sum_c1.y/5;
-      pt_down_right.z = current_sum_c1.z/5;
-      pt_up_left.x = current_sum_c2.x/5;
-      pt_up_left.y = current_sum_c2.y/5;
-      pt_up_left.z = current_sum_c2.z/5;
-      pt_up_right.x = current_sum_c3.x/5;
-      pt_up_right.y = current_sum_c3.y/5;
-      pt_up_right.z = current_sum_c3.z/5;
-      pt_down_left.x = current_sum_c4.x/5;
-      pt_down_left.y = current_sum_c4.y/5;
-      pt_down_left.z = current_sum_c4.z/5;
+      pt_down_right.x = current_sum_c1.x/n_frames;
+      pt_down_right.y = current_sum_c1.y/n_frames;
+      pt_down_right.z = current_sum_c1.z/n_frames;
+      pt_up_left.x = current_sum_c2.x/n_frames;
+      pt_up_left.y = current_sum_c2.y/n_frames;
+      pt_up_left.z = current_sum_c2.z/n_frames;
+      pt_up_right.x = current_sum_c3.x/n_frames;
+      pt_up_right.y = current_sum_c3.y/n_frames;
+      pt_up_right.z = current_sum_c3.z/n_frames;
+      pt_down_left.x = current_sum_c4.x/n_frames;
+      pt_down_left.y = current_sum_c4.y/n_frames;
+      pt_down_left.z = current_sum_c4.z/n_frames;
       n_frames=0;
       current_sum_c1.x = 0;
       current_sum_c1.y = 0;
@@ -570,6 +571,7 @@ namespace pal {
         double u1, u2; //Edge direction vector components
         std_msgs::Float64 grasp_angle; 
         float cos_alpha, alpha;
+        std_msgs::Float64 garment_edge; 
   
         // Check if the object's shape is square or a rectangle 
         if(abs(edge1-edge2)>0.05)
@@ -581,6 +583,7 @@ namespace pal {
             grasp_point.z = pt_down_left.z + (pt_down_right.z - pt_down_left.z)/2;
             grasp_point.y = pt_down_left.y - (abs(pt_down_left.y - pt_down_right.y)/2); //REVISAR?
             grasp_point.x = pt_down_left.x-0.02;
+            garment_edge.data = abs(edge2);
             u1 = pt_down_left.z - pt_down_right.z;    //X direction of edge vector
             u2 = pt_down_left.y - pt_down_right.y;    //Y direction of edge vector
             cos_alpha = (abs(u2))/(sqrt(pow(u1,2)+pow(u2,2)));
@@ -611,6 +614,7 @@ namespace pal {
             grasp_point.z = pt_down_left.z + (abs(pt_down_left.z - pt_up_left.z)/2); //REVISAR!
             grasp_point.y = pt_down_left.y + (pt_up_left.y - pt_down_left.y)/2; //REVISAR?
             grasp_point.x = pt_down_left.x-0.02;
+            garment_edge.data = abs(edge1);
             u1 = pt_up_left.z - pt_down_left.z;    //X direction of edge vector
             u2 = pt_up_left.y - pt_down_left.y;    //Y direction of edge vector
             cos_alpha = (abs(u2))/(sqrt(pow(u1,2)+pow(u2,2)));
@@ -637,12 +641,12 @@ namespace pal {
         else //Squared object -> Get mid point of closet edge
         {
           std::cout << "Square!" << std::endl;
-          mid_pt = edge1/2;
           grasp_point.z = pt_down_left.z + (pt_down_right.z - pt_down_left.z)/2;
           grasp_point.y = pt_down_left.y - (abs(pt_down_left.y - pt_down_right.y)/2);
           grasp_point.x = pt_down_left.x-0.02;
           u1 = pt_down_left.z - pt_down_right.z;    //X direction of edge vector
           u2 = pt_down_left.y - pt_down_right.y;    //Y direction of edge vector
+          garment_edge.data = abs(edge1);
         }
   
         std::cout << "\033[1;36m GRASP POINT: " << grasp_point.z << ", " << grasp_point.y << ", " << grasp_point.x << std::endl;
@@ -650,6 +654,7 @@ namespace pal {
         grasp_marker.pose.position.y=grasp_point.y;
         grasp_marker.pose.position.z=grasp_point.z;
         _graspPointPub.publish(grasp_marker);
+        _garmentEdgePub.publish(garment_edge);
 
 
 // Get angle edge
@@ -671,7 +676,8 @@ namespace pal {
 //        std_msgs::Float64 grasp_angle;
 //        grasp_angle.data = alpha; 
         _graspPointAnglePub.publish(grasp_angle);
-    //}
+
+//    }
 
   }
 

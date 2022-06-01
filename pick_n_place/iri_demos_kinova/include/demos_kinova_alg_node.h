@@ -67,15 +67,19 @@ typedef enum {IDLE,
               WAIT_GRASP,
               CLOSE_GRIPPER,
               POST_GRASP,
+              ROTATE_POST_GRASP,
               WAIT_POST_GRASP,
               GO_TO_PLACE,
               WAIT_GO_TO_PLACE,
+              ROTATE_PRE_PLACE,
               PRE_PLACE_DIAGONAL,
               WAIT_PRE_PLACE_DIAGONAL,
               PLACE_DIAGONAL,
               WAIT_PLACE_DIAGONAL,
-              PLACE,
-              WAIT_PLACE,
+              PRE_PLACE2,
+              PLACE2,
+              PLACE_RECTO,
+              WAIT_PLACE_RECTO,
               OPEN_GRIPPER,
               POST_PLACE,
               WAIT_POST_PLACE,
@@ -124,8 +128,10 @@ class DemosKinovaAlgNode : public algorithm_base::IriBaseAlgorithm<DemosKinovaAl
     bool get_garment_angle;
     ros::Subscriber garment_pose_subscriber;
     ros::Subscriber garment_angle_subscriber;
+    ros::Subscriber garment_edge_subscriber;
     void garment_pose_callback(const visualization_msgs::Marker::ConstPtr& msg);
     void garment_angle_callback(const std_msgs::Float64::ConstPtr& msg);
+    void garment_edge_callback(const std_msgs::Float64::ConstPtr& msg);
     void set_config(void);
     void get_params(void);
     kortex_driver::Pose pre_grasp_distance;
