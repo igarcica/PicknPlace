@@ -341,7 +341,7 @@ namespace pal {
     proj.setInputCloud (xyzpclCloud);
     proj.setModelCoefficients (planeCoeff);
     proj.filter (*cloud_projected);
-    std::cerr << "PointCloud after projection has: " << cloud_projected->size () << " data points." << std::endl;
+    //std::cerr << "PointCloud after projection has: " << cloud_projected->size () << " data points." << std::endl; //Debug
   
     // Create a Convex Hull representation of the projected inliers
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_hull (new pcl::PointCloud<pcl::PointXYZ>);
@@ -351,7 +351,7 @@ namespace pal {
     //chull.setAlpha (0.1);
     chull.reconstruct (*cloud_hull, polygons);
   
-    std::cerr << "Concave hull has: " << cloud_hull->size () << " data points." << std::endl;
+    //std::cerr << "Concave hull has: " << cloud_hull->size () << " data points." << std::endl; //Debug
 
     // Publish the convex cloud
     if ( _convexCloudPub.getNumSubscribers() > 0 )
@@ -409,8 +409,7 @@ namespace pal {
     float min_sum = cloud_hull->points[0].y + cloud_hull->points[0].z;
     float min_diff = max_diff;
     float max_sum = min_sum;
-    std::cout << "max diff: " << max_diff << std::endl;
-    std::cout << "min sum: " << min_sum << std::endl;
+    //std::cout << "max diff: " << max_diff << "min sum: " << min_sum << std::endl;
 
     //Init
     pt_down_right.x=cloud_hull->points[0].x;
@@ -462,11 +461,11 @@ namespace pal {
     }
 
 //Real time detected points
-
-      std::cout << "\033[1;36m PT DOWN LEFT: " << pt_down_left.z << ", " << pt_down_left.y << ", " << pt_down_left.x << std::endl;
+      //Debug
+      /*std::cout << "\033[1;36m PT DOWN LEFT: " << pt_down_left.z << ", " << pt_down_left.y << ", " << pt_down_left.x << std::endl;
       std::cout << "\033[1;36m PT UP LEFT: " << pt_up_left.z << ", " << pt_up_left.y << ", " << pt_up_left.x << std::endl;
       std::cout << "\033[1;36m PT DOWN RIGHT: " << pt_down_right.z << ", " << pt_down_right.y << ", " << pt_down_right.x << std::endl;
-      std::cout << "\033[1;36m PT UP RIGHT: " << pt_up_right.z << ", " << pt_up_right.y << ", " << pt_up_right.x << std::endl;
+      std::cout << "\033[1;36m PT UP RIGHT: " << pt_up_right.z << ", " << pt_up_right.y << ", " << pt_up_right.x << std::endl; */
 
       marker.pose.position.x=pt_down_right.x;
       marker.pose.position.y=pt_down_right.y;
@@ -567,10 +566,9 @@ namespace pal {
         pcl::PointXYZ grasp_point;
         float edge1 = abs(pt_down_left.y - pt_down_right.y);
         float edge2 = abs(pt_up_left.z - pt_down_left.z);
-        std::cout << "Edges antes: " << edge1 << ", " << edge2 << std::endl;
         edge2 = sqrt(pow(abs(pt_up_left.z-pt_down_left.z),2)+pow(abs(pt_up_left.y-pt_down_left.y),2));
         edge1 = sqrt(pow(abs(pt_down_right.z-pt_down_left.z),2)+pow(abs(pt_down_right.y-pt_down_left.y),2));
-        std::cout << "Edges ahora: " << edge1 << ", " << edge2 << std::endl;
+        //std::cout << "Edges ahora: " << edge1 << ", " << edge2 << std::endl; //Debug
         float mid_pt;
         double u1, u2; //Edge direction vector components
         std_msgs::Float64 grasp_angle; 
@@ -583,7 +581,7 @@ namespace pal {
           // Get mid point of longest edge
           if(edge1 > edge2)
           {
-            std::cout << "Edge1!" << std::endl;
+            //std::cout << "Edge1!" << std::endl; //Debug
             grasp_point.z = pt_down_left.z + (pt_down_right.z - pt_down_left.z)/2;
             grasp_point.y = pt_down_left.y - (abs(pt_down_left.y - pt_down_right.y)/2); //REVISAR?
             grasp_point.x = pt_down_left.x-0.02;
@@ -592,29 +590,29 @@ namespace pal {
             u2 = pt_down_left.y - pt_down_right.y;    //Y direction of edge vector
             cos_alpha = (abs(u2))/(sqrt(pow(u1,2)+pow(u2,2)));
             alpha = acos(cos_alpha);
-            std::cout << "U!: " << u1 << " / " << u2 << std::endl;
+            //std::cout << "U!: " << u1 << " / " << u2 << std::endl; //Debug
             if(0.2 > alpha > 0)
             {
               grasp_angle.data = 0;
-              std::cout << "HORIZONTAL: E1 > 0-0.4" << std::endl;
+              //std::cout << "HORIZONTAL: E1 > 0-0.4" << std::endl; //Debug
             }
             else //alpha > 0.2
             {
               if(u1>0) //pt_down_left.z > pt_down_right.z = Diagonal izq
               {
                 grasp_angle.data = 1;
-                std::cout << "DIAGONAL IZQ: E1>0.2 y U1>0" << std::endl;
+                //std::cout << "DIAGONAL IZQ: E1>0.2 y U1>0" << std::endl; //Debug
               }
               else // Diagonal der
               {  //REVISAR!!!!
-                std::cout << "DIAGONAL DER: E1>0.2 y U1<0" << std::endl;
+                //std::cout << "DIAGONAL DER: E1>0.2 y U1<0" << std::endl; //Debug
                 grasp_angle.data = 2;
               }
             }
           }
           else
           { 
-            std::cout << "Edge2!" << std::endl;
+            //std::cout << "Edge2!" << std::endl; //Debug
             grasp_point.z = pt_down_left.z + (abs(pt_down_left.z - pt_up_left.z)/2); //REVISAR!
             grasp_point.y = pt_down_left.y + (pt_up_left.y - pt_down_left.y)/2; //REVISAR?
             grasp_point.x = pt_down_left.x-0.02;
@@ -629,14 +627,14 @@ namespace pal {
               grasp_point.y = pt_down_right.y + (pt_up_right.y - pt_down_right.y)/2; //REVISAR?
               grasp_point.x = pt_down_right.x-0.02;
               grasp_angle.data = 3;
-              std::cout << "VERTICAL: E2 > 1" << std::endl;
+              //std::cout << "VERTICAL: E2 > 1" << std::endl; //Debug
             }
             if(1 > alpha > 0.3)
             {
               grasp_point.z = pt_down_right.z + (abs(pt_down_right.z - pt_up_right.z)/2); //REVISAR!
               grasp_point.y = pt_down_right.y + (pt_up_right.y - pt_down_right.y)/2; //REVISAR?
               grasp_point.x = pt_down_right.x-0.02;
-              std::cout << "DIAGONAL DER: E2 > 0.3-1.2" << std::endl;
+              //std::cout << "DIAGONAL DER: E2 > 0.3-1.2" << std::endl; //Debug
               grasp_angle.data = 2;
             }
               
@@ -644,7 +642,7 @@ namespace pal {
         }
         else //Squared object -> Get mid point of closet edge
         {
-          std::cout << "Square!" << std::endl;
+          //std::cout << "Square!" << std::endl; //Debug
           grasp_point.z = pt_down_left.z + (pt_down_right.z - pt_down_left.z)/2;
           grasp_point.y = pt_down_left.y - (abs(pt_down_left.y - pt_down_right.y)/2);
           grasp_point.x = pt_down_left.x-0.02;
@@ -653,7 +651,7 @@ namespace pal {
           garment_edge.data = abs(edge1);
         }
   
-        std::cout << "\033[1;36m GRASP POINT: " << grasp_point.z << ", " << grasp_point.y << ", " << grasp_point.x << std::endl;
+        //std::cout << "\033[1;36m GRASP POINT: " << grasp_point.z << ", " << grasp_point.y << ", " << grasp_point.x << std::endl; //Debug
         grasp_marker.pose.position.x=grasp_point.x;
         grasp_marker.pose.position.y=grasp_point.y;
         grasp_marker.pose.position.z=grasp_point.z;
@@ -672,12 +670,12 @@ namespace pal {
         double hola2 = sqrt(pow(u1,2)+pow(u2,2));
         cos_alpha = (abs(u2))/(sqrt(pow(u1,2)+pow(u2,2)));
         alpha = acos(cos_alpha);
-        std::cout << "DOWN LEFT X: " << pt_down_left.z << "  -UP LEFT X: " << pt_up_left.z << std::endl;
+/*        std::cout << "DOWN LEFT X: " << pt_down_left.z << "  -UP LEFT X: " << pt_up_left.z << std::endl;
         std::cout << "DOWN LEFT Y: " << pt_down_left.y << "  -UP LEFT Y: " << pt_up_left.y << std::endl;
         std::cout << "U1: " << u1 << "   U2: " << u2 << std::endl;
         std::cout << "HOLA: " << hola1 << "   HOLA2: " << hola2 << std::endl;
         std::cout << "COS ALPHA: " << cos_alpha << std::endl;
-        std::cout << "ALPHA: " << alpha << std::endl;
+        std::cout << "ALPHA: " << alpha << std::endl; */
   
 //        std_msgs::Float64 grasp_angle;
 //        grasp_angle.data = alpha; 

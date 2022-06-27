@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+
+
+<!-- LINEAR MOVEMENT CONTROLLER -->
+  <include file="$(find iri_kinova_linear_movement)/launch/node.launch"> </include> 
+
+<!-- IRI KINOVA DEMO -->
+  <include file="$(find iri_demos_kinova)/launch/node.launch"> </include>
+
+<!-- TIAGO PCL TUTORIAL -->
+  <include file="$(find tiago_pcl_tutorial)/launch/picknplace.launch"> </include>
+
+
+</launch>

@@ -124,15 +124,15 @@ void RegionSegment::cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input)
 {
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
   pcl::fromROSMsg(*input, *cloud);
-  ROS_INFO_STREAM("Original number of points:               " << cloud->size());
+  ROS_DEBUG_STREAM("Original number of points:               " << cloud->size());
   std::vector<int> removedNan;
   pcl::removeNaNFromPointCloud(*cloud, *cloud, removedNan);
-  ROS_INFO_STREAM("Number of points after removing NaNs:    " << cloud->size());
+  ROS_DEBUG_STREAM("Number of points after removing NaNs:    " << cloud->size());
 
   if ( _enable_downsampling )
   {
     pal::downSample<pcl::PointXYZ>(cloud, cloud, _downsampling_leaf_size);
-    ROS_INFO_STREAM("Number of points after downsampling:     " << cloud->size());
+    ROS_DEBUG_STREAM("Number of points after downsampling:     " << cloud->size());
   }
 
   this->region_segment(cloud);
@@ -182,10 +182,10 @@ void RegionSegment::region_segment(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud)
 
   sensor_msgs::PointCloud2 cloud_out;
 
-  std::cout << "Number of clusters is equal to " << clusters.size () << std::endl;
+  //std::cout << "Number of clusters is equal to " << clusters.size () << std::endl; //Debug
   if ( !clusters.empty() )
   {
-    std::cout << "First cluster has " << clusters[0].indices.size () << " points." << std::endl;
+    //std::cout << "First cluster has " << clusters[0].indices.size () << " points." << std::endl; //Debug
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr colored_cloud = reg.getColoredCloud ();
     pcl::toROSMsg(*colored_cloud, cloud_out);
   }

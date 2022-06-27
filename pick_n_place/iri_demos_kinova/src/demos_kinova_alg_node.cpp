@@ -333,7 +333,8 @@ void DemosKinovaAlgNode::mainNodeThread(void)
                              }
       break;
 
-      // ROTATE PRE.PLACE POSITION - CARTESIAN
+      // ROTATE PRE-PLACE POSITION - CARTESIAN
+      // Sets a slight rotation before the diagonal placement
       case ROTATE_PRE_PLACE: ROS_INFO("DemosKinovaAlgNode: state ROTATE PRE PLACE");
                               ROS_INFO("Rotating pre-place position.");
                               this->pre_grasp_center.x = tool_pose.x;
@@ -356,6 +357,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
       break;
       
       // PLACE POSITION
+      // Sets the placing position so it performs a diagonal movement
       case PLACE_DIAGONAL: ROS_INFO("DemosKinovaAlgNode: state PLACE DIAGONAL");
                            {
                                ROS_INFO("Sending to place position.");
@@ -370,6 +372,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
                            }
       break;
 
+      // Wait until it ends the diagonal movement (with linear movement controller)
       case WAIT_PLACE_DIAGONAL: ROS_INFO("DemosKinovaAlgNode: state WAIT PLACE DIAGONAL");
                                 {
                                   actionlib::SimpleClientGoalState kinova_linear_move_state(actionlib::SimpleClientGoalState::PENDING);
@@ -395,6 +398,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
 
 //Place rotando
       // PRE PLACE2 - CARTESIAN
+      // Sets a rotation so the garment stays vertical to the table (with cartesian controller)
       case PRE_PLACE2: ROS_INFO("DemosKinovaAlgNode: state ROTATE PRE PLACE2");
                               ROS_INFO("Rotating pre-place position.");
                               this->pre_grasp_center.x = 0.7; //tool_pose.x-this->garment_height/1.5;
@@ -414,6 +418,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
       break;
 
       // PLACE2 - CARTESIAN
+      // Sets the placing position in the table from the vertical rotation (with cartesian controller)
       case PLACE2: ROS_INFO("DemosKinovaAlgNode: state ROTATE PRE PLACE");
                               ROS_INFO("Rotating pre-place position.");
                               this->pre_grasp_center.x = tool_pose.x-this->garment_height;///1.5;
@@ -438,6 +443,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
 // PLACE RECTO!
     
       // PLACE POSITION
+      // Sets the placing position to perform a straight placement (with linear movement controller)
       case PLACE_RECTO: ROS_INFO("DemosKinovaAlgNode: state PLACE RECTO");
                   {
                       ROS_INFO("Sending to place position.");
@@ -451,6 +457,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
                   }
       break;
 
+      // Waits until it places the garment vertically (linear)
       case WAIT_PLACE_RECTO: ROS_INFO("DemosKinovaAlgNode: state WAIT PLACE RECTO");
                        {
                          actionlib::SimpleClientGoalState kinova_linear_move_state(actionlib::SimpleClientGoalState::PENDING);

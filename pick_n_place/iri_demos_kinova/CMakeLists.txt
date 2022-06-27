@@ -6,7 +6,7 @@ find_package(catkin REQUIRED)
 # ********************************************************************
 #                 Add catkin additional components here
 # ********************************************************************
-find_package(catkin REQUIRED COMPONENTS iri_base_algorithm iri_kinova_linear_movement kortex_driver iri_action_server message_generation std_msgs actionlib_msgs tf)
+find_package(catkin REQUIRED COMPONENTS iri_base_algorithm iri_kinova_linear_movement kortex_driver tiago_pcl_tutorial iri_action_server message_generation std_msgs actionlib_msgs tf)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -59,7 +59,7 @@ catkin_package(
 # ********************************************************************
 #            Add ROS and IRI ROS run time dependencies
 # ********************************************************************
- CATKIN_DEPENDS iri_base_algorithm iri_kinova_linear_movement iri_action_server kortex_driver tf
+ CATKIN_DEPENDS iri_base_algorithm iri_kinova_linear_movement tiago_pcl_tutorial iri_action_server kortex_driver tf
 # ********************************************************************
 #      Add system and labrobotica run time dependencies here
 # ********************************************************************
@@ -94,6 +94,7 @@ target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
 # ********************************************************************
 # add_dependencies(${PROJECT_NAME} <msg_package_name>_generate_messages_cpp)
 add_dependencies(${PROJECT_NAME} iri_kinova_linear_movement_generate_messages_cpp)
+add_dependencies(${PROJECT_NAME} tiago_pcl_tutorial_generate_messages_cpp)
 add_dependencies(${PROJECT_NAME} kortex_driver_generate_messages_cpp)
 # ********************************************************************
 #               Add dynamic reconfigure dependencies
