@@ -184,8 +184,6 @@ void DemosKinovaAlgNode::mainNodeThread(void)
 
       case WAIT_GRASP: ROS_INFO("DemosKinovaAlgNode: state WAIT GRASP");
                        {
-                         // [fill action structure and make request to the action server]
-                         // variable to hold the state of the current goal on the server
                          actionlib::SimpleClientGoalState kinova_linear_move_state(actionlib::SimpleClientGoalState::PENDING);
                          // to get the state of the current goal
                          this->alg_.unlock();
@@ -193,6 +191,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
                          this->alg_.lock();
   
                          ROS_INFO("DemosKinovaAlgNode::mainNodeThread: kinova_linear_move_client_ action state = %s", kinova_linear_move_state.toString().c_str());;
+			 // falta un timeout (state LOST)
                          if(kinova_linear_move_state==actionlib::SimpleClientGoalState::ABORTED)
                          {
                            ROS_INFO("Action aborted!");
@@ -221,6 +220,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
  
 
       // POST-GRASP POSITION
+      // Sets a post grasp position a bit (x1.2) more high than the width of the garment
       case POST_GRASP: ROS_INFO("DemosKinovaAlgNode: state POST GRASP");
                        {
                            ROS_INFO("Sending to post-grasp position.");
@@ -234,10 +234,9 @@ void DemosKinovaAlgNode::mainNodeThread(void)
                        }
       break;
 
+      // Waits until it reaches the post grasp position (linear movement controller)
       case WAIT_POST_GRASP: ROS_INFO("DemosKinovaAlgNode: state WAIT POST GRASP");
                             {
-                              // [fill action structure and make request to the action server]
-                              // variable to hold the state of the current goal on the server
                               actionlib::SimpleClientGoalState kinova_linear_move_state(actionlib::SimpleClientGoalState::PENDING);
                               // to get the state of the current goal
                               this->alg_.unlock();
@@ -260,6 +259,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
       break;
 
       // ROTATE POST-GRASP POSITION - CARTESIAN
+      // Sets a position under the camera with an horizontal orientation to check the deformation
       case ROTATE_POST_GRASP: ROS_INFO("DemosKinovaAlgNode: state ROTATE POST GRASP");
                               ROS_INFO("Rotating post-grasp position.");
                               this->pre_grasp_center.x = 0.50; //tool_pose.x;
@@ -279,6 +279,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
       break;
 
       // PRE-PLACE POSITION
+      // Go to a fixed pre place position
       case GO_TO_PLACE: ROS_INFO("DemosKinovaAlgNode: state GO TO PLACE");
                         {
                           if(config_.ok){
@@ -301,10 +302,9 @@ void DemosKinovaAlgNode::mainNodeThread(void)
                         }
       break;
 
+      // Waits until it reaches the pre place position with linear movement controller
       case WAIT_GO_TO_PLACE: ROS_INFO("DemosKinovaAlgNode: state WAIT GO TO PLACE");
                              {
-                               // [fill action structure and make request to the action server]
-                               // variable to hold the state of the current goal on the server
                                actionlib::SimpleClientGoalState kinova_linear_move_state(actionlib::SimpleClientGoalState::PENDING);
                                // to get the state of the current goal
                                this->alg_.unlock();
@@ -372,8 +372,6 @@ void DemosKinovaAlgNode::mainNodeThread(void)
 
       case WAIT_PLACE_DIAGONAL: ROS_INFO("DemosKinovaAlgNode: state WAIT PLACE DIAGONAL");
                                 {
-                                  // [fill action structure and make request to the action server]
-                                  // variable to hold the state of the current goal on the server
                                   actionlib::SimpleClientGoalState kinova_linear_move_state(actionlib::SimpleClientGoalState::PENDING);
                                   // to get the state of the current goal
                                   this->alg_.unlock();
@@ -455,8 +453,6 @@ void DemosKinovaAlgNode::mainNodeThread(void)
 
       case WAIT_PLACE_RECTO: ROS_INFO("DemosKinovaAlgNode: state WAIT PLACE RECTO");
                        {
-                         // [fill action structure and make request to the action server]
-                         // variable to hold the state of the current goal on the server
                          actionlib::SimpleClientGoalState kinova_linear_move_state(actionlib::SimpleClientGoalState::PENDING);
                          // to get the state of the current goal
                          this->alg_.unlock();
@@ -505,8 +501,6 @@ void DemosKinovaAlgNode::mainNodeThread(void)
 
       case WAIT_POST_PLACE: ROS_INFO("DemosKinovaAlgNode: state WAIT POST PLACE");
                             {
-                              // [fill action structure and make request to the action server]
-                              // variable to hold the state of the current goal on the server
                               actionlib::SimpleClientGoalState kinova_linear_move_state(actionlib::SimpleClientGoalState::PENDING);
                               // to get the state of the current goal
                               this->alg_.unlock();
@@ -544,8 +538,6 @@ void DemosKinovaAlgNode::mainNodeThread(void)
 
       case WAIT_HIGH_POSITION: ROS_INFO("DemosKinovaAlgNode: state WAIT HIGH POSITION");
                                {
-                                 // [fill action structure and make request to the action server]
-                                 // variable to hold the state of the current goal on the server
                                  actionlib::SimpleClientGoalState kinova_linear_move_state(actionlib::SimpleClientGoalState::PENDING);
                                  // to get the state of the current goal
                                  this->alg_.unlock();
@@ -657,9 +649,9 @@ void DemosKinovaAlgNode::handeye_frame_pub(const ros::TimerEvent& event)
   
   // Create finger tip frame 
   tf::Transform transform;
-  transform.setOrigin(tf::Vector3(config_.x, config_.y, config_.z));
+  transform.setOrigin(tf::Vector3(config_.handeye_x, config_.handeye_y, config_.handeye_z));
   tf::Quaternion q;
-  q.setRPY(config_.r,config_.p,config_.yaw);
+  q.setRPY(config_.handeye_r,config_.handeye_p,config_.handeye_yw);
   transform.setRotation(q); 
   this->broadcaster.sendTransform(tf::StampedTransform(transform,ros::Time::now(),"base_link","ext_camera_link"));
 }
