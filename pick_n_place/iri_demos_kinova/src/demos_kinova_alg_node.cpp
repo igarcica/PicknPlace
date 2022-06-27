@@ -263,7 +263,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
       case ROTATE_POST_GRASP: ROS_INFO("DemosKinovaAlgNode: state ROTATE POST GRASP");
                               ROS_INFO("Rotating post-grasp position.");
                               this->pre_grasp_center.x = 0.50; //tool_pose.x;
-                              this->pre_grasp_center.y = 0.50; //tool_pose.y;
+                              this->pre_grasp_center.y = 0.40; //tool_pose.y;
                               this->pre_grasp_center.z = 0.30; //tool_pose.z;
                               this->pre_grasp_center.theta_x = 0.0; //0.0;
                               this->pre_grasp_center.theta_y = -90; //-125.5;
@@ -320,14 +320,15 @@ void DemosKinovaAlgNode::mainNodeThread(void)
                                else if(kinova_linear_move_state==actionlib::SimpleClientGoalState::SUCCEEDED)
                                {
                                  this->success = true;
-/*                                 if(this->diagonal_move)
-                                   this->state=PRE_PLACE_DIAGONAL;
-                                 else
-                                   this->state=PLACE;*/
-                                 if(config_.place2)
+                                 if(this->diagonal_move)
+                                   this->state=ROTATE_PRE_PLACE; //PRE_PLACE_DIAGONAL;
+                                 else if(config_.vertical_place)
+				   this->state=PLACE_RECTO;
+                                   //this->state=PLACE;
+				 else if(config_.place2)
                                    this->state=PRE_PLACE2;
-                                 else
-                                   this->state=ROTATE_PRE_PLACE;
+                                 //else
+                                 //  this->state=ROTATE_PRE_PLACE;
                                  ros::Duration(0.5).sleep();
                                }
                              }
@@ -348,10 +349,10 @@ void DemosKinovaAlgNode::mainNodeThread(void)
                               if (this->success)
                               {
                                 ROS_INFO("Success ROTATE PRE PLACE");
-                                if(this->diagonal_move)
-                                  this->state=PLACE_DIAGONAL;
-                                else
-                                  this->state=PLACE_RECTO;
+                                //if(this->diagonal_move)
+                                this->state=PLACE_DIAGONAL;
+                                //else
+                                //  this->state=PLACE_RECTO;
                                 ros::Duration(0.5).sleep();
                               }
       break;
@@ -450,7 +451,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
                       geometry_msgs::Pose desired_pose;
                       desired_pose.position.x = tool_pose.x;
                       desired_pose.position.y = tool_pose.y;
-                      desired_pose.position.z = 0.11;
+                      desired_pose.position.z = 0.07;
                       std::cout << "\033[1;36m Groing to: -> \033[1;36m  x: " << desired_pose.position.x << ", y: " <<  desired_pose.position.y << ", z: " << desired_pose.position.z << std::endl;
                       kinova_linear_moveMakeActionRequest(desired_pose, kortex_driver::CartesianReferenceFrame::CARTESIAN_REFERENCE_FRAME_MIXED, 0.08);
                     this->state=WAIT_PLACE_RECTO;
