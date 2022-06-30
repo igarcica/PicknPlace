@@ -648,7 +648,7 @@ namespace pal {
           grasp_point.x = pt_down_left.x-0.02;
           u1 = pt_down_left.z - pt_down_right.z;    //X direction of edge vector
           u2 = pt_down_left.y - pt_down_right.y;    //Y direction of edge vector
-          garment_edge.data = abs(edge1);
+          garment_edge.data = abs(edge2);
         }
   
         //std::cout << "\033[1;36m GRASP POINT: " << grasp_point.z << ", " << grasp_point.y << ", " << grasp_point.x << std::endl; //Debug
