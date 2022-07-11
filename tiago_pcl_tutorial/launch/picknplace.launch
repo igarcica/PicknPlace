@@ -8,7 +8,7 @@
   <arg name="frame"                     default="/ext_camera_link"                 />
   <arg name="passthrough_axis"          default="y"                               />
   <arg name="passthrough_min"           default="-0.6"                             /> <!-- -0.2 a 1 -->
-  <arg name="passthrough_max"           default="0.15"                             />
+  <arg name="passthrough_max"           default="0.5"                             />
   <arg name="downsampling_size"         default="0.01"                            />
   <arg name="show_rviz"                 default="true"                            />
 
