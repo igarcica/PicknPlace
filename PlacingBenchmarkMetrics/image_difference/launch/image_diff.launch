@@ -1,0 +1,17 @@
+<launch>
+
+  <node name="image_diff"
+        pkg ="image_difference"
+        type="image_diff.py">
+        output="screen"
+  </node>
+
+<!-- launch image view -->
+  <node name="rqt_image_view" pkg="rqt_image_view" type="rqt_image_view" respawn="false"
+    output="screen"/>
+
+<!-- launch dynamic reconfigure -->
+  <node name="rqt_reconfigure" pkg="rqt_reconfigure" type="rqt_reconfigure" respawn="false"
+    output="screen"/>
+
+</launch>

@@ -1,0 +1,47 @@
+cmake_minimum_required(VERSION 2.8.3)
+project(deformation)
+
+# locate the necessary dependencies
+# FIND_PACKAGE(my_example_library REQUIRED)
+find_package(catkin REQUIRED)
+find_package(catkin REQUIRED COMPONENTS roscpp sensor_msgs)
+#find_package(OpenCV REQUIRED )
+caca
+# add the necessary include directories
+#INCLUDE_DIRECTORIES(../include)
+
+ generate_messages(
+   DEPENDENCIES
+   std_msgs actionlib_msgs geometry_msgs # Or other packages containing msgs
+ )
+
+#generate_messages(DEPENDENCIES sensor_msgs)
+
+catkin_package()
+
+include_directories(include ${catkin_INCLUDE_DIRS})
+
+add_executable(deformation src/deformation.cpp)
+target_link_libraries(deformation ${catkin_LIBRARIES})
+add_dependencies(deformation beginner_tutorials_generate_messages_cpp)
+
+# application source files
+#SET(sources ${PROJECT_NAME}.cpp)
+
+# application header files
+#SET(headers ../include/${PROJECT_NAME}.h)
+
+# create the executable file
+#ADD_EXECUTABLE(${PROJECT_NAME} ${sources})
+#ADD_EXECUTABLE(deformation deformation.cpp)
+
+
+# link necessary libraries
+#TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${OpenCV_LIBS} )
+#TARGET_LINK_LIBRARIES(deformation ${OpenCV_LIBS} )
+
+#ADD_DEPENDENCIES(${PROJECT_NAME} my_example_library_target)
+
+#install(TARGETS deformation
+#        RUNTIME DESTINATION bin/
+#        )

@@ -24,8 +24,11 @@ class image_converter:
         self.pub_pixelstotal = rospy.Publisher("/image_difference/pixelstotal",Int32,queue_size=1)
         self.pub_success_image = rospy.Publisher("/image_difference/successfull_placement_image",Image,queue_size=1)
         self.pub_current_image = rospy.Publisher("/image_difference/current_image",Image,queue_size=1)
+        #self.pub_success_image_d = rospy.Publisher("/image_difference/successfull_placement_image_d",Image,queue_size=1)
+        #self.pub_current_image_d = rospy.Publisher("/image_difference/current_image_d",Image,queue_size=1)
         self.bridge = CvBridge()
-        self.image_sub = rospy.Subscriber("/camera/rgb/image_raw",Image,self.callback)
+        self.image_sub = rospy.Subscriber("/ext_camera/color/image_raw",Image,self.callback)
+        self.depth_image_sub = rospy.Subscriber("/ext_camera/aligned_depth_to_color/image_raw",Image,self.callback_depth)
 
         self.success_num_pixels = 1.0
         self.take_pic_table = False
@@ -40,7 +43,10 @@ class image_converter:
    
         self.is_pic_table = False
         self.pic_success = Image()
-
+       
+        self.pic_table = Image()
+        self.pic_table_d = Image()
+        self.mask = 0 
 
 
     def callbackConf(self, config, level):
@@ -60,10 +66,16 @@ class image_converter:
 
     def get_num_pixels(self, current_image):
         diff = cv2.absdiff(current_image,self.pic_table)
+        #cv2.imshow("Diff", diff)
+        #cv2.waitKey(3)
         diff = cv2.cvtColor(diff, cv2.COLOR_BGR2GRAY)
+        #cv2.imshow("Gray", diff)
+        #cv2.waitKey(3)
 
         # Read the threshold slider
 	ret, mask = cv2.threshold(diff, self.threshold, 255, cv2.THRESH_BINARY)
+        #cv2.imshow("Mask", mask)
+        #cv2.waitKey(3)
 	# Create the kernel
 	kernel = np.ones((self.kernel_x,self.kernel_y),np.uint8)
 	# Delete the noise
@@ -79,9 +91,11 @@ class image_converter:
 	imask = mask > 0
 	canvas = np.zeros_like(current_image, np.uint8)
 	canvas[imask] = current_image[imask]
-
+        #vect = [np.sum(n>0) for n in canvas]
+        #np.savetxt('color.txt', vect, fmt='%.2e')
+        
+        self.mask = imask
         return (float(cv2.countNonZero(mask)), canvas)
-    
 
 
     def callback(self,data):
@@ -89,15 +103,25 @@ class image_converter:
             int_blur = 21
             if self.take_pic_table and not self.is_pic_table:
                 self.pic_table = self.bridge.imgmsg_to_cv2(data,"bgr8")
+                #cv2.imshow("Pic Table", self.pic_table)
+                #cv2.waitKey(3)
                 self.pic_table = cv2.GaussianBlur(self.pic_table, (int_blur,int_blur), cv2.BORDER_DEFAULT)
+                #cv2.imshow("Pic table Gaussian", self.pic_table)
+                #cv2.waitKey(3)
                 self.is_pic_table = True
             if not self.take_pic_table and self.is_pic_table:
                 self.is_pic_table = False
 
             if self.take_pic_table and not self.success_place:
                 self.pic_success = self.bridge.imgmsg_to_cv2(data,"bgr8")
+                #cv2.imshow("Pic success", self.pic_success)
+                #cv2.waitKey(3)
                 self.pic_success = cv2.GaussianBlur(self.pic_success, (int_blur,int_blur), cv2.BORDER_DEFAULT)
+                #cv2.imshow("Pic success gaussian", self.pic_success)
+                #cv2.waitKey(3)
                 self.success_num_pixels, self.pic_success = self.get_num_pixels(self.pic_success)
+                #cv2.imshow("Pic success get num", self.pic_success)
+                #cv2.waitKey(3)
                 self.pub_success_image.publish(self.bridge.cv2_to_imgmsg(self.pic_success, "bgr8")) 
 
             if self.is_pic_table and self.success_place and not self.is_pic_success: 
@@ -111,6 +135,8 @@ class image_converter:
                 image_blur = cv2.GaussianBlur(cv_image, (int_blur,int_blur), cv2.BORDER_DEFAULT)
 
                 current_num_pixels, canvas = self.get_num_pixels(image_blur)
+                cv2.imshow("Current pic get num", canvas)
+                cv2.waitKey(3)
                 error = float(current_num_pixels/self.success_num_pixels)
 		if error > 1: 
 		    error = 1.0
@@ -127,6 +153,20 @@ class image_converter:
         except CvBridgeError as e:
             print(e)
 
+    def callback_depth(self,data):
+        if self.success_place:
+            pic_depth = self.bridge.imgmsg_to_cv2(data)#,"16UC1")
+            #cv2.imshow("Pic Depth", pic_depth)
+            #cv2.waitKey(3)
+            #print "hola"
+            #print self.mask
+            #np.savetxt('result.txt', self.mask, fmt='%.2e')
+	    canvas = np.zeros_like(pic_depth, np.uint8)
+	    canvas[self.mask] = pic_depth[self.mask]
+            cv2.imshow("Pic depth MASK", canvas)
+            cv2.waitKey(3)
+            #vect = [np.sum(n>0) for n in canvas]
+            #np.savetxt('depth.txt', vect, fmt='%.2e')
 
 def main():
     rospy.init_node('image_difference', anonymous=True)
