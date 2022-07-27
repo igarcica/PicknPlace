@@ -66,7 +66,10 @@ namespace pal {
   protected:
 
     void cloudCallback(const sensor_msgs::PointCloud2ConstPtr& cloud);
-    void segmCloudCallback(const sensor_msgs::PointCloud2ConstPtr& segmCloud);
+    //void segmCloudCallback(const sensor_msgs::PointCloud2ConstPtr& segmCloud);
+    void pickCloudCallback(const sensor_msgs::PointCloud2ConstPtr& pickCloud);
+    void placeCloudCallback(const sensor_msgs::PointCloud2ConstPtr& placeCloud);
+    void nonplaneCloudCallback(const sensor_msgs::PointCloud2ConstPtr& nonplaneCloud);
 
     void start();
     void stop();
@@ -92,20 +95,25 @@ namespace pal {
     std::string _processingFrame;
 
     // pass-through filter parameters:
-    std::string _axis;
-    double _min, _max;
+    std::string _axis, _axisPick, _axisPlace;
+    double _min, _max, _minPick, _maxPick, _minPlace, _maxPlace;
 
     // downsampling filter parameters:
     double _downSamplingSize;
 
     // ROS subscribers
     ros::Subscriber _cloudSub;
-    ros::Subscriber _segmCloudSub;
+    //ros::Subscriber _segmCloudSub;
+    ros::Subscriber _pickCloudSub;
+    ros::Subscriber _placeCloudSub;
+    ros::Subscriber _nonplaneCloudSub;
 
     // ROS publishers
     ros::Publisher _planeCloudPub;
     ros::Publisher _nonPlaneCloudPub;
     ros::Publisher _mainPlanePosePub;
+    ros::Publisher _pickCloudPub;
+    ros::Publisher _placeCloudPub;
 
     ros::Publisher _convexCloudPub;
     ros::Publisher _cornersMarkersPub;
@@ -131,6 +139,12 @@ namespace pal {
     _axis(""),
     _min(0.5),
     _max(10),
+    _axisPick(""),
+    _minPick(0.5),
+    _maxPick(10),
+    _axisPlace(""),
+    _minPlace(0.5),
+    _maxPlace(10),
     _downSamplingSize(0.01)
   {
     _nh.setCallbackQueue(&_cbQueue);
@@ -140,6 +154,12 @@ namespace pal {
     pnh.param<std::string>("passthrough_axis", _axis, _axis);
     pnh.param<double>("passthrough_min", _min, _min);
     pnh.param<double>("passthrough_max", _max, _max);
+    pnh.param<std::string>("passthrough_axis_pick", _axisPick, _axisPick);
+    pnh.param<double>("passthrough_min_pick", _minPick, _minPick);
+    pnh.param<double>("passthrough_max_pick", _maxPick, _maxPick);
+    pnh.param<std::string>("passthrough_axis_place", _axisPlace, _axisPlace);
+    pnh.param<double>("passthrough_min_place", _minPlace, _minPlace);
+    pnh.param<double>("passthrough_max_place", _maxPlace, _maxPlace);
     pnh.param<double>("downsampling_size", _downSamplingSize, _downSamplingSize);
 
     ROS_INFO_STREAM("The node will operate at maximum " << _rate << " Hz");
@@ -161,6 +181,8 @@ namespace pal {
     _planeCloudPub    = _pnh.advertise< pcl::PointCloud<pcl::PointXYZRGB> >("plane", 1);
     _nonPlaneCloudPub = _pnh.advertise< pcl::PointCloud<pcl::PointXYZRGB> >("nonplane", 1);
     _mainPlanePosePub = _pnh.advertise<geometry_msgs::PoseStamped>("plane_pose", 1);
+    _pickCloudPub    = _pnh.advertise< pcl::PointCloud<pcl::PointXYZRGB> >("pick", 1);
+    _placeCloudPub    = _pnh.advertise< pcl::PointCloud<pcl::PointXYZRGB> >("place", 1);
 
     _convexCloudPub   = _pnh.advertise< pcl::PointCloud<pcl::PointXYZ> >("convex", 1);
     _cornersMarkersPub = _pnh.advertise<visualization_msgs::MarkerArray>("corners", 1);
@@ -290,11 +312,89 @@ namespace pal {
 
   }
 
-  void SegmentPlane::segmCloudCallback(const sensor_msgs::PointCloud2ConstPtr& segmCloud)
+//Separate nonplane point cloud into Pick and Place point clouds
+  void SegmentPlane::nonplaneCloudCallback(const sensor_msgs::PointCloud2ConstPtr& nonplaneCloud)
+  {
+    //Transform cloud to PCL format
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr pclCloud(new pcl::PointCloud<pcl::PointXYZRGB>);
+    pcl::fromROSMsg(*nonplaneCloud, *pclCloud);
+
+    // Apply passthrough filter for Pick zone
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr pickPassThroughCloud(new pcl::PointCloud<pcl::PointXYZRGB>);
+    if ( !_axisPick.empty() )
+    {
+      pal::passThrough<pcl::PointXYZRGB>(pclCloud,
+                                         _axisPick,
+                                         _minPick, _maxPick,
+                                         pickPassThroughCloud);
+
+      if ( pickPassThroughCloud->empty() )
+      {
+        //if all points get removed after the pass-through filtering just publish empty point clouds
+        //and stop processing
+        publishEmptyClouds(pclCloud->header.stamp, pclCloud->header.frame_id);
+        return;
+      }
+    }
+    else
+      pickPassThroughCloud = pclCloud;
+   
+    //Apply passthrough filter for Place zone
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr placePassThroughCloud(new pcl::PointCloud<pcl::PointXYZRGB>);
+    if ( !_axisPlace.empty() )
+    {
+      pal::passThrough<pcl::PointXYZRGB>(pclCloud,
+                                         _axisPlace,
+                                         _minPlace, _maxPlace,
+                                         placePassThroughCloud);
+
+      if ( placePassThroughCloud->empty() )
+      {
+        //if all points get removed after the pass-through filtering just publish empty point clouds
+        //and stop processing
+        publishEmptyClouds(pclCloud->header.stamp, pclCloud->header.frame_id);
+        return;
+      }
+    }
+    else
+      placePassThroughCloud = pclCloud;
+   
+    //Publish Pick zone pointcloud 
+    if ( _pickCloudPub.getNumSubscribers() > 0 )
+    {
+      pickPassThroughCloud->header.stamp    = pclCloud->header.stamp;
+      pickPassThroughCloud->header.frame_id = pclCloud->header.frame_id;
+      _pickCloudPub.publish(pickPassThroughCloud);
+    }
+    //Publish Place zone pointcloud 
+    if ( _placeCloudPub.getNumSubscribers() > 0 )
+    {
+      placePassThroughCloud->header.stamp    = pclCloud->header.stamp;
+      placePassThroughCloud->header.frame_id = pclCloud->header.frame_id;
+      _placeCloudPub.publish(placePassThroughCloud);
+    }
+
+  }
+
+
+  void SegmentPlane::placeCloudCallback(const sensor_msgs::PointCloud2ConstPtr& placeCloud)
+  {
+    ROS_INFO("HOLA");
+    //Transform cloud to PCL format
+    pcl::PointCloud<pcl::PointXYZ>::Ptr pclCloud(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::fromROSMsg(*placeCloud, *pclCloud);
+
+    pcl::PointXYZ minPt, maxPt;
+    pcl::getMinMax3D (*pclCloud, minPt, maxPt);
+    std::cout << "Min x: " << minPt.x << std::endl;
+  }
+
+//Detects corners from nonplane pointcloud with sum/diff of min/max points
+  void SegmentPlane::pickCloudCallback(const sensor_msgs::PointCloud2ConstPtr& pickCloud)
   {
 
-// To get the segmented cloud in PCL XYZ format (instead of XYZRGB)
-    if ( (segmCloud->width * segmCloud->height) == 0)
+    // To get the segmented cloud in PCL XYZ format (instead of XYZRGB)
+    if ( (pickCloud->width * pickCloud->height) == 0)
       return;
 
     sensor_msgs::PointCloud2Ptr xyzcloudInProcFrame;
@@ -303,12 +403,12 @@ namespace pal {
     if ( !_processingFrame.empty() )
     {
       xyzcloudInProcFrame.reset(new sensor_msgs::PointCloud2);
-      ROS_DEBUG_STREAM("Transforming point cloud from frame " << segmCloud->header.frame_id << " to frame " << _processingFrame);
-      pcl_ros::transformPointCloud(_processingFrame, *segmCloud, *xyzcloudInProcFrame, _tfListener);
+      ROS_DEBUG_STREAM("Transforming point cloud from frame " << pickCloud->header.frame_id << " to frame " << _processingFrame);
+      pcl_ros::transformPointCloud(_processingFrame, *pickCloud, *xyzcloudInProcFrame, _tfListener);
       xyzcloudInProcFrame->header.frame_id = _processingFrame;
     }
     else
-      *xyzcloudInProcFrame = *segmCloud;
+      *xyzcloudInProcFrame = *pickCloud;
 
     //Transform cloud to PCL format
     pcl::PointCloud<pcl::PointXYZ>::Ptr xyzpclCloud(new pcl::PointCloud<pcl::PointXYZ>);
@@ -727,14 +827,18 @@ namespace pal {
   void SegmentPlane::start()
   {
     _cloudSub = _nh.subscribe("cloud", 1, &SegmentPlane::cloudCallback, this);
-    _segmCloudSub = _nh.subscribe("segmcloud", 1, &SegmentPlane::segmCloudCallback, this);
+    //_segmCloudSub = _nh.subscribe("segmcloud2", 1, &SegmentPlane::segmCloudCallback, this);
+    _pickCloudSub = _nh.subscribe("pickcloud", 1, &SegmentPlane::pickCloudCallback, this);
+    _placeCloudSub = _nh.subscribe("placecloud", 1, &SegmentPlane::placeCloudCallback, this);
+    _nonplaneCloudSub = _nh.subscribe("segmcloud", 1, &SegmentPlane::nonplaneCloudCallback, this);
     _enabled = true;
   }
 
   void SegmentPlane::stop()
   {
     _cloudSub.shutdown();
-    _segmCloudSub.shutdown();
+    //_segmCloudSub.shutdown();
+    _pickCloudSub.shutdown();
     _enabled = false;
   }
 
