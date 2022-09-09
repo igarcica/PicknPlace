@@ -22,12 +22,12 @@
 // refer to the IRI wiki page for more information:
 // http://wikiri.upc.es/index.php/Robotics_Lab
 
-#ifndef _demos_kinova_alg_node_h_
-#define _demos_kinova_alg_node_h_
+#ifndef _pick_n_place_alg_node_h_
+#define _pick_n_place_alg_node_h_
 #define HOME_ACTION_IDENTIFIER 2
 
 #include <iri_base_algorithm/iri_base_algorithm.h>
-#include "demos_kinova_alg.h"
+#include "pick_n_place_alg.h"
 #include <kortex_driver/Pose.h>
 #include <kortex_driver/CartesianReferenceFrame.h>
 #include <kortex_driver/GripperMode.h>
@@ -94,7 +94,7 @@ typedef enum {IDLE,
  * \brief IRI ROS Specific Algorithm Class
  *
  */
-class DemosKinovaAlgNode : public algorithm_base::IriBaseAlgorithm<DemosKinovaAlgorithm>
+class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgorithm>
 {
   private:
     std::string robot_name;
@@ -216,7 +216,7 @@ class DemosKinovaAlgNode : public algorithm_base::IriBaseAlgorithm<DemosKinovaAl
     * This constructor initializes specific class attributes and all ROS
     * communications variables to enable message exchange.
     */
-    DemosKinovaAlgNode(void);
+    PicknPlaceAlgNode(void);
 
    /**
     * \brief Destructor
@@ -224,7 +224,7 @@ class DemosKinovaAlgNode : public algorithm_base::IriBaseAlgorithm<DemosKinovaAl
     * This destructor frees all necessary dynamic memory allocated within this
     * this class.
     */
-    ~DemosKinovaAlgNode(void);
+    ~PicknPlaceAlgNode(void);
 
   protected:
    /**

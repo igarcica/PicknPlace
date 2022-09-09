@@ -2,7 +2,7 @@
 <launch>
 
 <!-- REALSENSE CAMERA -->
-  <include file="$(find iri_demos_kinova)/launch/rs_camera.launch">
+  <include file="$(find pick_n_place)/launch/rs_camera.launch">
     <arg name="filters" value="pointcloud" />
   </include>
 

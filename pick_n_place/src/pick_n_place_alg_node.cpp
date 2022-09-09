@@ -1,7 +1,7 @@
-#include "demos_kinova_alg_node.h"
+#include "pick_n_place_alg_node.h"
 
-DemosKinovaAlgNode::DemosKinovaAlgNode(void) :
-  algorithm_base::IriBaseAlgorithm<DemosKinovaAlgorithm>(),
+PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
+  algorithm_base::IriBaseAlgorithm<PicknPlaceAlgorithm>(),
   kinova_linear_move_client_(private_node_handle_,"kinova_linear_move", true)
 {
 
@@ -12,19 +12,19 @@ DemosKinovaAlgNode::DemosKinovaAlgNode(void) :
   double close_gripper = 0.97; //0.81;
 
   // Garment pose subscriber
-  this->garment_pose_subscriber = this->public_node_handle_.subscribe("/segment_table/grasp_point",1,&DemosKinovaAlgNode::garment_pose_callback,this);
+  this->garment_pose_subscriber = this->public_node_handle_.subscribe("/segment_table/grasp_point",1,&PicknPlaceAlgNode::garment_pose_callback,this);
   this->get_garment_position=false;
   this->get_garment_angle=false;
-  //this->garment_angle_subscriber = this->public_node_handle_.subscribe("/segment_table/grasp_angle",1,&DemosKinovaAlgNode::garment_angle_callback,this);
-  this->garment_edge_subscriber = this->public_node_handle_.subscribe("/segment_table/garment_edge",1,&DemosKinovaAlgNode::garment_edge_callback,this);
-  this->corners_subscriber = this->public_node_handle_.subscribe("/segment_table/corners",1,&DemosKinovaAlgNode::corners_callback,this);
+  //this->garment_angle_subscriber = this->public_node_handle_.subscribe("/segment_table/grasp_angle",1,&PicknPlaceAlgNode::garment_angle_callback,this);
+  this->garment_edge_subscriber = this->public_node_handle_.subscribe("/segment_table/garment_edge",1,&PicknPlaceAlgNode::garment_edge_callback,this);
+  this->corners_subscriber = this->public_node_handle_.subscribe("/segment_table/corners",1,&PicknPlaceAlgNode::corners_callback,this);
 
   // Publish grasp marker
   this->garment_marker_publisher = this->public_node_handle_.advertise<visualization_msgs::Marker>("garment_marker", 1);
   this->grasp_marker_publisher = this->public_node_handle_.advertise<visualization_msgs::Marker>("grasp_marker", 1);
 
   // Publish handeye transform between ext_camera_link to base_link
-  this->handeye_frame_pub_timer = this->public_node_handle_.createTimer(ros::Duration(1.0),&DemosKinovaAlgNode::handeye_frame_pub,this);
+  this->handeye_frame_pub_timer = this->public_node_handle_.createTimer(ros::Duration(1.0),&PicknPlaceAlgNode::handeye_frame_pub,this);
   this->handeye_frame_pub_timer.setPeriod(ros::Duration(1.0/50.0));
   this->handeye_frame_pub_timer.start();
   //this->handeye_frame_pub_timer.stop();
@@ -42,10 +42,10 @@ DemosKinovaAlgNode::DemosKinovaAlgNode(void) :
   this->cartesian_velocity_publisher_ = this->private_node_handle_.advertise<kortex_driver::TwistCommand>("/" + this->robot_name + "/in/cartesian_velocity", 1);
 
   // [init subscribers]
-  this->base_feedback_subscriber_ = this->private_node_handle_.subscribe("/" + this->robot_name  + "/base_feedback", 1000, &DemosKinovaAlgNode::base_feedback_callback, this);
+  this->base_feedback_subscriber_ = this->private_node_handle_.subscribe("/" + this->robot_name  + "/base_feedback", 1000, &PicknPlaceAlgNode::base_feedback_callback, this);
   pthread_mutex_init(&this->base_feedback_mutex_,NULL);
 
-  this->action_topic_subscriber_ = this->private_node_handle_.subscribe("/" + this->robot_name  + "/action_topic", 1000, &DemosKinovaAlgNode::action_topic_callback, this);
+  this->action_topic_subscriber_ = this->private_node_handle_.subscribe("/" + this->robot_name  + "/action_topic", 1000, &PicknPlaceAlgNode::action_topic_callback, this);
   pthread_mutex_init(&this->action_topic_mutex_,NULL);
 
 
@@ -71,14 +71,14 @@ DemosKinovaAlgNode::DemosKinovaAlgNode(void) :
   // [init action clients]
 
 
-  ROS_INFO("DemosKinovaAlgNode:: Calling service activate_publishing_client_!");
+  ROS_INFO("PicknPlaceAlgNode:: Calling service activate_publishing_client_!");
   if (activate_publishing_client_.call(activate_publishing_srv_))
   {
     ROS_INFO("Action notification activated!");
   }
   else
   {
-    ROS_INFO("DemosKinovaAlgNode:: Failed to call service on topic %s",this->activate_publishing_client_.getService().c_str());
+    ROS_INFO("PicknPlaceAlgNode:: Failed to call service on topic %s",this->activate_publishing_client_.getService().c_str());
     this->success = false;
   }
 
@@ -92,18 +92,18 @@ DemosKinovaAlgNode::DemosKinovaAlgNode(void) :
   if (!this->success) exit(1);
 }
 
-DemosKinovaAlgNode::~DemosKinovaAlgNode(void)
+PicknPlaceAlgNode::~PicknPlaceAlgNode(void)
 {
   // [free dynamic memory]
   pthread_mutex_destroy(&this->base_feedback_mutex_);
   pthread_mutex_destroy(&this->action_topic_mutex_);
 }
 
-void DemosKinovaAlgNode::mainNodeThread(void)
+void PicknPlaceAlgNode::mainNodeThread(void)
 {
   //lock access to algorithm if necessary
   this->alg_.lock();
-  ROS_DEBUG("DemosKinovaAlgNode::mainNodeThread");
+  ROS_DEBUG("PicknPlaceAlgNode::mainNodeThread");
   // [fill msg structures]
   // Initialize the topic message structure
   //this->cartesian_velocity_TwistCommand_msg_.data = my_var;
@@ -129,7 +129,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
   {
     switch(this->state)
     {
-      case IDLE: ROS_DEBUG("DemosKinovaAlgNode: state IDLE");
+      case IDLE: ROS_DEBUG("PicknPlaceAlgNode: state IDLE");
                  if(this->start)
                  {
                    ROS_DEBUG("Opening the gripper.");
@@ -146,7 +146,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
       break;
 
       // HOME POSITION
-      case HOME: ROS_DEBUG("DemosKinovaAlgNode: state HOME");
+      case HOME: ROS_DEBUG("PicknPlaceAlgNode: state HOME");
                  // Move the robot to the Home position with an Action
                  ROS_INFO("Moving to home position.");
                  this->success &= home_the_robot();
@@ -158,7 +158,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
       break;
 
       // PRE-GRASP POSITION
-      case PRE_GRASP: ROS_DEBUG("DemosKinovaAlgNode: state PRE GRASP");
+      case PRE_GRASP: ROS_DEBUG("PicknPlaceAlgNode: state PRE GRASP");
                       ROS_INFO("Sending to pre-grasp position.");
                       std::cout << "\033[1;36m Groing to: -> \033[1;36m  x: " << this->grasping_point_garment.x << ", y: " << this->grasping_point_garment.y << ", z: " << this->grasping_point_garment.z << std::endl;
                       this->success &= send_cartesian_pose(this->grasping_point_garment);
@@ -172,7 +172,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
 
 
       // GRASP POSITION
-      case GRASP: ROS_DEBUG("DemosKinovaAlgNode: state GRASP");
+      case GRASP: ROS_DEBUG("PicknPlaceAlgNode: state GRASP");
                   {
                       ROS_INFO("Sending to grasp position.");
                       geometry_msgs::Pose desired_pose;
@@ -185,7 +185,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
                   }
       break;
 
-      case WAIT_GRASP: ROS_DEBUG("DemosKinovaAlgNode: state WAIT GRASP");
+      case WAIT_GRASP: ROS_DEBUG("PicknPlaceAlgNode: state WAIT GRASP");
                        {
                          actionlib::SimpleClientGoalState kinova_linear_move_state(actionlib::SimpleClientGoalState::PENDING);
                          // to get the state of the current goal
@@ -193,7 +193,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
                          kinova_linear_move_state=kinova_linear_move_client_.getState(); // Possible state values are: PENDING,ACTIVE,RECALLED,REJECTED,PREEMPTED,ABORTED,SUCCEEDED and LOST
                          this->alg_.lock();
 
-                         ROS_DEBUG("DemosKinovaAlgNode::mainNodeThread: kinova_linear_move_client_ action state = %s", kinova_linear_move_state.toString().c_str());;
+                         ROS_DEBUG("PicknPlaceAlgNode::mainNodeThread: kinova_linear_move_client_ action state = %s", kinova_linear_move_state.toString().c_str());;
 			 // falta un timeout (state LOST)
                          if(kinova_linear_move_state==actionlib::SimpleClientGoalState::ABORTED or kinova_linear_move_state==actionlib::SimpleClientGoalState::LOST)
                          {
@@ -211,7 +211,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
 
 
       // CLOSE GRIPPER
-      case CLOSE_GRIPPER: ROS_DEBUG("DemosKinovaAlgNode: state CLOSE GRIPPER");
+      case CLOSE_GRIPPER: ROS_DEBUG("PicknPlaceAlgNode: state CLOSE GRIPPER");
                           ROS_INFO("Closing the gripper.");
                           this->success &= send_gripper_command(this->close_gripper);
                           if (this->success)
@@ -224,7 +224,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
 
       // POST-GRASP POSITION
       // Sets a post grasp position a bit (x1.2) more high than the width of the garment
-      case POST_GRASP: ROS_DEBUG("DemosKinovaAlgNode: state POST GRASP");
+      case POST_GRASP: ROS_DEBUG("PicknPlaceAlgNode: state POST GRASP");
                        {
                            ROS_INFO("Sending to post-grasp position.");
                            geometry_msgs::Pose desired_pose;
@@ -238,7 +238,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
       break;
 
       // Waits until it reaches the post grasp position (linear movement controller)
-      case WAIT_POST_GRASP: ROS_DEBUG("DemosKinovaAlgNode: state WAIT POST GRASP");
+      case WAIT_POST_GRASP: ROS_DEBUG("PicknPlaceAlgNode: state WAIT POST GRASP");
                             {
                               actionlib::SimpleClientGoalState kinova_linear_move_state(actionlib::SimpleClientGoalState::PENDING);
                               // to get the state of the current goal
@@ -246,7 +246,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
                               kinova_linear_move_state=kinova_linear_move_client_.getState(); // Possible state values are: PENDING,ACTIVE,RECALLED,REJECTED,PREEMPTED,ABORTED,SUCCEEDED and LOST
                               this->alg_.lock();
 
-                              ROS_DEBUG("DemosKinovaAlgNode::mainNodeThread: kinova_linear_move_client_ action state = %s", kinova_linear_move_state.toString().c_str());;
+                              ROS_DEBUG("PicknPlaceAlgNode::mainNodeThread: kinova_linear_move_client_ action state = %s", kinova_linear_move_state.toString().c_str());;
                               if(kinova_linear_move_state==actionlib::SimpleClientGoalState::ABORTED or kinova_linear_move_state==actionlib::SimpleClientGoalState::LOST)
                               {
                                 ROS_INFO("Action aborted!");
@@ -263,7 +263,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
 
       // ROTATE POST-GRASP POSITION - CARTESIAN
       // Sets a position under the camera with an horizontal orientation to check the deformation
-      case ROTATE_POST_GRASP: ROS_DEBUG("DemosKinovaAlgNode: state ROTATE POST GRASP");
+      case ROTATE_POST_GRASP: ROS_DEBUG("PicknPlaceAlgNode: state ROTATE POST GRASP");
                               ROS_INFO("Rotating post-grasp position.");
                               this->pre_grasp_center.x = 0.5; //tool_pose.x;
                               this->pre_grasp_center.y = 0.08; //tool_pose.y;
@@ -283,7 +283,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
 
       // PRE-PLACE POSITION
       // Go to a fixed pre place position
-      case GO_TO_PLACE: ROS_DEBUG("DemosKinovaAlgNode: state GO TO PLACE");
+      case GO_TO_PLACE: ROS_DEBUG("PicknPlaceAlgNode: state GO TO PLACE");
                         {
                           if(config_.ok){
                             ROS_INFO("Sending to pre-place position.");
@@ -303,7 +303,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
       break;
 
       // Waits until it reaches the pre place position with linear movement controller
-      case WAIT_GO_TO_PLACE: ROS_DEBUG("DemosKinovaAlgNode: state WAIT GO TO PLACE");
+      case WAIT_GO_TO_PLACE: ROS_DEBUG("PicknPlaceAlgNode: state WAIT GO TO PLACE");
                              {
                                actionlib::SimpleClientGoalState kinova_linear_move_state(actionlib::SimpleClientGoalState::PENDING);
                                // to get the state of the current goal
@@ -311,7 +311,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
                                kinova_linear_move_state=kinova_linear_move_client_.getState(); // Possible state values are: PENDING,ACTIVE,RECALLED,REJECTED,PREEMPTED,ABORTED,SUCCEEDED and LOST
                                this->alg_.lock();
 
-                               ROS_DEBUG("DemosKinovaAlgNode::mainNodeThread: kinova_linear_move_client_ action state = %s", kinova_linear_move_state.toString().c_str());;
+                               ROS_DEBUG("PicknPlaceAlgNode::mainNodeThread: kinova_linear_move_client_ action state = %s", kinova_linear_move_state.toString().c_str());;
                                if(kinova_linear_move_state==actionlib::SimpleClientGoalState::ABORTED or kinova_linear_move_state==actionlib::SimpleClientGoalState::LOST)
                                {
                                  ROS_INFO("Action aborted!");
@@ -336,7 +336,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
 
       // ROTATE PRE-PLACE POSITION - CARTESIAN
       // Sets a slight rotation before the diagonal placement
-      case ROTATE_PRE_PLACE: ROS_DEBUG("DemosKinovaAlgNode: state ROTATE PRE PLACE");
+      case ROTATE_PRE_PLACE: ROS_DEBUG("PicknPlaceAlgNode: state ROTATE PRE PLACE");
                               ROS_INFO("Rotating pre-place position.");
                               this->pre_grasp_center.x = tool_pose.x;
                               this->pre_grasp_center.y = tool_pose.y;
@@ -359,7 +359,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
 
       // PLACE POSITION
       // Sets the placing position so it performs a diagonal movement
-      case PLACE_DIAGONAL: ROS_DEBUG("DemosKinovaAlgNode: state PLACE DIAGONAL");
+      case PLACE_DIAGONAL: ROS_DEBUG("PicknPlaceAlgNode: state PLACE DIAGONAL");
                            {
                                ROS_INFO("Sending to place position.");
                                geometry_msgs::Pose desired_pose;
@@ -374,7 +374,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
       break;
 
       // Wait until it ends the diagonal movement (with linear movement controller)
-      case WAIT_PLACE_DIAGONAL: ROS_DEBUG("DemosKinovaAlgNode: state WAIT PLACE DIAGONAL");
+      case WAIT_PLACE_DIAGONAL: ROS_DEBUG("PicknPlaceAlgNode: state WAIT PLACE DIAGONAL");
                                 {
                                   actionlib::SimpleClientGoalState kinova_linear_move_state(actionlib::SimpleClientGoalState::PENDING);
                                   // to get the state of the current goal
@@ -382,7 +382,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
                                   kinova_linear_move_state=kinova_linear_move_client_.getState(); // Possible state values are: PENDING,ACTIVE,RECALLED,REJECTED,PREEMPTED,ABORTED,SUCCEEDED and LOST
                                   this->alg_.lock();
 
-                                  ROS_DEBUG("DemosKinovaAlgNode::mainNodeThread: kinova_linear_move_client_ action state = %s", kinova_linear_move_state.toString().c_str());;
+                                  ROS_DEBUG("PicknPlaceAlgNode::mainNodeThread: kinova_linear_move_client_ action state = %s", kinova_linear_move_state.toString().c_str());;
                                   if(kinova_linear_move_state==actionlib::SimpleClientGoalState::ABORTED or kinova_linear_move_state==actionlib::SimpleClientGoalState::LOST)
                                   {
                                     ROS_INFO("Action aborted!");
@@ -400,7 +400,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
 //Place rotando
       // PRE PLACE2 - CARTESIAN
       // Sets a rotation so the garment stays vertical to the table (with cartesian controller)
-      case PRE_PLACE2: ROS_DEBUG("DemosKinovaAlgNode: state ROTATE PRE PLACE2");
+      case PRE_PLACE2: ROS_DEBUG("PicknPlaceAlgNode: state ROTATE PRE PLACE2");
                               ROS_INFO("Rotating pre-place position.");
                               this->pre_grasp_center.x = 0.5; //tool_pose.x-this->garment_height/1.5;
                               this->pre_grasp_center.y = -0.28; //tool_pose.y;//-0.15;
@@ -425,7 +425,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
 
       // PLACE2 - CARTESIAN
       // Sets the placing position in the table from the vertical rotation (with cartesian controller)
-      case PLACE2: ROS_DEBUG("DemosKinovaAlgNode: state ROTATE PRE PLACE");
+      case PLACE2: ROS_DEBUG("PicknPlaceAlgNode: state ROTATE PRE PLACE");
                               ROS_INFO("Sending to place position.");
                               this->pre_grasp_center.x = tool_pose.x-this->garment_height-0.07;//*1.2;///1.5;
                               this->pre_grasp_center.y = tool_pose.y;
@@ -451,7 +451,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
                               }
       break;
 
-      case PLACE22: ROS_DEBUG("DemosKinovaAlgNode: state PLACE22");
+      case PLACE22: ROS_DEBUG("PicknPlaceAlgNode: state PLACE22");
                               ROS_INFO("Sending to place2 position.");
                               this->pre_grasp_center.x = tool_pose.x-0.07;
                               this->pre_grasp_center.y = tool_pose.y;
@@ -482,7 +482,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
 
       // PLACE POSITION
       // Sets the placing position to perform a straight placement (with linear movement controller)
-      case PLACE_RECTO: ROS_DEBUG("DemosKinovaAlgNode: state PLACE RECTO");
+      case PLACE_RECTO: ROS_DEBUG("PicknPlaceAlgNode: state PLACE RECTO");
                   {
                       ROS_INFO("Sending to place position.");
                       geometry_msgs::Pose desired_pose;
@@ -496,7 +496,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
       break;
 
       // Waits until it places the garment vertically (linear)
-      case WAIT_PLACE_RECTO: ROS_DEBUG("DemosKinovaAlgNode: state WAIT PLACE RECTO");
+      case WAIT_PLACE_RECTO: ROS_DEBUG("PicknPlaceAlgNode: state WAIT PLACE RECTO");
                        {
                          actionlib::SimpleClientGoalState kinova_linear_move_state(actionlib::SimpleClientGoalState::PENDING);
                          // to get the state of the current goal
@@ -504,7 +504,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
                          kinova_linear_move_state=kinova_linear_move_client_.getState();
                          // Possible state values are: PENDING,ACTIVE,RECALLED,REJECTED,PREEMPTED,ABORTED,SUCCEEDED and LOST
                          this->alg_.lock();
-                         ROS_DEBUG("DemosKinovaAlgNode::mainNodeThread: kinova_linear_move_client_ action state = %s", kinova_linear_move_state.toString().c_str());;
+                         ROS_DEBUG("PicknPlaceAlgNode::mainNodeThread: kinova_linear_move_client_ action state = %s", kinova_linear_move_state.toString().c_str());;
                          if(kinova_linear_move_state==actionlib::SimpleClientGoalState::ABORTED or kinova_linear_move_state==actionlib::SimpleClientGoalState::LOST)
                          {
                            ROS_INFO("Action aborted!");
@@ -519,7 +519,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
                        }
       break;
 
-      case PILING: ROS_DEBUG("DemosKinovaAlgNode: state PILING");
+      case PILING: ROS_DEBUG("PicknPlaceAlgNode: state PILING");
                    ROS_INFO("Piling.");
                    this->pre_grasp_center.x = tool_pose.x-this->garment_height;
                    this->pre_grasp_center.y = tool_pose.y;
@@ -537,7 +537,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
                    }
       break;
 
-      case PILING2: ROS_DEBUG("DemosKinovaAlgNode: state PILING2");
+      case PILING2: ROS_DEBUG("PicknPlaceAlgNode: state PILING2");
                    ROS_INFO("Ending piling");
                    this->pre_grasp_center.x = tool_pose.x-0.1; //minus the width of the already placed garment?? //so the gripper ends at the edge of this garment
                    this->pre_grasp_center.y = tool_pose.y;
@@ -557,7 +557,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
 
 
       // OPEN GRIPPER
-      case OPEN_GRIPPER: ROS_DEBUG("DemosKinovaAlgNode: state OPEN GRIPPER");
+      case OPEN_GRIPPER: ROS_DEBUG("PicknPlaceAlgNode: state OPEN GRIPPER");
                          ROS_INFO("Opening the gripper.");
                          this->success &= send_gripper_command(this->open_gripper);
 			 std::cout << "Gripper? " << success << std::endl;
@@ -568,13 +568,13 @@ void DemosKinovaAlgNode::mainNodeThread(void)
                          }
 			 else
 			 {
-			   ROS_INFO("DemosKinovaAlgNode: Failed to open gripper");
+			   ROS_INFO("PicknPlaceAlgNode: Failed to open gripper");
 			   this->state=END;
 			 }
       break;
 
       // POST-PLACE POSITION
-      case POST_PLACE: ROS_DEBUG("DemosKinovaAlgNode: state POST PLACE");
+      case POST_PLACE: ROS_DEBUG("PicknPlaceAlgNode: state POST PLACE");
                        {
                            ROS_INFO("Sending to post-place position.");
                            geometry_msgs::Pose desired_pose;
@@ -587,7 +587,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
                        }
       break;
 
-      case WAIT_POST_PLACE: ROS_DEBUG("DemosKinovaAlgNode: state WAIT POST PLACE");
+      case WAIT_POST_PLACE: ROS_DEBUG("PicknPlaceAlgNode: state WAIT POST PLACE");
                             {
                               actionlib::SimpleClientGoalState kinova_linear_move_state(actionlib::SimpleClientGoalState::PENDING);
                               // to get the state of the current goal
@@ -595,7 +595,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
                               kinova_linear_move_state=kinova_linear_move_client_.getState(); // Possible state values are: PENDING,ACTIVE,RECALLED,REJECTED,PREEMPTED,ABORTED,SUCCEEDED and LOST
                               this->alg_.lock();
 
-                              ROS_DEBUG("DemosKinovaAlgNode::mainNodeThread: kinova_linear_move_client_ action state = %s", kinova_linear_move_state.toString().c_str());;
+                              ROS_DEBUG("PicknPlaceAlgNode::mainNodeThread: kinova_linear_move_client_ action state = %s", kinova_linear_move_state.toString().c_str());;
                               if(kinova_linear_move_state==actionlib::SimpleClientGoalState::ABORTED or kinova_linear_move_state==actionlib::SimpleClientGoalState::LOST)
                               {
                                 ROS_INFO("Action aborted!");
@@ -611,7 +611,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
       break;
 
       // HIGH POSITION
-      case HIGH_POSITION: ROS_DEBUG("DemosKinovaAlgNode: state HIGH POSITION");
+      case HIGH_POSITION: ROS_DEBUG("PicknPlaceAlgNode: state HIGH POSITION");
                           {
                               ROS_INFO("Sending to ending position.");
                               geometry_msgs::Pose desired_pose;
@@ -624,14 +624,14 @@ void DemosKinovaAlgNode::mainNodeThread(void)
                           }
       break;
 
-      case WAIT_HIGH_POSITION: ROS_DEBUG("DemosKinovaAlgNode: state WAIT HIGH POSITION");
+      case WAIT_HIGH_POSITION: ROS_DEBUG("PicknPlaceAlgNode: state WAIT HIGH POSITION");
                                {
                                  actionlib::SimpleClientGoalState kinova_linear_move_state(actionlib::SimpleClientGoalState::PENDING);
                                  // to get the state of the current goal
                                  this->alg_.unlock();
                                  kinova_linear_move_state=kinova_linear_move_client_.getState(); // Possible state values are: PENDING,ACTIVE,RECALLED,REJECTED,PREEMPTED,ABORTED,SUCCEEDED and LOST
                                  this->alg_.lock();
-                                 ROS_DEBUG("DemosKinovaAlgNode::mainNodeThread: kinova_linear_move_client_ action state = %s", kinova_linear_move_state.toString().c_str());;
+                                 ROS_DEBUG("PicknPlaceAlgNode::mainNodeThread: kinova_linear_move_client_ action state = %s", kinova_linear_move_state.toString().c_str());;
                                  if(kinova_linear_move_state==actionlib::SimpleClientGoalState::ABORTED or kinova_linear_move_state==actionlib::SimpleClientGoalState::LOST)
                                  {
                                    ROS_INFO("Action aborted!");
@@ -646,7 +646,7 @@ void DemosKinovaAlgNode::mainNodeThread(void)
                                }
       break;
 
-      case END: ROS_INFO("DemosKinovaAlgNode: state END");
+      case END: ROS_INFO("PicknPlaceAlgNode: state END");
 		this->stop=true;
       break;
 
@@ -669,60 +669,60 @@ void DemosKinovaAlgNode::mainNodeThread(void)
 }
 
 // Gets config params
-void DemosKinovaAlgNode::get_params(void)
+void PicknPlaceAlgNode::get_params(void)
 {
   //init class attributes if necessary
   if(!this->private_node_handle_.getParam("rate", this->config_.rate))
   {
-    ROS_WARN("DemosKinovaAlgNode::DemosKinovaAlgNode: param 'rate' not found");
+    ROS_WARN("PicknPlaceAlgNode::PicknPlaceAlgNode: param 'rate' not found");
   }
   else
     this->setRate(this->config_.rate);
 
   if(!this->private_node_handle_.getParam("robot_name", this->config_.robot_name))
   {
-    ROS_WARN("DemosKinovaAlgNode::DemosKinovaAlgNode: param 'robot_name' not found");
+    ROS_WARN("PicknPlaceAlgNode::PicknPlaceAlgNode: param 'robot_name' not found");
   }
   else
     this->robot_name = this->config_.robot_name;
 
   // Definition parameter pose 00
    if(!this->private_node_handle_.getParam("pre_grasp_corner", this->pre_grasp_corner)) {
-       ROS_WARN("DemosKinovaAlgNode::DemosKinovaAlgNode: param 'pre_grasp_corner' not found");
+       ROS_WARN("PicknPlaceAlgNode::PicknPlaceAlgNode: param 'pre_grasp_corner' not found");
    } else {
        ROS_INFO("pre_grasp_corner: [%f, %f, %f, %f, %f, %f]", this->pre_grasp_corner[0], this->pre_grasp_corner[1], this->pre_grasp_corner[2], this->pre_grasp_corner[3], this->pre_grasp_corner[4], this->pre_grasp_corner[5]);
    }
   if(!this->private_node_handle_.getParam("close_gripper", this->config_.close_gripper))
   {
-    ROS_WARN("DemosKinovaAlgNode::DemosKinovaAlgNode: param 'close_gripper' not found");
+    ROS_WARN("PicknPlaceAlgNode::PicknPlaceAlgNode: param 'close_gripper' not found");
   }
   else
     this->close_gripper = this->config_.close_gripper;
 
   if(!this->private_node_handle_.getParam("garment_width", this->config_.garment_width))
   {
-    ROS_WARN("DemosKinovaAlgNode::DemosKinovaAlgNode: param 'garment_width' not found");
+    ROS_WARN("PicknPlaceAlgNode::PicknPlaceAlgNode: param 'garment_width' not found");
   }
   else
     this->garment_width = this->config_.garment_width;
 
   if(!this->private_node_handle_.getParam("garment_height", this->config_.garment_height))
   {
-    ROS_WARN("DemosKinovaAlgNode::DemosKinovaAlgNode: param 'garment_height' not found");
+    ROS_WARN("PicknPlaceAlgNode::PicknPlaceAlgNode: param 'garment_height' not found");
   }
   else
     this->garment_height = this->config_.garment_height;
 
   if(!this->private_node_handle_.getParam("diagonal_move", this->config_.diagonal_move))
   {
-    ROS_WARN("DemosKinovaAlgNode::DemosKinovaAlgNode: param 'diagonal_move' not found");
+    ROS_WARN("PicknPlaceAlgNode::PicknPlaceAlgNode: param 'diagonal_move' not found");
   }
   else
     this->diagonal_move = this->config_.diagonal_move;
 }
 
 // Set and publish handeye transform
-void DemosKinovaAlgNode::handeye_frame_pub(const ros::TimerEvent& event)
+void PicknPlaceAlgNode::handeye_frame_pub(const ros::TimerEvent& event)
 {
 
   // Set handeye transform
@@ -737,9 +737,9 @@ void DemosKinovaAlgNode::handeye_frame_pub(const ros::TimerEvent& event)
 //Subscribes to the topic sending the corner's position
 //Renames them according to its position wrt base_link
 //Computes edges size
-void DemosKinovaAlgNode::corners_callback(const visualization_msgs::MarkerArray::ConstPtr& msg)
+void PicknPlaceAlgNode::corners_callback(const visualization_msgs::MarkerArray::ConstPtr& msg)
 {
-  ROS_DEBUG("DemosKinovaAlgNode: corners callback");
+  ROS_DEBUG("PicknPlaceAlgNode: corners callback");
 
 //TO DO:
 //Transform corners position wrt base_link
@@ -918,9 +918,9 @@ void DemosKinovaAlgNode::corners_callback(const visualization_msgs::MarkerArray:
 }
 
 // Transform point obtained through camera wrt robot frame base_link
-void DemosKinovaAlgNode::garment_pose_callback(const visualization_msgs::Marker::ConstPtr& msg)
+void PicknPlaceAlgNode::garment_pose_callback(const visualization_msgs::Marker::ConstPtr& msg)
 {
-  ROS_DEBUG("DemosKinovaAlgNode: garment pose callback");
+  ROS_DEBUG("PicknPlaceAlgNode: garment pose callback");
 /*
   visualization_msgs::Marker marker;
   marker.header.frame_id = "base_link";
@@ -972,10 +972,10 @@ void DemosKinovaAlgNode::garment_pose_callback(const visualization_msgs::Marker:
 }
 
 
-//void DemosKinovaAlgNode::garment_angle_callback(const std_msgs::Float64::ConstPtr& msg)
-void DemosKinovaAlgNode::compute_grasp_angle(const std_msgs::Float64& garment_angle)
+//void PicknPlaceAlgNode::garment_angle_callback(const std_msgs::Float64::ConstPtr& msg)
+void PicknPlaceAlgNode::compute_grasp_angle(const std_msgs::Float64& garment_angle)
 {
-  ROS_DEBUG("DemosKinovaAlgNode: garment angle callback");
+  ROS_DEBUG("PicknPlaceAlgNode: garment angle callback");
 
 //  if(this->get_garment_angle)
 //  {
@@ -1023,9 +1023,9 @@ void DemosKinovaAlgNode::compute_grasp_angle(const std_msgs::Float64& garment_an
   //}
 }
 
-void DemosKinovaAlgNode::garment_edge_callback(const std_msgs::Float64::ConstPtr& msg)
+void PicknPlaceAlgNode::garment_edge_callback(const std_msgs::Float64::ConstPtr& msg)
 {
-  ROS_DEBUG("DemosKinovaAlgNode: garment edge callback");
+  ROS_DEBUG("PicknPlaceAlgNode: garment edge callback");
   if(this->get_garment_position)
   {
     this->garment_height=msg->data +0.01;
@@ -1037,9 +1037,9 @@ void DemosKinovaAlgNode::garment_edge_callback(const std_msgs::Float64::ConstPtr
 }
 
 /*  [subscriber callbacks] */
-void DemosKinovaAlgNode::base_feedback_callback(const kortex_driver::BaseCyclic_Feedback::ConstPtr& msg)
+void PicknPlaceAlgNode::base_feedback_callback(const kortex_driver::BaseCyclic_Feedback::ConstPtr& msg)
 {
-  //ROS_INFO("DemosKinovaAlgNode::base_feedback_callback: New Message Received");
+  //ROS_INFO("PicknPlaceAlgNode::base_feedback_callback: New Message Received");
 
   //use appropiate mutex to shared variables if necessary
   //this->alg_.lock();
@@ -1057,19 +1057,19 @@ void DemosKinovaAlgNode::base_feedback_callback(const kortex_driver::BaseCyclic_
   //this->base_feedback_mutex_exit();
 }
 
-void DemosKinovaAlgNode::base_feedback_mutex_enter(void)
+void PicknPlaceAlgNode::base_feedback_mutex_enter(void)
 {
   pthread_mutex_lock(&this->base_feedback_mutex_);
 }
 
-void DemosKinovaAlgNode::base_feedback_mutex_exit(void)
+void PicknPlaceAlgNode::base_feedback_mutex_exit(void)
 {
   pthread_mutex_unlock(&this->base_feedback_mutex_);
 }
 
-void DemosKinovaAlgNode::action_topic_callback(const kortex_driver::ActionNotification::ConstPtr& msg)
+void PicknPlaceAlgNode::action_topic_callback(const kortex_driver::ActionNotification::ConstPtr& msg)
 {
-//  ROS_INFO("DemosKinovaAlgNode::action_topic_callback: New Message Received");
+//  ROS_INFO("PicknPlaceAlgNode::action_topic_callback: New Message Received");
   this->last_action_notification_event = msg->action_event;
   //use appropiate mutex to shared variables if necessary
   //this->alg_.lock();
@@ -1081,12 +1081,12 @@ void DemosKinovaAlgNode::action_topic_callback(const kortex_driver::ActionNotifi
   //this->action_topic_mutex_exit();
 }
 
-void DemosKinovaAlgNode::action_topic_mutex_enter(void)
+void PicknPlaceAlgNode::action_topic_mutex_enter(void)
 {
   pthread_mutex_lock(&this->action_topic_mutex_);
 }
 
-void DemosKinovaAlgNode::action_topic_mutex_exit(void)
+void PicknPlaceAlgNode::action_topic_mutex_exit(void)
 {
   pthread_mutex_unlock(&this->action_topic_mutex_);
 }
@@ -1095,29 +1095,29 @@ void DemosKinovaAlgNode::action_topic_mutex_exit(void)
 /*  [service callbacks] */
 
 /*  [action callbacks] */
-void DemosKinovaAlgNode::kinova_linear_moveDone(const actionlib::SimpleClientGoalState& state,  const iri_kinova_linear_movement::kinova_linear_movementResultConstPtr& result)
+void PicknPlaceAlgNode::kinova_linear_moveDone(const actionlib::SimpleClientGoalState& state,  const iri_kinova_linear_movement::kinova_linear_movementResultConstPtr& result)
 {
   this->alg_.lock();
   if( state == actionlib::SimpleClientGoalState::SUCCEEDED )
-    ROS_INFO("DemosKinovaAlgNode::kinova_linear_moveDone: Goal Achieved!");
+    ROS_INFO("PicknPlaceAlgNode::kinova_linear_moveDone: Goal Achieved!");
   else
-    ROS_INFO("DemosKinovaAlgNode::kinova_linear_moveDone: %s", state.toString().c_str());
+    ROS_INFO("PicknPlaceAlgNode::kinova_linear_moveDone: %s", state.toString().c_str());
 
   //copy & work with requested result
   this->alg_.unlock();
 }
 
-void DemosKinovaAlgNode::kinova_linear_moveActive()
+void PicknPlaceAlgNode::kinova_linear_moveActive()
 {
   this->alg_.lock();
-  //ROS_INFO("DemosKinovaAlgNode::kinova_linear_moveActive: Goal just went active!");
+  //ROS_INFO("PicknPlaceAlgNode::kinova_linear_moveActive: Goal just went active!");
   this->alg_.unlock();
 }
 
-void DemosKinovaAlgNode::kinova_linear_moveFeedback(const iri_kinova_linear_movement::kinova_linear_movementFeedbackConstPtr& feedback)
+void PicknPlaceAlgNode::kinova_linear_moveFeedback(const iri_kinova_linear_movement::kinova_linear_movementFeedbackConstPtr& feedback)
 {
   this->alg_.lock();
-  //ROS_INFO("DemosKinovaAlgNode::kinova_linear_moveFeedback: Got Feedback!");
+  //ROS_INFO("PicknPlaceAlgNode::kinova_linear_moveFeedback: Got Feedback!");
 
   bool feedback_is_ok = true;
 
@@ -1128,14 +1128,14 @@ void DemosKinovaAlgNode::kinova_linear_moveFeedback(const iri_kinova_linear_move
   if( !feedback_is_ok )
   {
     kinova_linear_move_client_.cancelGoal();
-    //ROS_INFO("DemosKinovaAlgNode::kinova_linear_moveFeedback: Cancelling Action!");
+    //ROS_INFO("PicknPlaceAlgNode::kinova_linear_moveFeedback: Cancelling Action!");
   }
   this->alg_.unlock();
 }
 
 
 /*  [action requests] */
-bool DemosKinovaAlgNode::kinova_linear_moveMakeActionRequest(const geometry_msgs::Pose& desired_pose, const int& rf_frame, const float& max_vel)
+bool PicknPlaceAlgNode::kinova_linear_moveMakeActionRequest(const geometry_msgs::Pose& desired_pose, const int& rf_frame, const float& max_vel)
 {
   // IMPORTANT: Please note that all mutex used in the client callback functions
   // must be unlocked before calling any of the client class functions from an
@@ -1144,23 +1144,23 @@ bool DemosKinovaAlgNode::kinova_linear_moveMakeActionRequest(const geometry_msgs
   // this->alg_.unlock();
   if(kinova_linear_move_client_.isServerConnected())
   {
-    //ROS_INFO("DemosKinovaAlgNode::kinova_linear_moveMakeActionRequest: Server is Available!");
+    //ROS_INFO("PicknPlaceAlgNode::kinova_linear_moveMakeActionRequest: Server is Available!");
     //send a goal to the action server
     //kinova_linear_move_goal_.data = my_desired_goal;
     kinova_linear_move_goal_.goal_position = desired_pose;
     kinova_linear_move_goal_.reference_frame = rf_frame;
     kinova_linear_move_goal_.maximum_velocity = max_vel;
     kinova_linear_move_client_.sendGoal(kinova_linear_move_goal_,
-                boost::bind(&DemosKinovaAlgNode::kinova_linear_moveDone,     this, _1, _2),
-                boost::bind(&DemosKinovaAlgNode::kinova_linear_moveActive,   this),
-                boost::bind(&DemosKinovaAlgNode::kinova_linear_moveFeedback, this, _1));
-    ROS_INFO("DemosKinovaAlgNode::kinova_linear_moveMakeActionRequest: Goal Sent.");
+                boost::bind(&PicknPlaceAlgNode::kinova_linear_moveDone,     this, _1, _2),
+                boost::bind(&PicknPlaceAlgNode::kinova_linear_moveActive,   this),
+                boost::bind(&PicknPlaceAlgNode::kinova_linear_moveFeedback, this, _1));
+    ROS_INFO("PicknPlaceAlgNode::kinova_linear_moveMakeActionRequest: Goal Sent.");
     // ok=true;
     return true;
   }
   else
   {
-    ROS_ERROR("DemosKinovaAlgNode::kinova_linear_moveMakeActionRequest: action server is not connected. Check remap or server presence.");
+    ROS_ERROR("PicknPlaceAlgNode::kinova_linear_moveMakeActionRequest: action server is not connected. Check remap or server presence.");
     // ok=false;
     return false;
   }
@@ -1169,7 +1169,7 @@ bool DemosKinovaAlgNode::kinova_linear_moveMakeActionRequest(const geometry_msgs
 }
 
 
-void DemosKinovaAlgNode::node_config_update(Config &config, uint32_t level)
+void PicknPlaceAlgNode::node_config_update(Config &config, uint32_t level)
 {
   this->alg_.lock();
   if(config.rate!=this->getRate())
@@ -1210,21 +1210,21 @@ void DemosKinovaAlgNode::node_config_update(Config &config, uint32_t level)
   this->alg_.unlock();
 }
 
-void DemosKinovaAlgNode::addNodeDiagnostics(void)
+void PicknPlaceAlgNode::addNodeDiagnostics(void)
 {
 }
 
-bool DemosKinovaAlgNode::clear_faults(void)
+bool PicknPlaceAlgNode::clear_faults(void)
 {
   // Clear the faults
   if (base_clear_faults_client_.call(base_clear_faults_srv_))
   {
-  //  ROS_INFO("DemosKinovaAlgNode:: base_clear_faults_client_ received a response from service server");
-    ROS_INFO("DemosKinovaAlgNode:: Clear the faults");
+  //  ROS_INFO("PicknPlaceAlgNode:: base_clear_faults_client_ received a response from service server");
+    ROS_INFO("PicknPlaceAlgNode:: Clear the faults");
   }
   else
   {
-    ROS_INFO("DemosKinovaAlgNode:: Failed to call service on topic %s",this->base_clear_faults_client_.getService().c_str());
+    ROS_INFO("PicknPlaceAlgNode:: Failed to call service on topic %s",this->base_clear_faults_client_.getService().c_str());
     return false;
   }
   // Wait a bit
@@ -1233,18 +1233,18 @@ bool DemosKinovaAlgNode::clear_faults(void)
 }
 
 // This function sets the reference frame to the robot's base
-bool DemosKinovaAlgNode::set_cartesian_reference_frame(const int &cartesian_rf)
+bool PicknPlaceAlgNode::set_cartesian_reference_frame(const int &cartesian_rf)
 {
   set_cartesian_rf_srv_.request.input.reference_frame = cartesian_rf;
   this->cartesian_rf = cartesian_rf;
-  ROS_INFO("DemosKinovaAlgNode:: Calling service set_cartesian_rf_client_!");
+  ROS_INFO("PicknPlaceAlgNode:: Calling service set_cartesian_rf_client_!");
   if (set_cartesian_rf_client_.call(set_cartesian_rf_srv_))
   {
     ROS_INFO("Setting reference frame.");
   }
   else
   {
-    ROS_INFO("DemosKinovaAlgNode:: Failed to call service on topic %s",this->set_cartesian_rf_client_.getService().c_str());
+    ROS_INFO("PicknPlaceAlgNode:: Failed to call service on topic %s",this->set_cartesian_rf_client_.getService().c_str());
     return false;
   }
   // Wait a bit
@@ -1252,7 +1252,7 @@ bool DemosKinovaAlgNode::set_cartesian_reference_frame(const int &cartesian_rf)
   return true;
 }
 
-bool DemosKinovaAlgNode::send_gripper_command(double value)
+bool PicknPlaceAlgNode::send_gripper_command(double value)
 {
   // Initialize the request
   kortex_driver::Finger finger;
@@ -1260,23 +1260,23 @@ bool DemosKinovaAlgNode::send_gripper_command(double value)
   finger.value = value;
   send_gripper_cmd_srv_.request.input.gripper.finger.push_back(finger);
   send_gripper_cmd_srv_.request.input.mode = kortex_driver::GripperMode::GRIPPER_POSITION;
-  ROS_INFO("DemosKinovaAlgNode:: Calling service send_gripper_cmd_client_!");
+  ROS_INFO("PicknPlaceAlgNode:: Calling service send_gripper_cmd_client_!");
   if (send_gripper_cmd_client_.call(send_gripper_cmd_srv_))
   {
     ROS_INFO("The gripper command was sent to the robot.");
   }
   else
   {
-    ROS_INFO("DemosKinovaAlgNode:: Failed to call service on topic %s",this->send_gripper_cmd_client_.getService().c_str());
+    ROS_INFO("PicknPlaceAlgNode:: Failed to call service on topic %s",this->send_gripper_cmd_client_.getService().c_str());
     return false;
   }
-  ROS_INFO("DemosKinovaAlgNode: Gripper command sended");
+  ROS_INFO("PicknPlaceAlgNode: Gripper command sended");
   send_gripper_cmd_srv_.request.input.gripper.finger.pop_back();
   std::this_thread::sleep_for(std::chrono::milliseconds(500));
   return true;
 }
 
-bool DemosKinovaAlgNode::home_the_robot(void)
+bool PicknPlaceAlgNode::home_the_robot(void)
 {
   this->last_action_notification_event = 0;
   // The Home Action is used to home the robot. It cannot be deleted and is always ID #2:
@@ -1284,29 +1284,29 @@ bool DemosKinovaAlgNode::home_the_robot(void)
 
   if (!base_read_action_client_.call(base_read_action_srv_))
   {
-    ROS_INFO("DemosKinovaAlgNode:: Failed to call service on topic %s",this->base_read_action_client_.getService().c_str());
+    ROS_INFO("PicknPlaceAlgNode:: Failed to call service on topic %s",this->base_read_action_client_.getService().c_str());
     return false;
   }
 
   // We can now execute the Action that we read
   base_execute_action_srv_.request.input = base_read_action_srv_.response.output;
-  ROS_INFO("DemosKinovaAlgNode:: Calling service base_execute_action_client_!");
+  ROS_INFO("PicknPlaceAlgNode:: Calling service base_execute_action_client_!");
   if (base_execute_action_client_.call(base_execute_action_srv_))
   {
     ROS_INFO("The Home position action was sent to the robot.");
   }
   else
   {
-    ROS_INFO("DemosKinovaAlgNode:: Failed to call service on topic %s",this->base_execute_action_client_.getService().c_str());
+    ROS_INFO("PicknPlaceAlgNode:: Failed to call service on topic %s",this->base_execute_action_client_.getService().c_str());
     return false;
   }
   std::this_thread::sleep_for(std::chrono::milliseconds(1000));
   return wait_for_action_end_or_abort();
 }
 
-bool DemosKinovaAlgNode::send_cartesian_pose(const kortex_driver::Pose &goal_pose)
+bool PicknPlaceAlgNode::send_cartesian_pose(const kortex_driver::Pose &goal_pose)
 {
-  ROS_DEBUG("DemosKinovaAlgNode: send_cartesian_pose function");
+  ROS_DEBUG("PicknPlaceAlgNode: send_cartesian_pose function");
   this->last_action_notification_event = 0;
   kortex_driver::Waypoint waypoint;
   exec_wp_trajectory_srv_.request.input.waypoints.clear();
@@ -1314,21 +1314,21 @@ bool DemosKinovaAlgNode::send_cartesian_pose(const kortex_driver::Pose &goal_pos
   exec_wp_trajectory_srv_.request.input.duration = 0;
   exec_wp_trajectory_srv_.request.input.use_optimal_blending = false;
 
-  ROS_INFO("DemosKinovaAlgNode:: Calling service exec_wp_trajectory_client_!");
+  ROS_INFO("PicknPlaceAlgNode:: Calling service exec_wp_trajectory_client_!");
   if (exec_wp_trajectory_client_.call(exec_wp_trajectory_srv_))
   {
     ROS_INFO("The new cartesian pose was sent to the robot.");
   }
   else
   {
-    ROS_INFO("DemosKinovaAlgNode:: Failed to call service on topic %s",this->exec_wp_trajectory_client_.getService().c_str());
+    ROS_INFO("PicknPlaceAlgNode:: Failed to call service on topic %s",this->exec_wp_trajectory_client_.getService().c_str());
     return false;
   }
   std::this_thread::sleep_for(std::chrono::milliseconds(500));
   return wait_for_action_end_or_abort();
 }
 
-kortex_driver::Waypoint DemosKinovaAlgNode::FillCartesianWaypoint(const kortex_driver::Pose &goal_pose, float blending_radius)
+kortex_driver::Waypoint PicknPlaceAlgNode::FillCartesianWaypoint(const kortex_driver::Pose &goal_pose, float blending_radius)
 {
   kortex_driver::Waypoint waypoint;
   kortex_driver::CartesianWaypoint cartesianWaypoint;
@@ -1348,9 +1348,9 @@ kortex_driver::Waypoint DemosKinovaAlgNode::FillCartesianWaypoint(const kortex_d
 }
 
 //REVISAR!! Quitar while, poner comprobacion dentro de sm, mirar gestion estado actions tiago modules
-bool DemosKinovaAlgNode::wait_for_action_end_or_abort(void)
+bool PicknPlaceAlgNode::wait_for_action_end_or_abort(void)
 {
-  ROS_DEBUG("DemosKinovaAlgNode: wait_for_action_end_or_abort");
+  ROS_DEBUG("PicknPlaceAlgNode: wait_for_action_end_or_abort");
   while (ros::ok())
   {
     if (this->last_action_notification_event.load() == kortex_driver::ActionEvent::ACTION_END)
@@ -1374,5 +1374,5 @@ bool DemosKinovaAlgNode::wait_for_action_end_or_abort(void)
 /* main function */
 int main(int argc,char *argv[])
 {
-  return algorithm_base::main<DemosKinovaAlgNode>(argc, argv, "demos_kinova_alg_node");
+  return algorithm_base::main<PicknPlaceAlgNode>(argc, argv, "pick_n_place_alg_node");
 }

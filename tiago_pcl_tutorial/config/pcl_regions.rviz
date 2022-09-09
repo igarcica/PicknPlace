@@ -285,7 +285,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/Marker
       Enabled: true
-      Marker Topic: /iri_demos_kinova/garment_marker
+      Marker Topic: /pick_n_place/garment_marker
       Name: Marker
       Namespaces:
         "": true
@@ -293,7 +293,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/Marker
       Enabled: true
-      Marker Topic: /iri_demos_kinova/grasp_marker
+      Marker Topic: /pick_n_place/grasp_marker
       Name: Marker
       Namespaces:
         {}

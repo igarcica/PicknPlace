@@ -22,25 +22,25 @@
 // refer to the IRI wiki page for more information:
 // http://wikiri.upc.es/index.php/Robotics_Lab
 
-#ifndef _demos_kinova_alg_h_
-#define _demos_kinova_alg_h_
+#ifndef _pick_n_place_alg_h_
+#define _pick_n_place_alg_h_
 
-#include <iri_demos_kinova/DemosKinovaConfig.h>
+#include <pick_n_place/PicknPlaceConfig.h>
 
-//include demos_kinova_alg main library
+//include pick_n_place_alg main library
 
 /**
  * \brief IRI ROS Specific Driver Class
  *
  *
  */
-class DemosKinovaAlgorithm
+class PicknPlaceAlgorithm
 {
   protected:
    /**
     * \brief define config type
     *
-    * Define a Config type with the DemosKinovaConfig. All driver implementations
+    * Define a Config type with the PicknPlaceConfig. All driver implementations
     * will then use the same variable type Config.
     */
     pthread_mutex_t access_;    
@@ -51,10 +51,10 @@ class DemosKinovaAlgorithm
    /**
     * \brief define config type
     *
-    * Define a Config type with the DemosKinovaConfig. All driver implementations
+    * Define a Config type with the PicknPlaceConfig. All driver implementations
     * will then use the same variable type Config.
     */
-    typedef iri_demos_kinova::DemosKinovaConfig Config;
+    typedef pick_n_place::PicknPlaceConfig Config;
 
    /**
     * \brief config variable
@@ -72,7 +72,7 @@ class DemosKinovaAlgorithm
     * Attributes from the main node driver class IriBaseDriver such as loop_rate,
     * may be also overload here.
     */
-    DemosKinovaAlgorithm(void);
+    PicknPlaceAlgorithm(void);
 
    /**
     * \brief Lock Algorithm
@@ -116,7 +116,7 @@ class DemosKinovaAlgorithm
     */
     void config_update(Config& config, uint32_t level=0);
 
-    // here define all demos_kinova_alg interface methods to retrieve and set
+    // here define all pick_n_place_alg interface methods to retrieve and set
     // the driver parameters
 
    /**
@@ -125,7 +125,7 @@ class DemosKinovaAlgorithm
     * This destructor is called when the object is about to be destroyed.
     *
     */
-    ~DemosKinovaAlgorithm(void);
+    ~PicknPlaceAlgorithm(void);
 };
 
 #endif
