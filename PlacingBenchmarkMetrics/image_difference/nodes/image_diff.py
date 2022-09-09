@@ -3,6 +3,7 @@ import rospy
 import cv2
 import numpy as np
 import rospkg
+import statistics
 from std_msgs.msg import Float64
 from std_msgs.msg import Int32
 from sensor_msgs.msg import Image
@@ -91,10 +92,33 @@ class image_converter:
 	imask = mask > 0
 	canvas = np.zeros_like(current_image, np.uint8)
 	canvas[imask] = current_image[imask]
-        #vect = [np.sum(n>0) for n in canvas]
-        #np.savetxt('color.txt', vect, fmt='%.2e')
+
+        #Understand depth and color values
+        vect = [np.sum(n>0) for n in current_image]
+        np.savetxt('color_vect_im.txt', vect, fmt='%u')
+        vect = [np.sum(n>0) for n in canvas]
+        np.savetxt('color_vect_mask.txt', vect, fmt='%u')
+        #np.savetxt('color_im.txt', current_image)
+        #np.savetxt('color_mask.txt', canvas, fmt='%u')
+
+
+        im = cv2.circle(current_image, (900,100), 10, (0,255, 0), 2)
+        cv2.imshow("TEST", current_image)
+        cv2.waitKey(3)
+        ##current_image.size
+	test = np.zeros_like(current_image)
+#        fil = open('file', 'w')
+#        pixel = im.load()
+#        row, column = im.size
+#        for y in range(column):
+#            for x in range(row):
+#                pixel = pix[x, y]
+#                fil.write(str(pixel) + '\n')
+#        fil.close()
         
         self.mask = imask
+        print "Color: ", self.mask[100,900]
+
         return (float(cv2.countNonZero(mask)), canvas)
 
 
@@ -156,17 +180,56 @@ class image_converter:
     def callback_depth(self,data):
         if self.success_place:
             pic_depth = self.bridge.imgmsg_to_cv2(data)#,"16UC1")
-            #cv2.imshow("Pic Depth", pic_depth)
+            #cv2.imshow("Pic Depth", pic_depth) #Does not work because it interprets the depth values as black/white 0-255 (?). What makes the image all black except the closer points
             #cv2.waitKey(3)
-            #print "hola"
-            #print self.mask
-            #np.savetxt('result.txt', self.mask, fmt='%.2e')
-	    canvas = np.zeros_like(pic_depth, np.uint8)
-	    canvas[self.mask] = pic_depth[self.mask]
+            canvas = np.zeros_like(pic_depth, np.uint16) #Create a black mask
+	    canvas[self.mask] = pic_depth[self.mask] #Save the points where there is no mask (mask=True)
+            self.segmented_depth = canvas
+
+            print "Depth canvas: ", canvas[100,900]
+            print "Depth: ", pic_depth[100,900]
+            vect = [np.sum(n>0) for n in pic_depth]
+            np.savetxt('depth_vec_im.txt', vect, fmt='%u')
+            vect = [np.sum(n>0) for n in canvas]
+            np.savetxt('depth_vecc_mask.txt', vect, fmt='%u')
+            np.savetxt('depth_im.txt', pic_depth)
+            np.savetxt('depth_mask.txt', canvas, fmt='%u')
+
+            print "Depth canvas: ", canvas[100,900]
+            print "Depth: ", pic_depth[100,900]
+            cv2.imshow("Pic depth", pic_depth)
+            cv2.waitKey(3)
             cv2.imshow("Pic depth MASK", canvas)
             cv2.waitKey(3)
-            #vect = [np.sum(n>0) for n in canvas]
-            #np.savetxt('depth.txt', vect, fmt='%.2e')
+
+            #print "flatten: ", canvas.flatten()
+            #print "mean: ", statistics.mean(canvas.flatten())
+
+            nonzero = canvas[canvas>1]
+            print "nonzer: ", nonzero
+            np.savetxt('nonzero.txt', nonzero)
+            print "mean: ", np.mean(nonzero)
+
+#            # https://stackoverflow.com/questions/47751323/get-depth-image-in-grayscale-in-ros-with-imgmsg-to-cv2-python
+#            # The depth image is a single-channel float32 image
+#            # the values is the distance in mm in z axis
+#            cv_image = self.bridge.imgmsg_to_cv2(data, "32FC1")
+#            # Convert the depth image to a Numpy array since most cv2 functions
+#            # require Numpy arrays.
+#            cv_image_array = np.array(cv_image, dtype = np.dtype('f8'))
+#            # Normalize the depth image to fall between 0 (black) and 1 (white)
+#            # http://docs.ros.org/electric/api/rosbag_video/html/bag__to__video_8cpp_source.html lines 95-125
+#            cv_image_norm = cv2.normalize(cv_image_array, cv_image_array, 0, 1, cv2.NORM_MINMAX)
+#            # Resize to the desired size
+#            #cv_image_resized = cv2.resize(cv_image_norm, self.desired_shape, interpolation = cv2.INTER_CUBIC)
+#            #self.depthimg = cv_image_resized
+#            cv2.imshow("Image from my node", cv_image_norm)
+#            cv2.waitKey(1)
+#            print "new: ", cv_image_norm[100,900]
+
+def compute_mean():
+    print "hola"
+
 
 def main():
     rospy.init_node('image_difference', anonymous=True)
