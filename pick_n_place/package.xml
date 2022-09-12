@@ -54,7 +54,7 @@
   <build_export_depend>iri_base_algorithm</build_export_depend>
   <exec_depend>iri_base_algorithm</exec_depend>
   <depend>iri_kinova_linear_movement</depend>
-  <depend>tiago_pcl_tutorial</depend>
+  <depend>vision_pick_place</depend>
   <depend>actionlib</depend>
   <depend>kortex_driver</depend>
   <depend>iri_action_server</depend>

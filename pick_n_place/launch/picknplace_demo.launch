@@ -9,7 +9,7 @@
   <include file="$(find pick_n_place)/launch/node.launch"> </include>
 
 <!-- TIAGO PCL TUTORIAL -->
-  <include file="$(find tiago_pcl_tutorial)/launch/picknplace.launch"> </include>
+  <include file="$(find vision_pick_place)/launch/picknplace.launch"> </include>
 
 
 </launch>

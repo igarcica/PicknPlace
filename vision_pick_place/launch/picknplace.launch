@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+
+<!-- Launch Segment table node to remove plane -->
+  <arg name="rate"                      default="1"                               />
+  <arg name="cloud"                     default="/ext_camera/depth/color/points"  />
+  <arg name="segm_cloud"                 default="/segment_table/nonplane"  />
+  <arg name="pick_cloud"                 default="/segment_table/pick"  />
+  <arg name="place_cloud"                 default="/segment_table/place"  />
+  <arg name="frame"                     default="/ext_camera_link"                 />
+  <arg name="passthrough_axis"          default="y"                               />
+  <arg name="passthrough_min"           default="-0.6"                             /> <!-- -0.2 a 1 -->
+  <arg name="passthrough_max"           default="0.5"                             />
+  <arg name="passthrough_axis_pick"          default="y"                               />
+  <arg name="passthrough_min_pick"           default="-0.6"                             /> <!-- -0.2 a 1 -->
+  <arg name="passthrough_max_pick"           default="0"                             />
+  <arg name="passthrough_axis_place"          default="y"                               />
+  <arg name="passthrough_min_place"           default="0"                             /> <!-- -0.2 a 1 -->
+  <arg name="passthrough_max_place"           default="0.5"                             />
+  <arg name="downsampling_size"         default="0.01"                            />
+  <arg name="show_rviz"                 default="true"                            />
+
+  <node name="segment_table" pkg="vision_pick_place" type="segment_table" output="screen">
+    <remap from="cloud"                     to="$(arg cloud)"     />
+    <remap from="segmcloud"                 to="$(arg segm_cloud)"     />
+    <remap from="pickcloud"                 to="$(arg pick_cloud)"     />
+    <remap from="placecloud"                 to="$(arg place_cloud)"     />
+    <param name="rate"                      type="double" value="$(arg rate)"  />
+    <param name="frame"                     type="string" value="$(arg frame)"  />
+    <param name="passthrough_axis"          type="string" value="$(arg passthrough_axis)"  />
+    <param name="passthrough_min"           type="double" value="$(arg passthrough_min)"   />
+    <param name="passthrough_max"           type="double" value="$(arg passthrough_max)"   />
+    <param name="passthrough_axis_pick"          type="string" value="$(arg passthrough_axis_pick)"  />
+    <param name="passthrough_min_pick"           type="double" value="$(arg passthrough_min_pick)"   />
+    <param name="passthrough_max_pick"           type="double" value="$(arg passthrough_max_pick)"   />
+    <param name="passthrough_axis_place"          type="string" value="$(arg passthrough_axis_place)"  />
+    <param name="passthrough_min_place"           type="double" value="$(arg passthrough_min_place)"   />
+    <param name="passthrough_max_place"           type="double" value="$(arg passthrough_max_place)"   />
+    <param name="downsampling_size"         type="double" value="$(arg downsampling_size)" />
+  </node>
+
+<!-- Launch pcl regions to divide in clusters -->
+  <arg name="in_cloud"                     default="/segment_table/nonplane"  />
+  <node name="pcl_regions" pkg="vision_pick_place" type="region_segment" output="screen">
+    <remap from="input_cloud" to="$(arg in_cloud)"/>
+  </node>
+
+<!-- Launch RVIZ and Reconfigure -->
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find vision_pick_place)/config/pcl_regions.rviz"/>
+  <node name="rqt_reconfigure" pkg="rqt_reconfigure" type="rqt_reconfigure" />
+
+</launch>

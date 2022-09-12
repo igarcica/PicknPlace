@@ -4,9 +4,9 @@
 
 Launch the camera and the kortex driver:
 
-``roslaunch iri_demos_kinova picknplace.launch``
+``roslaunch pick_n_place camera_n_kinova.launch``
 
-Launch the nodes corresponding to the demo (iri_kinova_linear_movement, iri_Demos_kinova and tiago_pcl_tutorial):
+Launch the nodes corresponding to the demo (iri_kinova_linear_movement, pick_n_place and vision_pick_place):
 
-``roslaunch iri_demos_kinova picknplace_demo.launch``
+``roslaunch pick_n_place picknplace_demo.launch``
 
