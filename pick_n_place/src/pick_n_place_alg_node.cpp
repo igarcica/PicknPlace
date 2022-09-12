@@ -18,6 +18,7 @@ PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
   //this->garment_angle_subscriber = this->public_node_handle_.subscribe("/segment_table/grasp_angle",1,&PicknPlaceAlgNode::garment_angle_callback,this);
   this->garment_edge_subscriber = this->public_node_handle_.subscribe("/segment_table/garment_edge",1,&PicknPlaceAlgNode::garment_edge_callback,this);
   this->corners_subscriber = this->public_node_handle_.subscribe("/segment_table/corners",1,&PicknPlaceAlgNode::corners_callback,this);
+  this->pile_height_subscriber = this->public_node_handle_.subscribe("/segment_table/pile_height",1,&PicknPlaceAlgNode::pile_height_callback,this);
 
   // Publish grasp marker
   this->garment_marker_publisher = this->public_node_handle_.advertise<visualization_msgs::Marker>("garment_marker", 1);
@@ -30,6 +31,8 @@ PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
   //this->handeye_frame_pub_timer.stop();
 
   this->get_params();
+
+  this->pile_height = 0.0;
 
   this->pre_grasp_center.x = this->pre_grasp_corner[0]-0.08;
   this->pre_grasp_center.y = this->pre_grasp_corner[1];// - this->garment_width/2;
@@ -340,7 +343,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                               ROS_INFO("Rotating pre-place position.");
                               this->pre_grasp_center.x = tool_pose.x;
                               this->pre_grasp_center.y = tool_pose.y;
-                              this->pre_grasp_center.z = this->garment_height+0.05;//*1.2; //Check;
+                              this->pre_grasp_center.z = this->garment_height + 0.05;//*1.2; //Check;
                               this->pre_grasp_center.theta_x = 0.0;
                               this->pre_grasp_center.theta_y = -125.5;
                               this->pre_grasp_center.theta_z = 180;
@@ -365,7 +368,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                                geometry_msgs::Pose desired_pose;
                                desired_pose.position.x = tool_pose.x-this->garment_height;///1.5; //Check
                                desired_pose.position.y = tool_pose.y; //-0.3;//tool_pose.y;
-                               desired_pose.position.z = 0.055; //this->pre_grasp_center.z;
+                               desired_pose.position.z = this->pile_height + 0.055;
                                std::cout << "\033[1;36m Groing to: -> \033[1;36m  x: " << desired_pose.position.x << ", y: " <<  desired_pose.position.y << ", z: " << desired_pose.position.z << std::endl;
                                kinova_linear_moveMakeActionRequest(desired_pose, kortex_driver::CartesianReferenceFrame::CARTESIAN_REFERENCE_FRAME_MIXED, 0.08);
 //                             }
@@ -429,7 +432,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                               ROS_INFO("Sending to place position.");
                               this->pre_grasp_center.x = tool_pose.x-this->garment_height-0.07;//*1.2;///1.5;
                               this->pre_grasp_center.y = tool_pose.y;
-                              this->pre_grasp_center.z = 0.1; //0.055; //0.1;
+                              this->pre_grasp_center.z = 0.1; //this->pile_height + 0.1;
                               this->pre_grasp_center.theta_x = 0;
                               this->pre_grasp_center.theta_y = -125.5;
                               this->pre_grasp_center.theta_z = 180;
@@ -488,7 +491,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                       geometry_msgs::Pose desired_pose;
                       desired_pose.position.x = tool_pose.x;
                       desired_pose.position.y = tool_pose.y;
-                      desired_pose.position.z = 0.07;
+                      desired_pose.position.z = this->pile_height + 0.07;
                       std::cout << "\033[1;36m Groing to: -> \033[1;36m  x: " << desired_pose.position.x << ", y: " <<  desired_pose.position.y << ", z: " << desired_pose.position.z << std::endl;
                       kinova_linear_moveMakeActionRequest(desired_pose, kortex_driver::CartesianReferenceFrame::CARTESIAN_REFERENCE_FRAME_MIXED, 0.08);
                     this->state=WAIT_PLACE_RECTO;
@@ -912,6 +915,7 @@ void PicknPlaceAlgNode::corners_callback(const visualization_msgs::MarkerArray::
     marker.pose.position.z=pre_grasp_center.z;
     grasp_marker_publisher.publish(marker);
 
+    this->get_pile_height = true;
     this->get_garment_position=false;
   }
 
@@ -1033,6 +1037,17 @@ void PicknPlaceAlgNode::garment_edge_callback(const std_msgs::Float64::ConstPtr&
     if(this->garment_height>0.26)
       this->garment_height=0.26;
 //      grasp point 0.4
+  }
+}
+
+// Subscribes to topic sending the pile height
+void PicknPlaceAlgNode::pile_height_callback(const std_msgs::Float64::ConstPtr& msg)
+{
+  if(this->get_pile_height)
+  {
+    this->pile_height=0.75-msg->data;
+    std::cout << "Pile height: " << pile_height << std::endl;
+    this->get_pile_height = false;
   }
 }
 

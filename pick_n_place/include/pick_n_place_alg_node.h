@@ -113,6 +113,7 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     kortex_driver::Pose grasping_point_garment;
     float garment_width;
     float garment_height;
+    float pile_height;
     int cartesian_rf;
     bool diagonal_move;
     bool clear_faults(void);
@@ -130,16 +131,20 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     geometry_msgs::PoseStamped grasp_pose;
     bool get_garment_position;
     bool get_garment_angle;
+    bool get_pile_height;
     ros::Subscriber garment_pose_subscriber;
     //ros::Subscriber garment_angle_subscriber;
     ros::Subscriber garment_edge_subscriber;
     ros::Subscriber corners_subscriber;
+    ros::Subscriber pile_height_subscriber;
     void garment_pose_callback(const visualization_msgs::Marker::ConstPtr& msg);
     //void garment_angle_callback(const std_msgs::Float64::ConstPtr& msg);
     void compute_grasp_angle(const std_msgs::Float64& msg);
     void garment_edge_callback(const std_msgs::Float64::ConstPtr& msg);
     //void select_grasp_point();
     void corners_callback(const visualization_msgs::MarkerArray::ConstPtr& msg);
+    void pile_height_callback(const std_msgs::Float64::ConstPtr& msg);
+
     void get_params(void);
     kortex_driver::Pose pre_grasp_distance;
 

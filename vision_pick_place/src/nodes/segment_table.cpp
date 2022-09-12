@@ -119,6 +119,7 @@ namespace pal {
     ros::Publisher _cornersMarkersPub;
     ros::Publisher _graspPointPub;
     ros::Publisher _garmentEdgePub;
+    ros::Publisher _pileHeightPub;
 
     //Variables globales:
     int n_frames;
@@ -191,6 +192,7 @@ namespace pal {
     n_frames=0;
     _graspPointAnglePub    = _pnh.advertise<std_msgs::Float64>("grasp_angle", 1);
     _garmentEdgePub   = _pnh.advertise<std_msgs::Float64>("garment_edge", 1);
+    _pileHeightPub    = _pnh.advertise<std_msgs::Float64>("pile_height", 1);
 
   }
 
@@ -379,14 +381,15 @@ namespace pal {
 
   void SegmentPlane::placeCloudCallback(const sensor_msgs::PointCloud2ConstPtr& placeCloud)
   {
-    ROS_INFO("HOLA");
     //Transform cloud to PCL format
     pcl::PointCloud<pcl::PointXYZ>::Ptr pclCloud(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::fromROSMsg(*placeCloud, *pclCloud);
 
     pcl::PointXYZ minPt, maxPt;
     pcl::getMinMax3D (*pclCloud, minPt, maxPt);
-    std::cout << "Min x: " << minPt.x << std::endl;
+    std_msgs::Float64 pile_height;
+    pile_height.data = minPt.x;
+    _pileHeightPub.publish(pile_height);
   }
 
 //Detects corners from nonplane pointcloud with sum/diff of min/max points
