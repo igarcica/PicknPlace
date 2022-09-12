@@ -1,3 +1,0 @@
-/home/pal/iri-lab/iri_ws/src/PicknPlace/test/build/CMakeFiles/rebuild_cache.dir
-/home/pal/iri-lab/iri_ws/src/PicknPlace/test/build/CMakeFiles/edit_cache.dir
-/home/pal/iri-lab/iri_ws/src/PicknPlace/test/build/CMakeFiles/harris.dir
