@@ -317,6 +317,14 @@ namespace pal {
 //Separate nonplane point cloud into Pick and Place point clouds
   void SegmentPlane::nonplaneCloudCallback(const sensor_msgs::PointCloud2ConstPtr& nonplaneCloud)
   {
+    ROS_DEBUG("SegmentPlace: nonplaneCloud Callback");
+
+    if ( (nonplaneCloud->width * nonplaneCloud->height) == 0)
+    {
+      ROS_DEBUG("SegmentPlace: Empty nonplaneCloud");
+      return;
+    }
+
     //Transform cloud to PCL format
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr pclCloud(new pcl::PointCloud<pcl::PointXYZRGB>);
     pcl::fromROSMsg(*nonplaneCloud, *pclCloud);
@@ -330,13 +338,13 @@ namespace pal {
                                          _minPick, _maxPick,
                                          pickPassThroughCloud);
 
-      if ( pickPassThroughCloud->empty() )
-      {
-        //if all points get removed after the pass-through filtering just publish empty point clouds
-        //and stop processing
-        publishEmptyClouds(pclCloud->header.stamp, pclCloud->header.frame_id);
-        return;
-      }
+//      if ( pickPassThroughCloud->empty() )
+//      {
+//        //if all points get removed after the pass-through filtering just publish empty point clouds
+//        //and stop processing
+//        publishEmptyClouds(pclCloud->header.stamp, pclCloud->header.frame_id);
+//        return;
+//      }
     }
     else
       pickPassThroughCloud = pclCloud;
@@ -350,13 +358,13 @@ namespace pal {
                                          _minPlace, _maxPlace,
                                          placePassThroughCloud);
 
-      if ( placePassThroughCloud->empty() )
-      {
-        //if all points get removed after the pass-through filtering just publish empty point clouds
-        //and stop processing
-        publishEmptyClouds(pclCloud->header.stamp, pclCloud->header.frame_id);
-        return;
-      }
+//      if ( placePassThroughCloud->empty() )
+//      {
+//        //if all points get removed after the pass-through filtering just publish empty point clouds
+//        //and stop processing
+//        publishEmptyClouds(pclCloud->header.stamp, pclCloud->header.frame_id);
+//        return;
+//      }
     }
     else
       placePassThroughCloud = pclCloud;
@@ -381,6 +389,13 @@ namespace pal {
 
   void SegmentPlane::placeCloudCallback(const sensor_msgs::PointCloud2ConstPtr& placeCloud)
   {
+    ROS_DEBUG("SegmentPlace: placeCloud Callback");
+    if ( (placeCloud->width * placeCloud->height) == 0)
+    {
+      ROS_DEBUG("SegmentPlace: Empty placeCloud");
+      return;
+    }
+
     //Transform cloud to PCL format
     pcl::PointCloud<pcl::PointXYZ>::Ptr pclCloud(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::fromROSMsg(*placeCloud, *pclCloud);
@@ -395,10 +410,14 @@ namespace pal {
 //Detects corners from nonplane pointcloud with sum/diff of min/max points
   void SegmentPlane::pickCloudCallback(const sensor_msgs::PointCloud2ConstPtr& pickCloud)
   {
+    ROS_DEBUG("SegmentPlace: pickCloud Callback");
 
     // To get the segmented cloud in PCL XYZ format (instead of XYZRGB)
     if ( (pickCloud->width * pickCloud->height) == 0)
+    {
+      ROS_WARN("SegmentPlace: Empty pickCloud");
       return;
+    }
 
     sensor_msgs::PointCloud2Ptr xyzcloudInProcFrame;
 

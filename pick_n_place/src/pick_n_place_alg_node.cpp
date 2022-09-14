@@ -33,6 +33,7 @@ PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
   this->get_params();
 
   this->pile_height = 0.0;
+  std::cout << "\033[1;36m Pile height: -> \033[1;36m  x: " << this->pile_height << std::endl;
 
   this->pre_grasp_center.x = this->pre_grasp_corner[0]-0.08;
   this->pre_grasp_center.y = this->pre_grasp_corner[1];// - this->garment_width/2;
@@ -135,7 +136,8 @@ void PicknPlaceAlgNode::mainNodeThread(void)
       case IDLE: ROS_DEBUG("PicknPlaceAlgNode: state IDLE");
                  if(this->start)
                  {
-                   ROS_DEBUG("Opening the gripper.");
+                   ROS_DEBUG("Opening the gripper");
+		   this->get_pile_height = false;
                    this->success &= send_gripper_command(this->open_gripper);
                    if (this->success)
                    {
@@ -233,8 +235,10 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                            geometry_msgs::Pose desired_pose;
                            desired_pose.position.x = tool_pose.x;
                            desired_pose.position.y = tool_pose.y;
+			   this->garment_height = 0.18;
                            desired_pose.position.z = this->garment_height*1.2;
                            std::cout << "\033[1;36m Groing to: -> \033[1;36m  x: " << desired_pose.position.x << ", y: " <<  desired_pose.position.y << ", z: " << desired_pose.position.z << std::endl;
+    			   std::cout << "\033[1;36m Non-grasped edge size: -> \033[1;36m " << this->garment_height << std::endl;
                            kinova_linear_moveMakeActionRequest(desired_pose, kortex_driver::CartesianReferenceFrame::CARTESIAN_REFERENCE_FRAME_MIXED, 0.08);
                            this->state=WAIT_POST_GRASP;
                        }
@@ -269,7 +273,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
       case ROTATE_POST_GRASP: ROS_DEBUG("PicknPlaceAlgNode: state ROTATE POST GRASP");
                               ROS_INFO("Rotating post-grasp position.");
                               this->pre_grasp_center.x = 0.5; //tool_pose.x;
-                              this->pre_grasp_center.y = 0.08; //tool_pose.y;
+                              this->pre_grasp_center.y = 0.15; //0.08; //tool_pose.y;
                               this->pre_grasp_center.z = 0.30; //tool_pose.z;
                               this->pre_grasp_center.theta_x = 0.0; //0.0;
                               this->pre_grasp_center.theta_y = -90; //-125.5;
@@ -292,8 +296,8 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                             ROS_INFO("Sending to pre-place position.");
                             //first=false;
                             geometry_msgs::Pose desired_pose;
-                            desired_pose.position.x = 0.8;
-                            desired_pose.position.y = -0.1;//-0.28//0.0; //-0.12; //-this->garment_width/2;
+                            desired_pose.position.x = 0.6;//// //0.8;
+                            desired_pose.position.y = -0.2;//////-0.1;//-0.28//0.0; //-0.12; //-this->garment_width/2;
                             desired_pose.position.z = tool_pose.z;
                             std::cout << "\033[1;36m Groing to: -> \033[1;36m  x: " << desired_pose.position.x << ", y: " <<  desired_pose.position.y << ", z: " << desired_pose.position.z << std::endl;
                             kinova_linear_moveMakeActionRequest(desired_pose, kortex_driver::CartesianReferenceFrame::CARTESIAN_REFERENCE_FRAME_MIXED, 0.08);
@@ -322,14 +326,21 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                                }
                                else if(kinova_linear_move_state==actionlib::SimpleClientGoalState::SUCCEEDED)
                                {
+				 std::cout << this->placing_strategy << std::endl;
                                  this->success = true;
                                  if(this->diagonal_move)
                                    this->state=ROTATE_PRE_PLACE; //PRE_PLACE_DIAGONAL;
-                                 else if(config_.vertical_place)
-				   this->state=PLACE_RECTO;
-                                   //this->state=PLACE;
-				 else if(config_.place2)
+                                 else if(this->placing_strategy==2)
+				   this->state=PRE_PLACE_RECTO;
+				 else if(this->placing_strategy==3)
                                    this->state=PRE_PLACE2;
+
+				 std::cout << this->state << std::endl;
+                                 //else if(config_.vertical_place)
+				 //  this->state=PRE_PLACE_RECTO;
+                                 //  //this->state=PLACE;
+				 //else if(config_.place2)
+                                 //  this->state=PRE_PLACE2;
                                  //else
                                  //  this->state=ROTATE_PRE_PLACE;
                                  ros::Duration(0.5).sleep();
@@ -341,7 +352,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
       // Sets a slight rotation before the diagonal placement
       case ROTATE_PRE_PLACE: ROS_DEBUG("PicknPlaceAlgNode: state ROTATE PRE PLACE");
                               ROS_INFO("Rotating pre-place position.");
-                              this->pre_grasp_center.x = tool_pose.x;
+                              this->pre_grasp_center.x = tool_pose.x+this->garment_height;
                               this->pre_grasp_center.y = tool_pose.y;
                               this->pre_grasp_center.z = this->garment_height + 0.05;//*1.2; //Check;
                               this->pre_grasp_center.theta_x = 0.0;
@@ -370,6 +381,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                                desired_pose.position.y = tool_pose.y; //-0.3;//tool_pose.y;
                                desired_pose.position.z = this->pile_height + 0.055;
                                std::cout << "\033[1;36m Groing to: -> \033[1;36m  x: " << desired_pose.position.x << ", y: " <<  desired_pose.position.y << ", z: " << desired_pose.position.z << std::endl;
+    			       std::cout << "\033[1;36m Pile height: -> \033[1;36m  x: " << this->pile_height << std::endl;
                                kinova_linear_moveMakeActionRequest(desired_pose, kortex_driver::CartesianReferenceFrame::CARTESIAN_REFERENCE_FRAME_MIXED, 0.08);
 //                             }
                              this->state=WAIT_PLACE_DIAGONAL;
@@ -405,11 +417,11 @@ void PicknPlaceAlgNode::mainNodeThread(void)
       // Sets a rotation so the garment stays vertical to the table (with cartesian controller)
       case PRE_PLACE2: ROS_DEBUG("PicknPlaceAlgNode: state ROTATE PRE PLACE2");
                               ROS_INFO("Rotating pre-place position.");
-                              this->pre_grasp_center.x = 0.5; //tool_pose.x-this->garment_height/1.5;
+                              this->pre_grasp_center.x = 0.45; //tool_pose.x-this->garment_height/1.5;
                               this->pre_grasp_center.y = -0.28; //tool_pose.y;//-0.15;
 			      this->pre_grasp_center.z = this->garment_height+0.04;
                               this->pre_grasp_center.theta_x = 0;
-                              this->pre_grasp_center.theta_y = 175;
+                              this->pre_grasp_center.theta_y = 165;
                               this->pre_grasp_center.theta_z = 179;
                               std::cout << "\033[1;36m Groing to: -> \033[1;36m  x: " << this->pre_grasp_center.x << ", y: " << this-> pre_grasp_center.y << ", z: " << this->pre_grasp_center.z << std::endl;
                               this->success &= send_cartesian_pose(this->pre_grasp_center);
@@ -430,9 +442,9 @@ void PicknPlaceAlgNode::mainNodeThread(void)
       // Sets the placing position in the table from the vertical rotation (with cartesian controller)
       case PLACE2: ROS_DEBUG("PicknPlaceAlgNode: state ROTATE PRE PLACE");
                               ROS_INFO("Sending to place position.");
-                              this->pre_grasp_center.x = tool_pose.x-this->garment_height-0.07;//*1.2;///1.5;
+                              this->pre_grasp_center.x = tool_pose.x-this->garment_height-0.05;//-0.07;//*1.2;///1.5;
                               this->pre_grasp_center.y = tool_pose.y;
-                              this->pre_grasp_center.z = 0.1; //this->pile_height + 0.1;
+                              this->pre_grasp_center.z = this->pile_height + 0.1;
                               this->pre_grasp_center.theta_x = 0;
                               this->pre_grasp_center.theta_y = -125.5;
                               this->pre_grasp_center.theta_z = 180;
@@ -458,7 +470,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                               ROS_INFO("Sending to place2 position.");
                               this->pre_grasp_center.x = tool_pose.x-0.07;
                               this->pre_grasp_center.y = tool_pose.y;
-                              this->pre_grasp_center.z = 0.055;
+                              this->pre_grasp_center.z = this->pile_height + 0.055;
                               this->pre_grasp_center.theta_x = 0;
                               this->pre_grasp_center.theta_y = -125.5;
                               this->pre_grasp_center.theta_z = 180;
@@ -483,7 +495,45 @@ void PicknPlaceAlgNode::mainNodeThread(void)
 
 // PLACE RECTO!
 
-      // PLACE POSITION
+      // Sets the placing position to perform a straight placement (with linear movement controller)
+      case PRE_PLACE_RECTO: ROS_DEBUG("PicknPlaceAlgNode: state PRE PLACE RECTO");
+                  {
+                      ROS_INFO("Sending to pre place position.");
+                      geometry_msgs::Pose desired_pose;
+                      desired_pose.position.x = 0.12;
+                      desired_pose.position.y = -0.28;
+                      desired_pose.position.z = tool_pose.z;
+                      std::cout << "\033[1;36m Groing to: -> \033[1;36m  x: " << desired_pose.position.x << ", y: " <<  desired_pose.position.y << ", z: " << desired_pose.position.z << std::endl;
+    		      std::cout << "\033[1;36m Pile height: -> \033[1;36m  x: " << this->pile_height << std::endl;
+                      kinova_linear_moveMakeActionRequest(desired_pose, kortex_driver::CartesianReferenceFrame::CARTESIAN_REFERENCE_FRAME_MIXED, 0.08);
+                    this->state=WAIT_PRE_PLACE_RECTO;
+                  }
+      break;
+
+      // Waits until it places the garment vertically (linear)
+      case WAIT_PRE_PLACE_RECTO: ROS_DEBUG("PicknPlaceAlgNode: state WAIT PRE PLACE RECTO");
+                       {
+                         actionlib::SimpleClientGoalState kinova_linear_move_state(actionlib::SimpleClientGoalState::PENDING);
+                         // to get the state of the current goal
+                         this->alg_.unlock();
+                         kinova_linear_move_state=kinova_linear_move_client_.getState();
+                         // Possible state values are: PENDING,ACTIVE,RECALLED,REJECTED,PREEMPTED,ABORTED,SUCCEEDED and LOST
+                         this->alg_.lock();
+                         ROS_DEBUG("PicknPlaceAlgNode::mainNodeThread: kinova_linear_move_client_ action state = %s", kinova_linear_move_state.toString().c_str());;
+                         if(kinova_linear_move_state==actionlib::SimpleClientGoalState::ABORTED or kinova_linear_move_state==actionlib::SimpleClientGoalState::LOST)
+                         {
+                           ROS_INFO("Action aborted!");
+                           this->state=END;
+                         }
+                         else if(kinova_linear_move_state==actionlib::SimpleClientGoalState::SUCCEEDED)
+                         {
+                           this->success = true;
+                           state=PLACE_RECTO;
+                           ros::Duration(0.5).sleep();
+                         }
+                       }
+      break;
+
       // Sets the placing position to perform a straight placement (with linear movement controller)
       case PLACE_RECTO: ROS_DEBUG("PicknPlaceAlgNode: state PLACE RECTO");
                   {
@@ -493,6 +543,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                       desired_pose.position.y = tool_pose.y;
                       desired_pose.position.z = this->pile_height + 0.07;
                       std::cout << "\033[1;36m Groing to: -> \033[1;36m  x: " << desired_pose.position.x << ", y: " <<  desired_pose.position.y << ", z: " << desired_pose.position.z << std::endl;
+    		      std::cout << "\033[1;36m Pile height: -> \033[1;36m  x: " << this->pile_height << std::endl;
                       kinova_linear_moveMakeActionRequest(desired_pose, kortex_driver::CartesianReferenceFrame::CARTESIAN_REFERENCE_FRAME_MIXED, 0.08);
                     this->state=WAIT_PLACE_RECTO;
                   }
@@ -581,7 +632,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                        {
                            ROS_INFO("Sending to post-place position.");
                            geometry_msgs::Pose desired_pose;
-                           desired_pose.position.x = tool_pose.x-0.05;
+                           desired_pose.position.x = tool_pose.x-0.07;
                            desired_pose.position.y = tool_pose.y;
                            desired_pose.position.z = tool_pose.z;
                            std::cout << "\033[1;36m Groing to: -> \033[1;36m  x: " << desired_pose.position.x << ", y: " <<  desired_pose.position.y << ", z: " << desired_pose.position.z << std::endl;
@@ -616,7 +667,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
       // HIGH POSITION
       case HIGH_POSITION: ROS_DEBUG("PicknPlaceAlgNode: state HIGH POSITION");
                           {
-                              ROS_INFO("Sending to ending position.");
+                              ROS_INFO("Sending to high position.");
                               geometry_msgs::Pose desired_pose;
                               desired_pose.position.x = tool_pose.x;
                               desired_pose.position.y = tool_pose.y;
@@ -628,6 +679,41 @@ void PicknPlaceAlgNode::mainNodeThread(void)
       break;
 
       case WAIT_HIGH_POSITION: ROS_DEBUG("PicknPlaceAlgNode: state WAIT HIGH POSITION");
+                               {
+                                 actionlib::SimpleClientGoalState kinova_linear_move_state(actionlib::SimpleClientGoalState::PENDING);
+                                 // to get the state of the current goal
+                                 this->alg_.unlock();
+                                 kinova_linear_move_state=kinova_linear_move_client_.getState(); // Possible state values are: PENDING,ACTIVE,RECALLED,REJECTED,PREEMPTED,ABORTED,SUCCEEDED and LOST
+                                 this->alg_.lock();
+                                 ROS_DEBUG("PicknPlaceAlgNode::mainNodeThread: kinova_linear_move_client_ action state = %s", kinova_linear_move_state.toString().c_str());;
+                                 if(kinova_linear_move_state==actionlib::SimpleClientGoalState::ABORTED or kinova_linear_move_state==actionlib::SimpleClientGoalState::LOST)
+                                 {
+                                   ROS_INFO("Action aborted!");
+                                   this->state=END;
+                                 }
+                                 else if(kinova_linear_move_state==actionlib::SimpleClientGoalState::SUCCEEDED)
+                                 {
+                                   this->success = true;
+                                   this->state=END_POSITION;
+                                   ros::Duration(0.5).sleep();
+                                 }
+                               }
+      break;
+
+      case END_POSITION: ROS_DEBUG("PicknPlaceAlgNode: state END POSITION");
+                          {
+                            ROS_INFO("Sending to ending position.");
+                            geometry_msgs::Pose desired_pose;
+                            desired_pose.position.x = 0.3;//0.4;//0.2;
+                            desired_pose.position.y = -0.4;//0.5;
+                            desired_pose.position.z = 0.4;
+                            std::cout << "\033[1;36m Groing to: -> \033[1;36m  x: " << desired_pose.position.x << ", y: " <<  desired_pose.position.y << ", z: " << desired_pose.position.z << std::endl;
+                            kinova_linear_moveMakeActionRequest(desired_pose, kortex_driver::CartesianReferenceFrame::CARTESIAN_REFERENCE_FRAME_MIXED, 0.08);
+                            this->state=WAIT_END_POSITION;
+                          }
+      break;
+
+      case WAIT_END_POSITION: ROS_DEBUG("PicknPlaceAlgNode: state WAIT END POSITION");
                                {
                                  actionlib::SimpleClientGoalState kinova_linear_move_state(actionlib::SimpleClientGoalState::PENDING);
                                  // to get the state of the current goal
@@ -915,8 +1001,10 @@ void PicknPlaceAlgNode::corners_callback(const visualization_msgs::MarkerArray::
     marker.pose.position.z=pre_grasp_center.z;
     grasp_marker_publisher.publish(marker);
 
+    this->pile_height = 0.0;
     this->get_pile_height = true;
     this->get_garment_position=false;
+    std::cout << "\033[1;36m Pile height: -> \033[1;36m  x: " << this->pile_height << std::endl;
   }
 
 }
@@ -1029,15 +1117,14 @@ void PicknPlaceAlgNode::compute_grasp_angle(const std_msgs::Float64& garment_ang
 
 void PicknPlaceAlgNode::garment_edge_callback(const std_msgs::Float64::ConstPtr& msg)
 {
-  ROS_DEBUG("PicknPlaceAlgNode: garment edge callback");
-  if(this->get_garment_position)
-  {
-    this->garment_height=msg->data +0.01;
-    std::cout << "Non-grasped edge size: " << this->garment_height << std::endl;
-    if(this->garment_height>0.26)
-      this->garment_height=0.26;
-//      grasp point 0.4
-  }
+//  ROS_DEBUG("PicknPlaceAlgNode: garment edge callback");
+//  if(this->get_garment_position)
+//  {
+//    this->garment_height=msg->data +0.01;
+//    std::cout << "\033[1;36m Non-grasped edge size: -> \033[1;36m  x: " << this->garment_height << std::endl;
+//    if(this->garment_height>0.26)
+//      this->garment_height=0.26;
+//  }
 }
 
 // Subscribes to topic sending the pile height
@@ -1046,7 +1133,7 @@ void PicknPlaceAlgNode::pile_height_callback(const std_msgs::Float64::ConstPtr& 
   if(this->get_pile_height)
   {
     this->pile_height=0.75-msg->data;
-    std::cout << "Pile height: " << pile_height << std::endl;
+    std::cout << "\033[1;36m Pile height: -> \033[1;36m  x: " << this->pile_height << std::endl;
     this->get_pile_height = false;
   }
 }
@@ -1197,7 +1284,19 @@ void PicknPlaceAlgNode::node_config_update(Config &config, uint32_t level)
   if(config.start)
   {
     this->start=true;
-    this->close_gripper=config.close_gripper;
+    //this->close_gripper=config.close_gripper;
+    if(config.a)
+    {
+      this->close_gripper=0.81;
+      this->placing_strategy=2;//vertical
+      std::cout << this->placing_strategy << std::endl;
+    }
+    else
+    {
+      this->close_gripper=0.98;
+      this->placing_strategy=3;//place2
+      std::cout << this->placing_strategy << std::endl;
+    }
     config.start=false;
   }
   if(config.stop)

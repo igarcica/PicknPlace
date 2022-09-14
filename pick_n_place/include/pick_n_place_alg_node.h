@@ -79,6 +79,8 @@ typedef enum {IDLE,
               PRE_PLACE2,
               PLACE2,
               PLACE22,
+              PRE_PLACE_RECTO,
+              WAIT_PRE_PLACE_RECTO,
               PLACE_RECTO,
               WAIT_PLACE_RECTO,
 	      PILING,
@@ -88,6 +90,8 @@ typedef enum {IDLE,
               WAIT_POST_PLACE,
               HIGH_POSITION,
               WAIT_HIGH_POSITION,
+              END_POSITION,
+              WAIT_END_POSITION,
               END} pick_place_states_t;
 
 /**
@@ -104,6 +108,7 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     //int state = 0;
     bool start=false;
     bool stop=false;
+    int placing_strategy=2;
     pick_place_states_t state;
     double close_gripper;
     double open_gripper;
