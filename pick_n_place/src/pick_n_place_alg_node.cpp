@@ -779,7 +779,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                                  else if(kinova_linear_move_state==actionlib::SimpleClientGoalState::SUCCEEDED)
                                  {
                                    this->success = true;
-                                   this->state=END_POSITION;
+                                   this->state=END;
                                    ros::Duration(0.5).sleep();
                                  }
                                }
@@ -1391,7 +1391,9 @@ void PicknPlaceAlgNode::node_config_update(Config &config, uint32_t level)
       std::cout << this->placing_strategy << std::endl;
     }
     config.start=false;
-    this->pile_height=0.0;
+    this->pile_height=config.pile_height;
+    std::cout << "Pile height: " << pile_height << std::endl;
+    std::cout << "Garment edge: " << garment_height << std::endl;
   }
   if(config.stop)
     this->stop=true;
