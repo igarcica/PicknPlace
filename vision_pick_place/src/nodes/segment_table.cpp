@@ -542,18 +542,18 @@ namespace pal {
     std::cout << "MEAN: " << mean << std::endl;
 
     sum = 0;
-    for(int i=0; i<grid2passthroughcloud->size(); i++){
-      sum = grid2passthroughcloud->at(i).x + sum;
-      //std::cout << grid1passthroughcloud->at(i).x << std::endl;
+    for(int i=0; i<grid2PassThroughCloud->size(); i++){
+      sum = grid2PassThroughCloud->at(i).x + sum;
+      //std::cout << grid1PassThroughCloud->at(i).x << std::endl;
     }
-    float mean2 = sum/grid2passthroughcloud->size();
-    float sum = 0;
+    float mean2 = sum/grid2PassThroughCloud->size();
+    sum = 0;
     for(int i=0; i<grid3PassThroughCloud->size(); i++){
       sum = grid3PassThroughCloud->at(i).x + sum;
       //std::cout << grid1PassThroughCloud->at(i).x << std::endl;
     }
     float mean3 = sum/grid3PassThroughCloud->size();
-    float sum = 0;
+    sum = 0;
     for(int i=0; i<grid4PassThroughCloud->size(); i++){
       sum = grid4PassThroughCloud->at(i).x + sum;
       //std::cout << grid1PassThroughCloud->at(i).x << std::endl;
@@ -585,29 +585,30 @@ namespace pal {
     mean_marker.pose.position.x=0.0;
     mean_marker.pose.position.y=0.0;
     mean_marker.pose.position.z=0.0;
-    mean_marker.id=2;
+    mean_marker2.id=2;
     mean_marker2.pose.position.x=1.0;
     mean_marker2.pose.position.y=0.0;
     mean_marker2.pose.position.z=0.0;
-    mean_marker.id=3;
+    mean_marker3.id=3;
     mean_marker3.pose.position.x=0.0;
     mean_marker3.pose.position.y=1.0;
     mean_marker3.pose.position.z=0.0;
-    mean_marker.id=4;
+    mean_marker4.id=4;
     mean_marker4.pose.position.x=1.0;
     mean_marker4.pose.position.y=1.0;
     mean_marker4.pose.position.z=0.0;
 
-    corners_markers.markers.push_back(mean1_marker);
-    corners_markers.markers.push_back(mean2_marker);
-    corners_markers.markers.push_back(mean3_marker);
-    corners_markers.markers.push_back(mean4_marker);
+    visualization_msgs::MarkerArray means_markers;
+    means_markers.markers.push_back(mean_marker);
+    means_markers.markers.push_back(mean_marker2);
+    means_markers.markers.push_back(mean_marker3);
+    means_markers.markers.push_back(mean_marker4);
 
-    //Publish corners
+    //Publish means
     if ( _cornersMarkersPub.getNumSubscribers() > 1 )
     {
-      _cornersMarkersPub.publish(corners_markers);
-      corners_markers.markers.clear();
+      _cornersMarkersPub.publish(means_markers);
+      means_markers.markers.clear();
     }
   }
 
