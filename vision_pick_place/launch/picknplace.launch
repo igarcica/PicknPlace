@@ -8,8 +8,13 @@
   <arg name="segm_cloud"                 default="/segment_table/nonplane"  />
   <arg name="pick_cloud"                 default="/segment_table/pick"  />
   <arg name="place_cloud"                 default="/segment_table/place"  />
+<<<<<<< HEAD
   <arg name="frame"                     default="/base_link"                 />
   <!--<arg name="frame"                     default="/ext_camera_link"                 />-->
+=======
+  <arg name="garment_cloud"                 default="/segment_table/garment"  />
+  <arg name="frame"                     default="/ext_camera_link"                 />
+>>>>>>> deformation
   <arg name="passthrough_axis"          default="y"                               />
   <arg name="passthrough_min"           default="-0.6"                             /> <!-- -0.2 a 1 -->
   <arg name="passthrough_max"           default="0.2"                             />
@@ -27,6 +32,7 @@
     <remap from="segmcloud"                 to="$(arg segm_cloud)"     />
     <remap from="pickcloud"                 to="$(arg pick_cloud)"     />
     <remap from="placecloud"                 to="$(arg place_cloud)"     />
+    <remap from="garmentcloud"                 to="$(arg garment_cloud)"     />
     <param name="rate"                      type="double" value="$(arg rate)"  />
     <param name="frame"                     type="string" value="$(arg frame)"  />
     <param name="passthrough_axis"          type="string" value="$(arg passthrough_axis)"  />
