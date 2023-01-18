@@ -49,11 +49,13 @@ The rqt_reconfigure includes the following variables:
 
 Launch the 3 cameras (zenithal, frontal and lateral). It can be in either way each camera separately:
 
-``roslaunch realsense2_camera rs_camera.launch filters:=pointcloud serial_no:=024222250058 camera:=ext_camera
+```
+roslaunch realsense2_camera rs_camera.launch filters:=pointcloud serial_no:=024222250058 camera:=ext_camera
 
 roslaunch realsense2_camera rs_camera.launch filters:=pointcloud serial_no:=846112071003 camera:=frontal_camera
 
-roslaunch realsense2_camera rs_camera.launch filters:=pointcloud serial_no:=031222070182 camera:=lateral_camera``
+roslaunch realsense2_camera rs_camera.launch filters:=pointcloud serial_no:=031222070182 camera:=lateral_camera
+```
 
 or together with the launch file:
 
@@ -70,13 +72,17 @@ Launch the demo:
 
 To save the executions, go to the destination folder and run the script to generate inner folders:
 
-``cd PnP_data
-./create_folders``
+```
+cd PnP_data
+./create_folders
+```
 
 To save color png and depth pcd, go to the appropiate folder (grasp, place, place_grasp) and run the script to save color pngs, rosbags of the depth topics and pointloud pcd:
 
-``cd PnP/ExpX/grasp
-../../commands.sh``
+```
+cd PnP/ExpX/grasp
+../../commands.sh
+```
 
 
 To visualize the saved data, you must publish the pointcloud saved in the pcd file as:
@@ -85,16 +91,20 @@ To visualize the saved data, you must publish the pointcloud saved in the pcd fi
 
 and visualize it either using rviz or pcl viewer:
 
-``rosrun rviz rviz -d visualize.rviz``
-``pcl_viewer filename.pcd``
+```rosrun rviz rviz -d visualize.rviz
+pcl_viewer filename.pcd
+```
 
 
 ### How to extract deformation from data
 
 Publish the point cloud of the pcd file:
 
-``rosrun pcl_ros pcd_to_pointcloud pointcloud.pcd 0.1``
+``rosrun pcl_ros pcd_to_pointcloud pointcloud_file.pcd 0.1``
 
 Run the vision node:
 
 ``roslaunch vision_pick_place picknplace.launch``
+
+
+
