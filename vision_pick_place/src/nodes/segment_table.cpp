@@ -97,7 +97,7 @@ namespace pal {
     std::string _processingFrame;
 
     // pass-through filter parameters:
-    std::string _axis, _axisPick, _axisPlace, _axisRobotarm, _axisGridX;
+    std::string _axis, _axisPick, _axisPlace, _axisRobotarm, _axisGridX, _dataType;
     double _min, _max, _minPick, _maxPick, _minPlace, _maxPlace, _minRobotarm, _maxRobotarm, _minGridX, _maxGridX;
 
     // downsampling filter parameters:
@@ -138,6 +138,9 @@ namespace pal {
     pcl::PointXYZ current_sum_c3;
     pcl::PointXYZ current_sum_c4;
     ros::Publisher _graspPointAnglePub;
+
+    double x_thr_success, y_thr_success, min_z_norm, grid1_size, grid2_size, grid3_size, grid4_size; 
+
   };
 
   SegmentPlane::SegmentPlane(ros::NodeHandle& nh,
@@ -162,6 +165,7 @@ namespace pal {
     _axisGridX(""),
     _minGridX(0.5),
     _maxGridX(10),
+    _dataType(""),
     _downSamplingSize(0.01)
   {
     _nh.setCallbackQueue(&_cbQueue);
@@ -183,6 +187,7 @@ namespace pal {
     pnh.param<std::string>("passthrough_axis_gridx", _axisGridX, _axisGridX);
     pnh.param<double>("passthrough_min_gridX", _minGridX, _minGridX);
     pnh.param<double>("passthrough_max_gridX", _maxGridX, _maxGridX);
+    pnh.param<std::string>("data_type", _dataType, _dataType);
     pnh.param<double>("downsampling_size", _downSamplingSize, _downSamplingSize);
 
     ROS_INFO_STREAM("The node will operate at maximum " << _rate << " Hz");
@@ -200,6 +205,45 @@ namespace pal {
                       " axis will be applied with min: " << _min <<
                       " and max: " << _max);
     ROS_INFO_STREAM("Downsampling leaf size: " << _downSamplingSize << "");
+
+    if(_dataType == "gr_z")
+    {
+      ROS_INFO("Getting Grasp Z parameters");
+      _minRobotarm = -0.18;
+      x_thr_success = 0.05;
+      y_thr_success = -0.07;
+      min_z_norm = 0.425;
+      grid1_size = 196;
+      grid2_size = 218;
+      grid3_size = 224;
+      grid4_size = 201;
+    }
+    else if(_dataType == "pl_z")
+    {
+      ROS_INFO("Getting Placing Z parameters");
+      _minRobotarm = -1.0;
+      x_thr_success = 0.032;
+      y_thr_success = -0.25;
+      min_z_norm = 0.7;
+      grid1_size = 264;
+      grid2_size = 259;
+      grid3_size = 229;
+      grid4_size = 236;
+    }
+    else if(_dataType == "plg_z")
+    {
+      ROS_INFO("Placing grasp Z parameters");
+      _minRobotarm = -0.38;
+      x_thr_success = 0.035;
+      y_thr_success = -0.23;
+      min_z_norm = 0.64;
+      grid1_size = 258;
+      grid2_size = 287;
+      grid3_size = 187;
+      grid4_size = 224;
+    }
+    else
+      ROS_INFO("Dividing grid");
 
     _planeCloudPub    = _pnh.advertise< pcl::PointCloud<pcl::PointXYZRGB> >("plane", 1);
     _nonPlaneCloudPub = _pnh.advertise< pcl::PointCloud<pcl::PointXYZRGB> >("nonplane", 1);
@@ -474,6 +518,18 @@ namespace pal {
     std::cout << "X threshold: " << x_threshold << " / Y threshold: " << y_threshold << " / Z threshold: " << z_threshold << std::endl;
     std::cout << "Min X: " << minPt.x << " / Min Y: " << minPt.y << " / Min Z: " << minPt.z << std::endl;
     std::cout << "Max X: " << maxPt.x << " / Max Y: " << maxPt.y << " / Max Z: " << maxPt.z << std::endl;
+    
+    if (_dataType.empty())
+    {
+      ROS_INFO("Getting custom parameters");
+      x_thr_success = x_threshold;
+      y_thr_success = y_threshold;
+      min_z_norm = minPt.z;
+      grid1_size = 1;
+      grid2_size = 1;
+      grid3_size = 1;
+      grid4_size = 1;
+    }
 
     //Apply passthrough filters for division - How to make it configurable?
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr izqPassThroughCloud(new pcl::PointCloud<pcl::PointXYZRGB>);
@@ -487,34 +543,46 @@ namespace pal {
       std::cout << "Dividing grid..." << std::endl;
       pal::passThrough<pcl::PointXYZRGB>(pclDepthRGBCloud, //Mitad izquierda
                                          "x",
-                                         //minPt.x, x_threshold, //Min defined before (minPt.x?)
-                                         minPt.x, 0.05, //Min defined before (minPt.x?)
+                                         minPt.x, x_thr_success, //Min defined before (minPt.x?)
+                                         //minPt.x, x_threshold,
+                                         //minPt.x, 0.05,
+                                         //minPt.x, 0.032, 
                                          izqPassThroughCloud);
       pal::passThrough<pcl::PointXYZRGB>(izqPassThroughCloud, //Cuadrante izquierda superior
                                          "y", 
+                                         minPt.y, y_thr_success,
                                          //minPt.y, y_threshold,
-                                         minPt.y, -0.07,
+                                         //minPt.y, -0.07,
+                                         //minPt.y, -0.25,
                                          grid4PassThroughCloud);
       pal::passThrough<pcl::PointXYZRGB>(izqPassThroughCloud, //Cuadrante izquierda inferior
                                          "y", 
+                                         y_thr_success, maxPt.y,
                                          //y_threshold, maxPt.y,
-                                         -0.07, maxPt.y,
+                                         //-0.07, maxPt.y,
+                                         //-0.25, maxPt.y,
                                          grid2PassThroughCloud);
 
       pal::passThrough<pcl::PointXYZRGB>(pclDepthRGBCloud, //Mitad derecha
                                          _axisGridX, //y axis
-                                         //x_threshold, _maxGridX, //max defined before
-                                         0.05, _maxGridX, //max defined before
+                                         x_thr_success, _maxGridX, //max defined before
+                                         //x_threshold, _maxGridX,
+                                         //0.05, _maxGridX,
+                                         //0.032, _maxGridX,
                                          derPassThroughCloud);
       pal::passThrough<pcl::PointXYZRGB>(derPassThroughCloud, //Cuadrante derecha superior
                                          "y", 
+                                         minPt.y, y_thr_success,
                                          //minPt.y, y_threshold,
-                                         minPt.y, -0.07,
+                                         //minPt.y, -0.07,
+                                         //minPt.y, -0.25,
                                          grid3PassThroughCloud);
       pal::passThrough<pcl::PointXYZRGB>(derPassThroughCloud, //Cuadrante derecha inferior
                                          "y", 
+                                         y_thr_success, maxPt.y,
                                          //y_threshold, maxPt.y,
-                                         -0.07, maxPt.y,
+                                         //-0.07, maxPt.y,
+                                         //-0.25, maxPt.y,
                                          grid1PassThroughCloud);
     }
     else{
@@ -553,12 +621,11 @@ namespace pal {
     //Compute mean
     std::cout << "Computing mean..." << std::endl;
 
-    double min_z = 0.425;
     double max_z = 1.0;
     double sum = 0;
     double point;
     for(int i=0; i<pclDepthRGBCloud->size(); i++){
-      point = (pclDepthRGBCloud->at(i).z - min_z)/(max_z-min_z); //Normalise point
+      point = (pclDepthRGBCloud->at(i).z - min_z_norm)/(max_z-min_z_norm); //Normalise point
       sum = point + sum;
       //sum = pclDepthRGBCloud->at(i).z + sum;
     }
@@ -567,18 +634,18 @@ namespace pal {
 
     sum = 0;
     for(int i=0; i<grid1PassThroughCloud->size(); i++){
-      point = (grid1PassThroughCloud->at(i).z - min_z)/(max_z-min_z); //Normalise point
+      point = (grid1PassThroughCloud->at(i).z - min_z_norm)/(max_z-min_z_norm); //Normalise point
       sum = point + sum;
       //sum = grid1PassThroughCloud->at(i).z + sum;
       //std::cout << grid1PassThroughCloud->at(i).x << std::endl;
     }
-    if(grid1PassThroughCloud->size() < 196)
+    if(grid1PassThroughCloud->size() < grid1_size)
     {
       std::cout << "Null points exist in Grid 1" << std::endl;
-      int dif = 196 - grid1PassThroughCloud->size();
+      int dif = grid1_size - grid1PassThroughCloud->size();
       sum = sum + dif*1;
     }
-    float mean1 = sum/196;
+    float mean1 = sum/grid1_size;
     //float mean1 = sum/grid1PassThroughCloud->size();
     //std::cout << "SUM: " << sum << std::endl;
     //std::cout << "Size: " << grid1PassThroughCloud->size() << std::endl;
@@ -586,52 +653,52 @@ namespace pal {
 
     sum = 0;
     for(int i=0; i<grid2PassThroughCloud->size(); i++){
-      point = (grid2PassThroughCloud->at(i).z - min_z)/(max_z-min_z); //Normalise point
+      point = (grid2PassThroughCloud->at(i).z - min_z_norm)/(max_z-min_z_norm); //Normalise point
       sum = point + sum;
       //sum = grid2PassThroughCloud->at(i).z + sum;
       //std::cout << grid1PassThroughCloud->at(i).x << std::endl;
     }
-    if(grid2PassThroughCloud->size() < 218)
+    if(grid2PassThroughCloud->size() < grid2_size)
     {
       std::cout << "Null points exist in Grid 2" << std::endl;
-      int dif = 218 - grid2PassThroughCloud->size();
+      int dif = grid2_size - grid2PassThroughCloud->size();
       sum = sum + dif*1;
     }
-    float mean2 = sum/218;
+    float mean2 = sum/grid2_size;
     //float mean2 = sum/grid2PassThroughCloud->size();
     std::cout << "GRID 2 mean: " << mean2 << std::endl;
 
     sum = 0;
     for(int i=0; i<grid3PassThroughCloud->size(); i++){
-      point = (grid3PassThroughCloud->at(i).z - min_z)/(max_z-min_z); //Normalise point
+      point = (grid3PassThroughCloud->at(i).z - min_z_norm)/(max_z-min_z_norm); //Normalise point
       sum = point + sum;
       //sum = grid3PassThroughCloud->at(i).z + sum;
       //std::cout << grid1PassThroughCloud->at(i).x << std::endl;
     }
-    if(grid3PassThroughCloud->size() < 224)
+    if(grid3PassThroughCloud->size() < grid3_size)
     {
       std::cout << "Null points exist in Grid 3" << std::endl;
-      int dif = 224 - grid3PassThroughCloud->size();
+      int dif = grid3_size - grid3PassThroughCloud->size();
       sum = sum + dif*1;
     }
-    float mean3 = sum/224;
+    float mean3 = sum/grid3_size;
     //float mean3 = sum/grid3PassThroughCloud->size();
     std::cout << "GRID 3 mean: " << mean3 << std::endl;
 
     sum = 0;
     for(int i=0; i<grid4PassThroughCloud->size(); i++){
-      point = (grid4PassThroughCloud->at(i).z - min_z)/(max_z-min_z); //Normalise point
+      point = (grid4PassThroughCloud->at(i).z - min_z_norm)/(max_z-min_z_norm); //Normalise point
       sum = point + sum;
       //sum = grid4PassThroughCloud->at(i).z + sum;
       //std::cout << grid1PassThroughCloud->at(i).x << std::endl;
     }
-    if(grid4PassThroughCloud->size() < 201)
+    if(grid4PassThroughCloud->size() < grid4_size)
     {
       std::cout << "Null points exist in Grid 4" << std::endl;
-      int dif = 201 - grid4PassThroughCloud->size();
+      int dif = grid4_size - grid4PassThroughCloud->size();
       sum = sum + dif*1;
     }
-    float mean4 = sum/201;
+    float mean4 = sum/grid4_size;
     //float mean4 = sum/grid4PassThroughCloud->size();
     std::cout << "GRID 4 mean: " << mean4 << std::endl;
 
@@ -653,15 +720,15 @@ namespace pal {
     grid_marker1.type = visualization_msgs::Marker::CUBE;
     grid_marker1.scale.x=0.25;
     grid_marker1.scale.y=0.005;
-    grid_marker1.scale.z=0.005; //mean*100;
+    grid_marker1.scale.z=0.005;
     grid_marker1.color.r = 1.0f;
     grid_marker1.color.g = 1.0f;
     grid_marker1.color.b = 1.0f;
     grid_marker1.color.a = 1.0;
     grid_marker1.lifetime = ros::Duration();
     grid_marker1.id=1;
-    grid_marker1.pose.position.x=x_threshold;
-    grid_marker1.pose.position.y=y_threshold;
+    grid_marker1.pose.position.x=x_thr_success; //x_threshold;
+    grid_marker1.pose.position.y=y_thr_success; //y_threshold;
     grid_marker1.pose.position.z=minPt.z;
 
     grid_marker2 = grid_marker1;
@@ -669,8 +736,8 @@ namespace pal {
     grid_marker2.scale.x=0.005;
     grid_marker2.scale.y=0.25;
     grid_marker2.scale.z=0.005;
-    grid_marker2.pose.position.x=x_threshold;
-    grid_marker2.pose.position.y=y_threshold;
+    grid_marker2.pose.position.x=x_thr_success; //x_threshold;
+    grid_marker2.pose.position.y=y_thr_success; //y_threshold;
     grid_marker2.pose.position.z=minPt.z;
 
     mean_marker1=grid_marker1;
@@ -678,25 +745,25 @@ namespace pal {
     mean_marker1.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
     mean_marker1.text=std::to_string(mean1);
     mean_marker1.scale.z=0.02;
-    mean_marker1.pose.position.x=x_threshold+0.1;
-    mean_marker1.pose.position.y=y_threshold+0.1;
+    mean_marker1.pose.position.x=x_threshold+0.15;
+    mean_marker1.pose.position.y=y_threshold+0.15;
     mean_marker1.pose.position.z=minPt.z;
 
     mean_marker2=mean_marker1;
     mean_marker2.id=4;
     mean_marker2.text=std::to_string(mean2);
-    mean_marker2.pose.position.x=x_threshold-0.1;
+    mean_marker2.pose.position.x=x_threshold-0.15;
 
     mean_marker3=mean_marker1;
     mean_marker3.id=5;
     mean_marker3.text=std::to_string(mean3);
-    mean_marker3.pose.position.y=y_threshold-0.1;
+    mean_marker3.pose.position.y=y_threshold-0.15;
 
     mean_marker4=mean_marker1;
     mean_marker4.id=6;
     mean_marker4.text=std::to_string(mean4);
-    mean_marker4.pose.position.x=x_threshold-0.1;
-    mean_marker4.pose.position.y=y_threshold-0.1;
+    mean_marker4.pose.position.x=x_threshold-0.15;
+    mean_marker4.pose.position.y=y_threshold-0.15;
 
 
     visualization_msgs::MarkerArray means_markers;
