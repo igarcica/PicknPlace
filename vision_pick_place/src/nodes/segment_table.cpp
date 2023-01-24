@@ -471,7 +471,7 @@ namespace pal {
     double x_threshold = minPt.x + (maxPt.x - minPt.x)/2; //2 will be defined
     double y_threshold = minPt.y + (maxPt.y - minPt.y)/2; //2 will be defined
     double z_threshold = minPt.z + (maxPt.z - minPt.z)/2;
-    std::cout << "X threshold: " << x_threshold << "Y threshold: " << y_threshold << "Z threshold: " << z_threshold << std::endl;
+    std::cout << "X threshold: " << x_threshold << " / Y threshold: " << y_threshold << " / Z threshold: " << z_threshold << std::endl;
     std::cout << "Min X: " << minPt.x << " / Min Y: " << minPt.y << " / Min Z: " << minPt.z << std::endl;
     std::cout << "Max X: " << maxPt.x << " / Max Y: " << maxPt.y << " / Max Z: " << maxPt.z << std::endl;
 
@@ -487,28 +487,34 @@ namespace pal {
       std::cout << "Dividing grid..." << std::endl;
       pal::passThrough<pcl::PointXYZRGB>(pclDepthRGBCloud, //Mitad izquierda
                                          "x",
-                                         minPt.x, x_threshold, //Min defined before
+                                         //minPt.x, x_threshold, //Min defined before (minPt.x?)
+                                         minPt.x, 0.05, //Min defined before (minPt.x?)
                                          izqPassThroughCloud);
       pal::passThrough<pcl::PointXYZRGB>(izqPassThroughCloud, //Cuadrante izquierda superior
                                          "y", 
-                                         minPt.y, y_threshold,
+                                         //minPt.y, y_threshold,
+                                         minPt.y, -0.07,
                                          grid4PassThroughCloud);
       pal::passThrough<pcl::PointXYZRGB>(izqPassThroughCloud, //Cuadrante izquierda inferior
                                          "y", 
-                                         y_threshold, maxPt.y,
+                                         //y_threshold, maxPt.y,
+                                         -0.07, maxPt.y,
                                          grid2PassThroughCloud);
 
       pal::passThrough<pcl::PointXYZRGB>(pclDepthRGBCloud, //Mitad derecha
                                          _axisGridX, //y axis
-                                         x_threshold, _maxGridX, //max defined before
+                                         //x_threshold, _maxGridX, //max defined before
+                                         0.05, _maxGridX, //max defined before
                                          derPassThroughCloud);
       pal::passThrough<pcl::PointXYZRGB>(derPassThroughCloud, //Cuadrante derecha superior
                                          "y", 
-                                         minPt.y, y_threshold,
+                                         //minPt.y, y_threshold,
+                                         minPt.y, -0.07,
                                          grid3PassThroughCloud);
       pal::passThrough<pcl::PointXYZRGB>(derPassThroughCloud, //Cuadrante derecha inferior
                                          "y", 
-                                         y_threshold, maxPt.y,
+                                         //y_threshold, maxPt.y,
+                                         -0.07, maxPt.y,
                                          grid1PassThroughCloud);
     }
     else{
@@ -546,40 +552,87 @@ namespace pal {
 
     //Compute mean
     std::cout << "Computing mean..." << std::endl;
-//    std::cout << grid1PassThroughCloud->at(0).x << std::endl;
 
-    float sum = 0;
+    double min_z = 0.425;
+    double max_z = 1.0;
+    double sum = 0;
+    double point;
+    for(int i=0; i<pclDepthRGBCloud->size(); i++){
+      point = (pclDepthRGBCloud->at(i).z - min_z)/(max_z-min_z); //Normalise point
+      sum = point + sum;
+      //sum = pclDepthRGBCloud->at(i).z + sum;
+    }
+    double mean = sum/pclDepthRGBCloud->size();
+    std::cout << "TOTAL mean: " << mean << std::endl;
+
+    sum = 0;
     for(int i=0; i<grid1PassThroughCloud->size(); i++){
-      sum = grid1PassThroughCloud->at(i).z + sum;
+      point = (grid1PassThroughCloud->at(i).z - min_z)/(max_z-min_z); //Normalise point
+      sum = point + sum;
+      //sum = grid1PassThroughCloud->at(i).z + sum;
       //std::cout << grid1PassThroughCloud->at(i).x << std::endl;
     }
-    float mean = sum/grid1PassThroughCloud->size();
-    std::cout << "SUM: " << sum << std::endl;
-    std::cout << "Size: " << grid1PassThroughCloud->size() << std::endl;
-    std::cout << "GRID 1 mean: " << mean << std::endl;
+    if(grid1PassThroughCloud->size() < 196)
+    {
+      std::cout << "Null points exist in Grid 1" << std::endl;
+      int dif = 196 - grid1PassThroughCloud->size();
+      sum = sum + dif*1;
+    }
+    float mean1 = sum/196;
+    //float mean1 = sum/grid1PassThroughCloud->size();
+    //std::cout << "SUM: " << sum << std::endl;
+    //std::cout << "Size: " << grid1PassThroughCloud->size() << std::endl;
+    std::cout << "GRID 1 mean: " << mean1 << std::endl;
 
     sum = 0;
     for(int i=0; i<grid2PassThroughCloud->size(); i++){
-      sum = grid2PassThroughCloud->at(i).z + sum;
+      point = (grid2PassThroughCloud->at(i).z - min_z)/(max_z-min_z); //Normalise point
+      sum = point + sum;
+      //sum = grid2PassThroughCloud->at(i).z + sum;
       //std::cout << grid1PassThroughCloud->at(i).x << std::endl;
     }
-    float mean2 = sum/grid2PassThroughCloud->size();
+    if(grid2PassThroughCloud->size() < 218)
+    {
+      std::cout << "Null points exist in Grid 2" << std::endl;
+      int dif = 218 - grid2PassThroughCloud->size();
+      sum = sum + dif*1;
+    }
+    float mean2 = sum/218;
+    //float mean2 = sum/grid2PassThroughCloud->size();
     std::cout << "GRID 2 mean: " << mean2 << std::endl;
 
     sum = 0;
     for(int i=0; i<grid3PassThroughCloud->size(); i++){
-      sum = grid3PassThroughCloud->at(i).z + sum;
+      point = (grid3PassThroughCloud->at(i).z - min_z)/(max_z-min_z); //Normalise point
+      sum = point + sum;
+      //sum = grid3PassThroughCloud->at(i).z + sum;
       //std::cout << grid1PassThroughCloud->at(i).x << std::endl;
     }
-    float mean3 = sum/grid3PassThroughCloud->size();
+    if(grid3PassThroughCloud->size() < 224)
+    {
+      std::cout << "Null points exist in Grid 3" << std::endl;
+      int dif = 224 - grid3PassThroughCloud->size();
+      sum = sum + dif*1;
+    }
+    float mean3 = sum/224;
+    //float mean3 = sum/grid3PassThroughCloud->size();
     std::cout << "GRID 3 mean: " << mean3 << std::endl;
 
     sum = 0;
     for(int i=0; i<grid4PassThroughCloud->size(); i++){
-      sum = grid4PassThroughCloud->at(i).z + sum;
+      point = (grid4PassThroughCloud->at(i).z - min_z)/(max_z-min_z); //Normalise point
+      sum = point + sum;
+      //sum = grid4PassThroughCloud->at(i).z + sum;
       //std::cout << grid1PassThroughCloud->at(i).x << std::endl;
     }
-    float mean4 = sum/grid4PassThroughCloud->size();
+    if(grid4PassThroughCloud->size() < 201)
+    {
+      std::cout << "Null points exist in Grid 4" << std::endl;
+      int dif = 201 - grid4PassThroughCloud->size();
+      sum = sum + dif*1;
+    }
+    float mean4 = sum/201;
+    //float mean4 = sum/grid4PassThroughCloud->size();
     std::cout << "GRID 4 mean: " << mean4 << std::endl;
 
 //      v = grid1PassThroughCloud;
@@ -623,7 +676,7 @@ namespace pal {
     mean_marker1=grid_marker1;
     mean_marker1.id=3;
     mean_marker1.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
-    mean_marker1.text=std::to_string(mean);
+    mean_marker1.text=std::to_string(mean1);
     mean_marker1.scale.z=0.02;
     mean_marker1.pose.position.x=x_threshold+0.1;
     mean_marker1.pose.position.y=y_threshold+0.1;
@@ -660,6 +713,12 @@ namespace pal {
       _cornersMarkersPub.publish(means_markers);
       means_markers.markers.clear();
     }
+
+    std::cout << "TOTAL Size: " << pclDepthRGBCloud->size() << std::endl;
+    std::cout << "Size Grid1: " << grid1PassThroughCloud->size() << std::endl;
+    std::cout << "Size Grid2: " << grid2PassThroughCloud->size() << std::endl;
+    std::cout << "Size Grid3: " << grid3PassThroughCloud->size() << std::endl;
+    std::cout << "Size Grid4: " << grid4PassThroughCloud->size() << std::endl;
   }
 
 
