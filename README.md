@@ -91,20 +91,34 @@ To visualize the saved data, you must publish the pointcloud saved in the pcd fi
 
 and visualize it either using rviz or pcl viewer:
 
-```rosrun rviz rviz -d visualize.rviz
+```
+rosrun rviz rviz -d visualize.rviz
 pcl_viewer filename.pcd
 ```
 
 
 ### How to extract deformation from data
 
-Publish the point cloud of the pcd file:
+To visualize the computed metrics publish the point cloud of the pcd file and run the vision node:
 
-``rosrun pcl_ros pcd_to_pointcloud pointcloud_file.pcd 0.1``
+```
+roscore
+rosrun pcl_ros pcd_to_pointcloud pointcloud_file.pcd 0.1
+rostopic echo /segment_table/corners
+roslaunch vision_pick_place picknplace.launch
+```
 
-Run the vision node:
+To run all the pcd files one by one and write the results in a csv file:
 
-``roslaunch vision_pick_place picknplace.launch``
+```
+roscore
+rosrun save_metric_csv save_metric_csv.py
+roslaunch vision_pick_place picknplace.launch
+cd data_folder
+python execution.py
+```
+
+
 
 
 

@@ -139,7 +139,7 @@ namespace pal {
     pcl::PointXYZ current_sum_c4;
     ros::Publisher _graspPointAnglePub;
 
-    double x_thr_success, y_thr_success, min_z_norm, grid1_size, grid2_size, grid3_size, grid4_size; 
+    double x_thr_canon, y_thr_canon, min_z_canon, grid1_size, grid2_size, grid3_size, grid4_size; 
 
   };
 
@@ -209,38 +209,74 @@ namespace pal {
     if(_dataType == "gr_z")
     {
       ROS_INFO("Getting Grasp Z parameters");
-      _minRobotarm = -0.18;
-      x_thr_success = 0.05;
-      y_thr_success = -0.07;
-      min_z_norm = 0.425;
-      grid1_size = 196;
-      grid2_size = 218;
-      grid3_size = 224;
-      grid4_size = 201;
+      _minRobotarm = -0.2;
+      x_thr_canon = 0.037;
+      y_thr_canon = -0.077;
+      min_z_canon = 0.41;
+      grid1_size = 186;
+      grid2_size = 185;
+      grid3_size = 146;
+      grid4_size = 153;
     }
     else if(_dataType == "pl_z")
     {
       ROS_INFO("Getting Placing Z parameters");
       _minRobotarm = -1.0;
-      x_thr_success = 0.032;
-      y_thr_success = -0.25;
-      min_z_norm = 0.7;
-      grid1_size = 264;
-      grid2_size = 259;
-      grid3_size = 229;
-      grid4_size = 236;
+      x_thr_canon = 0.015;
+      y_thr_canon = -0.29;
+      min_z_canon = 0.71;
+      grid1_size = 290;
+      grid2_size = 267;
+      grid3_size = 256;
+      grid4_size = 237;
     }
     else if(_dataType == "plg_z")
     {
       ROS_INFO("Placing grasp Z parameters");
       _minRobotarm = -0.38;
-      x_thr_success = 0.035;
-      y_thr_success = -0.23;
-      min_z_norm = 0.64;
-      grid1_size = 258;
-      grid2_size = 287;
-      grid3_size = 187;
-      grid4_size = 224;
+      x_thr_canon = 0.019;
+      y_thr_canon = -0.23;
+      min_z_canon = 0.65;
+      grid1_size = 171;
+      grid2_size = 144;
+      grid3_size = 197;
+      grid4_size = 158;
+    }
+    else if(_dataType == "o2_gr_z")
+    {
+      ROS_INFO("Getting Grasp Z parameters");
+      _minRobotarm = -0.2;
+      x_thr_canon = 0.033;
+      y_thr_canon = -0.083;
+      min_z_canon = 0.42;
+      grid1_size = 204;
+      grid2_size = 181;
+      grid3_size = 215;
+      grid4_size = 213;
+    }
+    else if(_dataType == "o2_pl_z")
+    {
+      ROS_INFO("Getting Placing Z parameters");
+      _minRobotarm = -1.0;
+      x_thr_canon = 0.015;
+      y_thr_canon = -0.3;
+      min_z_canon = 0.75;
+      grid1_size = 210;
+      grid2_size = 220;
+      grid3_size = 217;
+      grid4_size = 206;
+    }
+    else if(_dataType == "o2_plg_z")
+    {
+      ROS_INFO("Placing grasp Z parameters");
+      _minRobotarm = -1;
+      x_thr_canon = 0.012;
+      y_thr_canon = -0.24;
+      min_z_canon = 0.66;
+      grid1_size = 184;
+      grid2_size = 206;
+      grid3_size = 223;
+      grid4_size = 223;
     }
     else
       ROS_INFO("Dividing grid");
@@ -522,14 +558,17 @@ namespace pal {
     if (_dataType.empty())
     {
       ROS_INFO("Getting custom parameters");
-      x_thr_success = x_threshold;
-      y_thr_success = y_threshold;
-      min_z_norm = minPt.z;
+      x_thr_canon = x_threshold;
+      y_thr_canon = y_threshold;
+      min_z_canon = minPt.z;
       grid1_size = 1;
       grid2_size = 1;
       grid3_size = 1;
       grid4_size = 1;
     }
+    //min_z_canon = minPt.z;
+    //CANONICAL VALUES 
+    //std::cout << "CANONICAL Values: " << "Grid sizes: " << grid1_size << " / " << grid2_size << " / " << grid3_size << " / " << grid4_size << std::endl;
 
     //Apply passthrough filters for division - How to make it configurable?
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr izqPassThroughCloud(new pcl::PointCloud<pcl::PointXYZRGB>);
@@ -543,21 +582,21 @@ namespace pal {
       std::cout << "Dividing grid..." << std::endl;
       pal::passThrough<pcl::PointXYZRGB>(pclDepthRGBCloud, //Mitad izquierda
                                          "x",
-                                         minPt.x, x_thr_success, //Min defined before (minPt.x?)
+                                         minPt.x, x_thr_canon, //Min defined before (minPt.x?)
                                          //minPt.x, x_threshold,
                                          //minPt.x, 0.05,
                                          //minPt.x, 0.032, 
                                          izqPassThroughCloud);
       pal::passThrough<pcl::PointXYZRGB>(izqPassThroughCloud, //Cuadrante izquierda superior
                                          "y", 
-                                         minPt.y, y_thr_success,
+                                         minPt.y, y_thr_canon,
                                          //minPt.y, y_threshold,
                                          //minPt.y, -0.07,
                                          //minPt.y, -0.25,
                                          grid4PassThroughCloud);
       pal::passThrough<pcl::PointXYZRGB>(izqPassThroughCloud, //Cuadrante izquierda inferior
                                          "y", 
-                                         y_thr_success, maxPt.y,
+                                         y_thr_canon, maxPt.y,
                                          //y_threshold, maxPt.y,
                                          //-0.07, maxPt.y,
                                          //-0.25, maxPt.y,
@@ -565,21 +604,21 @@ namespace pal {
 
       pal::passThrough<pcl::PointXYZRGB>(pclDepthRGBCloud, //Mitad derecha
                                          _axisGridX, //y axis
-                                         x_thr_success, _maxGridX, //max defined before
+                                         x_thr_canon, _maxGridX, //max defined before
                                          //x_threshold, _maxGridX,
                                          //0.05, _maxGridX,
                                          //0.032, _maxGridX,
                                          derPassThroughCloud);
       pal::passThrough<pcl::PointXYZRGB>(derPassThroughCloud, //Cuadrante derecha superior
                                          "y", 
-                                         minPt.y, y_thr_success,
+                                         minPt.y, y_thr_canon,
                                          //minPt.y, y_threshold,
                                          //minPt.y, -0.07,
                                          //minPt.y, -0.25,
                                          grid3PassThroughCloud);
       pal::passThrough<pcl::PointXYZRGB>(derPassThroughCloud, //Cuadrante derecha inferior
                                          "y", 
-                                         y_thr_success, maxPt.y,
+                                         y_thr_canon, maxPt.y,
                                          //y_threshold, maxPt.y,
                                          //-0.07, maxPt.y,
                                          //-0.25, maxPt.y,
@@ -592,6 +631,12 @@ namespace pal {
       grid4PassThroughCloud = pclDepthRGBCloud;
     }
     
+    std::cout << "TOTAL Size: " << pclDepthRGBCloud->size() << std::endl;
+    std::cout << "Size Grid1: " << grid1PassThroughCloud->size() << std::endl;
+    std::cout << "Size Grid2: " << grid2PassThroughCloud->size() << std::endl;
+    std::cout << "Size Grid3: " << grid3PassThroughCloud->size() << std::endl;
+    std::cout << "Size Grid4: " << grid4PassThroughCloud->size() << std::endl;
+
     //Publish grids pointclouds
     if ( _grid1CloudPub.getNumSubscribers() > 0 )
     {
@@ -625,7 +670,7 @@ namespace pal {
     double sum = 0;
     double point;
     for(int i=0; i<pclDepthRGBCloud->size(); i++){
-      point = (pclDepthRGBCloud->at(i).z - min_z_norm)/(max_z-min_z_norm); //Normalise point
+      point = (pclDepthRGBCloud->at(i).z - min_z_canon)/(max_z-min_z_canon); //Normalise point
       sum = point + sum;
       //sum = pclDepthRGBCloud->at(i).z + sum;
     }
@@ -634,7 +679,7 @@ namespace pal {
 
     sum = 0;
     for(int i=0; i<grid1PassThroughCloud->size(); i++){
-      point = (grid1PassThroughCloud->at(i).z - min_z_norm)/(max_z-min_z_norm); //Normalise point
+      point = (grid1PassThroughCloud->at(i).z - min_z_canon)/(max_z-min_z_canon); //Normalise point
       sum = point + sum;
       //sum = grid1PassThroughCloud->at(i).z + sum;
       //std::cout << grid1PassThroughCloud->at(i).x << std::endl;
@@ -653,7 +698,7 @@ namespace pal {
 
     sum = 0;
     for(int i=0; i<grid2PassThroughCloud->size(); i++){
-      point = (grid2PassThroughCloud->at(i).z - min_z_norm)/(max_z-min_z_norm); //Normalise point
+      point = (grid2PassThroughCloud->at(i).z - min_z_canon)/(max_z-min_z_canon); //Normalise point
       sum = point + sum;
       //sum = grid2PassThroughCloud->at(i).z + sum;
       //std::cout << grid1PassThroughCloud->at(i).x << std::endl;
@@ -670,7 +715,7 @@ namespace pal {
 
     sum = 0;
     for(int i=0; i<grid3PassThroughCloud->size(); i++){
-      point = (grid3PassThroughCloud->at(i).z - min_z_norm)/(max_z-min_z_norm); //Normalise point
+      point = (grid3PassThroughCloud->at(i).z - min_z_canon)/(max_z-min_z_canon); //Normalise point
       sum = point + sum;
       //sum = grid3PassThroughCloud->at(i).z + sum;
       //std::cout << grid1PassThroughCloud->at(i).x << std::endl;
@@ -687,7 +732,7 @@ namespace pal {
 
     sum = 0;
     for(int i=0; i<grid4PassThroughCloud->size(); i++){
-      point = (grid4PassThroughCloud->at(i).z - min_z_norm)/(max_z-min_z_norm); //Normalise point
+      point = (grid4PassThroughCloud->at(i).z - min_z_canon)/(max_z-min_z_canon); //Normalise point
       sum = point + sum;
       //sum = grid4PassThroughCloud->at(i).z + sum;
       //std::cout << grid1PassThroughCloud->at(i).x << std::endl;
@@ -727,8 +772,8 @@ namespace pal {
     grid_marker1.color.a = 1.0;
     grid_marker1.lifetime = ros::Duration();
     grid_marker1.id=1;
-    grid_marker1.pose.position.x=x_thr_success; //x_threshold;
-    grid_marker1.pose.position.y=y_thr_success; //y_threshold;
+    grid_marker1.pose.position.x=x_thr_canon; //x_threshold;
+    grid_marker1.pose.position.y=y_thr_canon; //y_threshold;
     grid_marker1.pose.position.z=minPt.z;
 
     grid_marker2 = grid_marker1;
@@ -736,8 +781,8 @@ namespace pal {
     grid_marker2.scale.x=0.005;
     grid_marker2.scale.y=0.25;
     grid_marker2.scale.z=0.005;
-    grid_marker2.pose.position.x=x_thr_success; //x_threshold;
-    grid_marker2.pose.position.y=y_thr_success; //y_threshold;
+    grid_marker2.pose.position.x=x_thr_canon; //x_threshold;
+    grid_marker2.pose.position.y=y_thr_canon; //y_threshold;
     grid_marker2.pose.position.z=minPt.z;
 
     mean_marker1=grid_marker1;
@@ -781,11 +826,6 @@ namespace pal {
       means_markers.markers.clear();
     }
 
-    std::cout << "TOTAL Size: " << pclDepthRGBCloud->size() << std::endl;
-    std::cout << "Size Grid1: " << grid1PassThroughCloud->size() << std::endl;
-    std::cout << "Size Grid2: " << grid2PassThroughCloud->size() << std::endl;
-    std::cout << "Size Grid3: " << grid3PassThroughCloud->size() << std::endl;
-    std::cout << "Size Grid4: " << grid4PassThroughCloud->size() << std::endl;
   }
 
 
