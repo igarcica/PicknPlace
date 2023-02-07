@@ -14,7 +14,15 @@ The package has the following structure:
 - pick_n_place: Contains the state machine to perform the pick and place.
 - vision_pick_place: Contains all the necessary code related to perception (Segmentation, corner detection, grasp point selection, pile height, etc)
 - iri_kinova_linear_movement: For execution cartesian movements with Kinova.
-- data: Scripts to save data from pick and place executions.
+- data: Scripts to save data from pick and place executions and compute deformation metric.
+    . /save_data: Scripts to save data form pick and place executions (Color and depth images, depth topis in rosbag and pointcloud data as pcd file).
+    - /save_metric: 
+        -/c: Contains the code (in C++) to compute and write csv files with the deformation data (using the pcd files with full view and vision node)
+            -execution.py: Publishes the content of PCD files as point cloud during 8seg one at a time.
+            -/node: ROS node that subscribes to topic with deformation data (computed and published by thhe vision_pick_place node) and writes CSV files.
+        -/ptyhon: Contains the code (in python) to compute and write the csv files with the deformation data (using pcd files with segmented garment).
+            -clustering.py: Computes the centroid and inter/intra distances of the deformation data from csv files.
+            -def_metric.py: Computes the deformation metric and saves it in CSV files.
 
 <!--## How to execute PnP demo
 
@@ -118,7 +126,7 @@ cd data_folder
 python execution.py
 ```
 
-
+This will
 
 
 

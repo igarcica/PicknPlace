@@ -11,7 +11,8 @@ from sklearn.decomposition import PCA
 
 ## Plot data
 def plot(data):
-    fig1 = go.Scatter3d(x=data[:,x], y=data[:,y], z=data[:,z], marker=dict(color=data[:,d],symbol=data[:,obj], opacity=1, reversescale=True, colorscale='Blues', size=5), mode='markers')
+    #fig1 = go.Scatter3d(x=data[:,x], y=data[:,y], z=data[:,z],text=data[:,0], marker=dict(color=data[:,d],symbol=data[:,obj], opacity=1, reversescale=True, colorscale='Blues', size=5), mode='markers')
+    fig1 = go.Scatter3d(x=data[:,x], y=data[:,y], z=data[:,z],text=data[:,0], marker=dict(color=data[:,d], opacity=1, reversescale=True, colorscale='Blues', size=5), mode='markers')
     mylayout = go.Layout(scene=dict(xaxis=dict(title="1"), yaxis=dict(title="2"), zaxis=dict(title="3")))
     plotly.offline.plot({"data": [fig1], "layout": mylayout}, auto_open=True)
 
@@ -140,13 +141,13 @@ def inter_intra(centroid, intra_class, inter_class_1, inter_class_2, inter_class
 #################
 
 ## Load data
-file_name = "./z_class.csv"
+file_name = "./all.csv"
 obj = 0
-clas = 3
-x = 4
-y = 5
-z = 6
-d = 7
+clas = 1
+x = 2
+y = 3
+z = 4
+d = 5
 
 #Pandas
 data = pd.read_csv(file_name)
@@ -159,18 +160,18 @@ data = data.to_numpy()
 plot(data)
 
 ## Separate clusters
-class_A, class_B, class_C, class_D, class_E, class_F, class_G = clusters(data)
+#class_A, class_B, class_C, class_D, class_E, class_F, class_G = clusters(data)
 
 
 ## Compute centroid of points
 #cent_x, cent_y, cent_z, cent_d = centroid(class_A)
-centr_class_A = centroid(class_A)
-centr_class_B = centroid(class_B)
-centr_class_C = centroid(class_C)
-centr_class_D = centroid(class_D)
-centr_class_E = centroid(class_E)
-centr_class_F = centroid(class_F)
-centr_class_G = centroid(class_G)
+#centr_class_A = centroid(class_A)
+#centr_class_B = centroid(class_B)
+#centr_class_C = centroid(class_C)
+#centr_class_D = centroid(class_D)
+#centr_class_E = centroid(class_E)
+#centr_class_F = centroid(class_F)
+#centr_class_G = centroid(class_G)
 
 #plot_class(class_A, centr_class_A)
 #plot_class(class_B, centr_class_B)
@@ -178,20 +179,20 @@ centr_class_G = centroid(class_G)
 #plot_class(class_D, centr_class_D)
 
 ### Copute inter distance
-print("Class A: ")
-inter_intra(centr_class_A, class_A, class_B, class_C, class_D, class_E, class_F, class_G)
-print("Class B: ")
-inter_intra(centr_class_B, class_B, class_A, class_C, class_D, class_E, class_F, class_G)
-print("Class C: ")
-inter_intra(centr_class_C, class_C, class_B, class_A, class_D, class_E, class_F, class_G)
-print("Class D: ")
-inter_intra(centr_class_D, class_D, class_B, class_C, class_A, class_E, class_F, class_G)
-print("Class E: ")
-inter_intra(centr_class_E, class_E, class_B, class_C, class_D, class_A, class_F, class_G)
-print("Class F: ")
-inter_intra(centr_class_F, class_F, class_B, class_C, class_D, class_E, class_A, class_G)
-print("Class G: ")
-inter_intra(centr_class_G, class_G, class_B, class_C, class_D, class_E, class_F, class_A)
+#print("Class A: ")
+#inter_intra(centr_class_A, class_A, class_B, class_C, class_D, class_E, class_F, class_G)
+#print("Class B: ")
+#inter_intra(centr_class_B, class_B, class_A, class_C, class_D, class_E, class_F, class_G)
+#print("Class C: ")
+#inter_intra(centr_class_C, class_C, class_B, class_A, class_D, class_E, class_F, class_G)
+#print("Class D: ")
+#inter_intra(centr_class_D, class_D, class_B, class_C, class_A, class_E, class_F, class_G)
+#print("Class E: ")
+#inter_intra(centr_class_E, class_E, class_B, class_C, class_D, class_A, class_F, class_G)
+#print("Class F: ")
+#inter_intra(centr_class_F, class_F, class_B, class_C, class_D, class_E, class_A, class_G)
+#print("Class G: ")
+#inter_intra(centr_class_G, class_G, class_B, class_C, class_D, class_E, class_F, class_A)
 
 
 ### Classification
