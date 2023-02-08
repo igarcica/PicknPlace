@@ -21,8 +21,8 @@ The package has the following structure:
             -execution.py: Publishes the content of PCD files as point cloud during 8seg one at a time.
             -/node: ROS node that subscribes to topic with deformation data (computed and published by thhe vision_pick_place node) and writes CSV files.
         -/ptyhon: Contains the code (in python) to compute and write the csv files with the deformation data (using pcd files with segmented garment).
-            -clustering.py: Computes the centroid and inter/intra distances of the deformation data from csv files.
             -def_metric.py: Computes the deformation metric and saves it in CSV files.
+            -clustering.py: Computes the centroid and inter/intra distances of the deformation data from csv files.
 
 <!--## How to execute PnP demo
 

@@ -1,7 +1,9 @@
+import os
+import csv
 import numpy as np
-import open3d as o3d
 import plotly
 import plotly.graph_objs as go
+import open3d as o3d
 
 
 ## Parameters
@@ -12,12 +14,24 @@ print_info=True
 can_obj_file = "o1_gr_can.pcd"
 obj_file = "o1_gr_can.pcd"
 #obj_file = "o1_gr_e1.pcd"
+can_obj_file = '/home/pal/Desktop/all/o1/o1_gr/o1_gr_can_seg.pcd'
 
+
+## CSV file to save def metric
+data_filename = "./test.csv"
+my_file = open(data_filename, "wb")
+wr = csv.writer(my_file, delimiter=",")
 
 def plot(data, file_name):
     fig1 = go.Scatter3d(x=data[:,0], y=data[:,1], z=data[:,2], marker=dict(opacity=1, reversescale=True, colorscale='Blues', size=5), mode='markers')
     mylayout = go.Layout(scene=dict(xaxis=dict(title="X"), yaxis=dict(title="Y"), zaxis=dict(title="Depth")))
     plotly.offline.plot({"data": [fig1], "layout": mylayout}, filename=file_name, auto_open=True)
+
+def save_mean_values(mean_data):
+    print("Writing mean values...")
+    print(mean_data)
+    #means=[mean1, mean2, mean3, mean4]
+    wr.writerow(mean_data)
 
 def grid_division(data, n_div):
     x_thrs = []
@@ -71,6 +85,7 @@ def canonical_params(data, grids):
         grid_sizes.append(len(grids[i]))
 
     depth = data[:,2]
+# Get mean depth (or min?)
     mean_depth = np.mean(depth)
     min_depth = min(depth)
 
@@ -108,6 +123,7 @@ def deformation_metric(can_grids, can_mean_depth, grids):
 ##############################
 
 ## Canonical object
+print("Directory:. ", can_obj_file)
 can_pcd = o3d.io.read_point_cloud(can_obj_file)
 can_data = np.asarray(can_pcd.points)
 
@@ -128,14 +144,13 @@ obj_grids = grid_division(obj_data, n_div)
 ## Compute deformation metrics (grids depth mean)
 means = deformation_metric(can_grids, can_mean_depth, obj_grids)
 ##Save means in csv
-
-## Get mean depth (or min?)
+save_mean_values(means)
 
 
 ## PLOTS
 ## Plot full garment
-plot(can_data, "canonical.html")
-plot(obj_data, "garment.html")
+plot(can_data, "./plots/canonical.html")
+plot(obj_data, "./plots/garment.html")
 
 ## Plot grids
 #file_n = str(n)+str(b)+".html"
