@@ -11,43 +11,50 @@ import matplotlib.pyplot as plt
 
 
 ## Parameters
-n_div = 3 # Division
-print_info=True
+n_div = 2 # Division
+print_info = False
+all_files = True
 
 ## Canonical object
-can_obj_file = 'o1_gr_can_seg.pcd'
-filename = "o1_gr_e10_seg.pcd"
-
+can_obj_file = 'o2_gr_can_seg.pcd'
+filename = "o2_gr_e03_seg.pcd"
+save_img = "./plots/"
 
 ## CSV file to save def metric
-data_filename = "./o2_pl_2x2.csv"
+data_filename = "./classes.csv"
 my_file = open(data_filename, "wb")
 wr = csv.writer(my_file, delimiter=",")
 
-
+def plot_tests(data, file_name):
+    data = np.array(data)
+    fig = px.scatter_3d(x=data[:,0], y=data[:,1], z=data[:,2], color=data[:,2])
+    fig.show()
+    filename = "./plots/" + file_name + ".jpg"
+    #fig.write_image(filename)
 
 def plot(can, data, grids, x_grid_divs, y_grid_divs, can_mean_depth, def_measure, file_name):
+    can = np.array(can)
+    data = np.array(data)
     planes_x = []
     planes_y = []
     x_data=data[:,0]
     y_data=data[:,1]
     z_data=data[:,2]
-    # Plot garment
-    fig = px.scatter_3d(x=data[:,0], y=data[:,1], z=data[:,2], color=data[:,2])
-   
-    # Plot grid divisions
     bright_blue = [[0, '#7DF9FF'], [1, '#7DF9FF']]
     bright_pink = [[0, '#FF007F'], [1, '#FF007F']]
 
+    # Plot garment
+    fig = px.scatter_3d(x=data[:,0], y=data[:,1], z=data[:,2], color=data[:,2])
+
     # Plot X axis divisions
-    for n in range(1,len(y_grid_divs)-1): 
+    for n in range(1,len(y_grid_divs)-1):
         x=x_grid_divs[n]*np.ones(len(x_data))
         y=np.linspace(min(y_data),max(y_data),100)
         z=np.linspace(min(z_data),max(z_data),50)
         plane = go.Surface(x=x, y=y, z=np.array([z]*len(x)), colorscale=bright_blue, opacity=0.6)
         planes_x.append(plane)
     # Plot Y axis divisions
-    for n in range(1,len(y_grid_divs)-1): 
+    for n in range(1,len(y_grid_divs)-1):
         x=np.linspace(min(x_data),max(x_data),100)
         y=y_grid_divs[n]*np.ones(len(y_data))
         z=np.linspace(min(z_data),max(z_data),50)
@@ -60,41 +67,26 @@ def plot(can, data, grids, x_grid_divs, y_grid_divs, can_mean_depth, def_measure
     for i in range(len(grids)):
         cent_x = np.sum(grids[i][:,0])/len(grids[i])
         cent_y = np.sum(grids[i][:,1])/len(grids[i])
-        value = [cent_x, cent_y, can_mean_depth+def_measure[i]]
+        #value = [cent_x, cent_y, can_mean_depth+def_measure[i]]
+        value = [cent_x, cent_y, def_measure[i]]
         values.append(value)
-    print(values)
+    #print("Values: ", values)
     values = np.array(values)
     point = go.Scatter3d(x=values[:,0], y=values[:,1], z=values[:,2], marker=dict(colorscale=bright_blue))
-#    value = [-0.02, -0.12, can_mean_depth+def_measure[0]]
-#    values.append(value)
-#    value = [-0.02, -0.03, can_mean_depth+def_measure[1]]
-#    values.append(value)
-#    value = [0.08, -0.12, can_mean_depth+def_measure[2]]
-#    values.append(value)
-#    value = [0.08, -0.03, can_mean_depth+def_measure[3]]
-#    values.append(value)
-    
-    
+
     can = go.Scatter3d(x=can[:,0], y=can[:,1], z=can[:,2])
-    fig.add_traces(can)
+    #fig.add_traces(can)
     fig.add_traces(planes_x)
     fig.add_traces(planes_y)
     fig.add_traces(point)
-#    fig.update_layout(scene=dict(xaxis=dict(range=[0.2, -0.1]), yaxis=dict(range=[-0.2, 0.05]), zaxis=dict(range=[0.5, 0.4])))
+    #fig.update_layout(scene=dict(zaxis=dict(range=[max(z_data), min(z_data)])))
+    #fig.update_layout(scene=dict(zaxis=dict(range=[0.15, 0])))
+    fig.write_image(file_name)
     fig.show()
 
 
-def save_mean_values(exp_name, mean_data):
-    print("Writing mean values...")
-    data = []
-    #print(mean_data)
-    data.append(exp_name)
-    for i in range(len(mean_data)):
-        data.append(mean_data[i])
-    print(data)
-    wr.writerow(data)
-
-def grid_division(data, n_div):
+def can_grid_division(data, n_div):
+    print("Dividing in grids...")
     x_thrs = []
     y_thrs = []
     grids = []
@@ -110,8 +102,9 @@ def grid_division(data, n_div):
     x_thr = (max_x - min_x)/n_div
     y_thr = (max_y - min_y)/n_div
     z_thr = (max_z - min_z)/n_div
-    
+
     ## Grids
+    ## Get XY thresholds based on given number divisions
     for n in range(n_div):
         next_x_thr = min_x + (x_thr*n)
         x_thrs.append(next_x_thr)
@@ -122,6 +115,7 @@ def grid_division(data, n_div):
     if(print_info):
         print("X threshohld: ", x_thrs, " / Y threshohld: ", y_thrs)
 
+    ## Cluster different grids
     for n in range(n_div):
         grid = data[x_thrs[n]<data[:,0]]
         grid = grid[x_thrs[n+1]>grid[:,0]]
@@ -131,20 +125,51 @@ def grid_division(data, n_div):
             #file_n = str(n)+str(b)+".html"
             #plot(grid2,file_n)
             grids.append(grid2)
-    
+
+    grids_complete = complete_canonical(grids)
+
     if(print_info):
+        print("Data size: ", len(data))
+       # print("Sum grid sizes: ", len(grids[0])+len(grids[1])+len(grids[2])+len(grids[3]))
        # print("Grid1 size: ", len(grids[3]))
        # print("Grid2 size: ", len(grids[1]))
        # print("Grid3 size: ", len(grids[2]))
        # print("Grid4 size: ", len(grids[0]))
-        print("Grid1 size: ", len(grids[0]))
-        print("Grid2 size: ", len(grids[1]))
-        print("Grid3 size: ", len(grids[2]))
-        print("Grid4 size: ", len(grids[3]))
 
-    return x_thrs, y_thrs, grids
+    return x_thrs, y_thrs, grids_complete
+
+def grid_division(data, x_thrs, y_thrs, n_div):
+    print("Dividing in grids...")
+    grids = []
+
+    ## Cluster different grids
+    for n in range(n_div):
+        grid = data[x_thrs[n]<data[:,0]]
+        grid = grid[x_thrs[n+1]>grid[:,0]]
+        for b in range(n_div):
+            gridy = grid[y_thrs[b]<grid[:,1]]
+            grid2 = gridy[y_thrs[b+1]>gridy[:,1]]
+            #file_n = str(n)+str(b)+".html"
+            #plot(grid2,file_n)
+            grids.append(grid2)
+
+    if(print_info):
+        print("Data size: ", len(data))
+        print("Sum grid sizes: ", len(grids[0])+len(grids[1])+len(grids[2])+len(grids[3]))
+       # print("Grid1 size: ", len(grids[3]))
+       # print("Grid2 size: ", len(grids[1]))
+       # print("Grid3 size: ", len(grids[2]))
+       # print("Grid4 size: ", len(grids[0]))
+    
+    grid_sizes = []
+    for i in range(len(grids)):
+        grid_sizes.append(len(grids[i]))
+        wr.writerow(grid_sizes)
+    
+    return grids
 
 def canonical_params(data, grids):
+    # Get canonical grid sizes
     grid_sizes = []
     for i in range(len(grids)):
         grid_sizes.append(len(grids[i]))
@@ -158,85 +183,122 @@ def canonical_params(data, grids):
         print("Canonical mean: ", mean_depth)
         print("Canonical min: ", min_depth)
 
-    return mean_depth, grid_sizes
+    return min_depth, grid_sizes
 
-def deformation_metric(can_grids, can_mean_depth, grids):
+def deformation_metric(can_grids, can_min_depth, grids):
+    print("Computing deformation metric...")
     means = []
     suma = 0
     length = 300
+    transl_data = []
 
     for l in range (len(grids)):
-        depth = can_grids[l][:,2]
+        #mean1 = np.mean(grids[l][:,2])
+        #mean1 = mean1-0.42
+        depth = grids[l][:,2]
+        new_grid = grids[l]
         ## Depth points traslation
+        suma = 0
         for i in range(len(depth)):
             #point = (depth[i]-can_min_depth)/(1-can_min_depth)
-            point = depth[i] - can_mean_depth
+            point = depth[i] - can_min_depth #0.42
             suma += point
+            new_point=[new_grid[i][0], new_grid[i][1], point]
+            transl_data.append(new_point)
         ## Fill empty points
-#        if len(grids[l]) < len(can_grids[l]):
-        if len(grids[l]) < length:
-            print("Filling empty points!")
-            dif = len(can_grids[l])-len(grids[l])
+        if len(grids[l]) < len(can_grids[l]):
+            length = len(can_grids[l])
+        #if len(grids[l]) < length:
+            print("Filling empty points! l=",l)
+            dif = length-len(grids[l])
             suma += dif
-##            length = len(can_grids[l])
-#        else:
-#            length = len(grids[l])
+            print("Dif length: ", dif)
+        else:
+            length = len(grids[l])
         ## Grid depth mean
-        print("SUMA / Length: ", suma, " / ", length)
+        #print("SUMA / Length: ", suma, " / ", length)
         dif_to_mean = suma/length
         means.append(dif_to_mean)
-    
+        print("Means: ", means)
+
     if(print_info):
         print("Means: ", means)
 
-    return means
+    return means, transl_data
+
+def save_mean_values(exp_name, mean_data):
+    #print("Writing mean values...")
+    data = []
+    #print(mean_data)
+    data.append(exp_name)
+    for i in range(len(mean_data)):
+        data.append(mean_data[i])
+    wr.writerow(data)
+
+#def complete_canonical(can_grids):
+#    print(len(can_grids[0]))
+#    for l in range(len(can_grids)):
+#        depth = can_grids[l][:,2]
+#        y = can_grids[l][:,1]
+#        x = can_grids[l][:,0]
+#        new = [np.mean(x), np.mean(y), np.mean(depth)]
+#        #new_grid = grids[l]
+#        if(len(can_grids[l]) < 192):
+#            dif = 192-len(can_grids[l])
+#            for i in range(0,192):
+#                new_grid.append(new)
+#    print(len(can_grids))
+#    print(len(can_grids[0]))
 
 ##############################
 
 ## Canonical object
-print("Directory:. ", can_obj_file)
+#print("Directory:. ", can_obj_file)
 can_pcd = o3d.io.read_point_cloud(can_obj_file)
 can_data = np.asarray(can_pcd.points)
 
-## Divide garment in grid
-can_x_grid_divs, can_y_grid_divs, can_grids = grid_division(can_data, n_div)
-## Get canonical parameters
-can_mean_depth, grid_sizes = canonical_params(can_data, can_grids)
+can_x_grid_divs, can_y_grid_divs, can_grids = can_grid_division(can_data, n_div) # Divide garment in grid
+can_min_depth, grid_sizes = canonical_params(can_data, can_grids) # Get canonical parameters
+can_def_measures, can_transl_data = deformation_metric(can_grids, can_min_depth, can_grids) # Compute deformation metrics (grids depth mean)
+#plot_tests(can_transl_data, "transl_canonical")
+#plot_tests(can_data, "CANONICAL")
 
-## For each experiment
-#print("Reading PCD files")
-#directory = './'
-#for filename in sorted(os.listdir(directory)):
-#    f = os.path.join(directory, filename)
-#    if os.path.isfile(f) and filename.endswith('.pcd'):
-#        print(filename)
-#        ##Read pcd files from folder
-#        obj_pcd = o3d.io.read_point_cloud(filename)
-#        obj_data = np.asarray(obj_pcd.points)
-#        ##Divide grids
-#        obj_grids = grid_division(obj_data, n_div)
-#        
-#        ## Compute deformation metrics (grids depth mean)
-#        means = deformation_metric(can_grids, can_mean_depth, obj_grids)
-#        ##Save means in csv
-#        save_mean_values(filename, means)
-##        plotname = "./plots/" + filename + ".html"
-##        plot(obj_data, x_grid_divs, y_grid_divs, plotname)
+if not all_files :
+    ######## For one unique experiment
+    print("Getting experiment file: ", filename)
+    obj_pcd = o3d.io.read_point_cloud(filename) #Read pcd files from folder
+    obj_data = np.asarray(obj_pcd.points)
+#    plot_tests(obj_data, "EXPERIMENT")
+    ## Divide grids
+    obj_grids = grid_division(obj_data, can_x_grid_divs, can_y_grid_divs, n_div) #Divide grids
+    def_measures, obj_transl_data = deformation_metric(can_grids, can_min_depth, obj_grids) # Compute deformation metrics (grids depth mean)
+    plot_tests(obj_transl_data, "transl exp")
+    ##Save means in csv
+    #save_mean_values(filename.replace(".pcd", ""), def_measures)
+    plotname = save_img + filename.replace(".pcd", ".jpg")
+    plot(can_transl_data, obj_transl_data, obj_grids, can_x_grid_divs, can_y_grid_divs, can_min_depth, def_measures, plotname)
 
 
-## For one unique experiment
-##Read pcd files from folder
-obj_pcd = o3d.io.read_point_cloud(filename)
-obj_data = np.asarray(obj_pcd.points)
-##Divide grids
-x_grid_divs, y_grid_divs, obj_grids = grid_division(obj_data, n_div)
-## Compute deformation metrics (grids depth mean)
-def_measures = deformation_metric(can_grids, can_mean_depth, obj_grids)
-##Save means in csv
-save_mean_values(filename, def_measures)
-plotname = "./plots/" + filename + ".png"
-plot(can_data, obj_data, obj_grids, x_grid_divs, y_grid_divs, can_mean_depth, def_measures, plotname)
-
+    ######### For all experiments
+if(all_files):
+    ##Read pcd files from folder
+    print("Reading PCD files")
+    directory = './'
+    for filename in sorted(os.listdir(directory)):
+        f = os.path.join(directory, filename)
+        if os.path.isfile(f) and filename.endswith('.pcd'):
+            print(filename)
+            obj_pcd = o3d.io.read_point_cloud(filename)
+            obj_data = np.asarray(obj_pcd.points)
+            ##Divide grids
+            obj_grids = grid_division(obj_data, can_x_grid_divs, can_y_grid_divs, n_div) #Divide grids
+            ## Compute deformation metrics (grids depth mean)
+            def_measures, obj_transl_data = deformation_metric(can_grids, can_min_depth, obj_grids)
+            ##Save means in csv
+            #save_mean_values(filename.replace(".pcd", ""), def_measures)
+            plotname = save_img + filename.replace(".pcd", ".jpg")
+            #plot(can_transl_data, obj_transl_data, obj_grids, can_x_grid_divs, can_y_grid_divs, can_min_depth, def_measures, plotname)
+        #plot(obj_data, x_grid_divs, y_grid_divs, plotname)
 
 ## PLOTS
 ## Plot full garment
