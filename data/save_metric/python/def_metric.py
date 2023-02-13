@@ -11,13 +11,14 @@ import matplotlib.pyplot as plt
 
 
 ## Parameters
-n_div = 2 # Division
+n_div = 5 # Division
 print_info = False
 all_files = True
 
 ## Canonical object
-can_obj_file = 'o2_gr_can_seg.pcd'
-filename = "o2_gr_e03_seg.pcd"
+can_obj_file = 'o1_gr_can_seg.pcd'
+#can_obj_file = 'o1_gr_e06_seg.pcd'
+#filename = "o1_gr_e03_seg.pcd"
 save_img = "./plots/"
 
 ## CSV file to save def metric
@@ -82,7 +83,7 @@ def plot(can, data, grids, x_grid_divs, y_grid_divs, can_mean_depth, def_measure
     #fig.update_layout(scene=dict(zaxis=dict(range=[max(z_data), min(z_data)])))
     #fig.update_layout(scene=dict(zaxis=dict(range=[0.15, 0])))
     fig.write_image(file_name)
-    fig.show()
+#    fig.show()
 
 
 def can_grid_division(data, n_div):
@@ -126,7 +127,7 @@ def can_grid_division(data, n_div):
             #plot(grid2,file_n)
             grids.append(grid2)
 
-    grids_complete = complete_canonical(grids)
+#    grids_complete = complete_canonical(grids)
 
     if(print_info):
         print("Data size: ", len(data))
@@ -136,7 +137,7 @@ def can_grid_division(data, n_div):
        # print("Grid3 size: ", len(grids[2]))
        # print("Grid4 size: ", len(grids[0]))
 
-    return x_thrs, y_thrs, grids_complete
+    return x_thrs, y_thrs, grids
 
 def grid_division(data, x_thrs, y_thrs, n_div):
     print("Dividing in grids...")
@@ -153,6 +154,7 @@ def grid_division(data, x_thrs, y_thrs, n_div):
             #plot(grid2,file_n)
             grids.append(grid2)
 
+    print("Data size: ", len(data))
     if(print_info):
         print("Data size: ", len(data))
         print("Sum grid sizes: ", len(grids[0])+len(grids[1])+len(grids[2])+len(grids[3]))
@@ -160,11 +162,6 @@ def grid_division(data, x_thrs, y_thrs, n_div):
        # print("Grid2 size: ", len(grids[1]))
        # print("Grid3 size: ", len(grids[2]))
        # print("Grid4 size: ", len(grids[0]))
-    
-    grid_sizes = []
-    for i in range(len(grids)):
-        grid_sizes.append(len(grids[i]))
-        wr.writerow(grid_sizes)
     
     return grids
 
@@ -179,6 +176,7 @@ def canonical_params(data, grids):
     mean_depth = np.mean(depth)
     min_depth = min(depth)
 
+    print("Canonical min: ", min_depth)
     if(print_info):
         print("Canonical mean: ", mean_depth)
         print("Canonical min: ", min_depth)
@@ -219,7 +217,6 @@ def deformation_metric(can_grids, can_min_depth, grids):
         #print("SUMA / Length: ", suma, " / ", length)
         dif_to_mean = suma/length
         means.append(dif_to_mean)
-        print("Means: ", means)
 
     if(print_info):
         print("Means: ", means)
@@ -274,8 +271,8 @@ if not all_files :
     def_measures, obj_transl_data = deformation_metric(can_grids, can_min_depth, obj_grids) # Compute deformation metrics (grids depth mean)
     plot_tests(obj_transl_data, "transl exp")
     ##Save means in csv
-    #save_mean_values(filename.replace(".pcd", ""), def_measures)
-    plotname = save_img + filename.replace(".pcd", ".jpg")
+    save_mean_values(filename.replace("_seg.pcd", ""), def_measures)
+    plotname = save_img + filename.replace("_seg.pcd", ".jpg")
     plot(can_transl_data, obj_transl_data, obj_grids, can_x_grid_divs, can_y_grid_divs, can_min_depth, def_measures, plotname)
 
 
@@ -290,15 +287,15 @@ if(all_files):
             print(filename)
             obj_pcd = o3d.io.read_point_cloud(filename)
             obj_data = np.asarray(obj_pcd.points)
+            print(len(obj_data))
             ##Divide grids
             obj_grids = grid_division(obj_data, can_x_grid_divs, can_y_grid_divs, n_div) #Divide grids
             ## Compute deformation metrics (grids depth mean)
             def_measures, obj_transl_data = deformation_metric(can_grids, can_min_depth, obj_grids)
             ##Save means in csv
-            #save_mean_values(filename.replace(".pcd", ""), def_measures)
-            plotname = save_img + filename.replace(".pcd", ".jpg")
-            #plot(can_transl_data, obj_transl_data, obj_grids, can_x_grid_divs, can_y_grid_divs, can_min_depth, def_measures, plotname)
-        #plot(obj_data, x_grid_divs, y_grid_divs, plotname)
+            save_mean_values(filename.replace("_seg.pcd", ""), def_measures)
+            plotname = save_img + filename.replace("_seg.pcd", ".jpg")
+            plot(can_transl_data, obj_transl_data, obj_grids, can_x_grid_divs, can_y_grid_divs, can_min_depth, def_measures, plotname)
 
 ## PLOTS
 ## Plot full garment
