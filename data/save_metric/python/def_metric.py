@@ -13,10 +13,10 @@ import matplotlib.pyplot as plt
 ## Parameters
 n_div = 5 # Division
 print_info = False
-all_files = True
+all_files = False
 
 ## Canonical object
-can_obj_file = 'o1_gr_can_seg.pcd'
+can_obj_file = 'o1_gr_07_seg.pcd'
 #can_obj_file = 'o1_gr_e06_seg.pcd'
 #filename = "o1_gr_e03_seg.pcd"
 save_img = "./plots/"
