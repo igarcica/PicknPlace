@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 
 ## Parameters
-n_div = 5 # Division
+n_div = 2 # Division
 print_info = False
 all_files = True
 
@@ -19,10 +19,10 @@ all_files = True
 can_obj_file = 'o1_gr_can_seg.pcd'
 #can_obj_file = 'o1_gr_e06_seg.pcd'
 filename = "o1_gr_e08_seg.pcd"
-save_img = "./"
+save_img = "./test/"
 
 ## CSV file to save def metric
-data_filename = "./sizes_5x5.csv"
+data_filename = "./test/classes.csv"
 my_file = open(data_filename, "wb")
 wr = csv.writer(my_file, delimiter=",")
 
@@ -212,6 +212,7 @@ def deformation_metric(can_grids, can_min_depth, grids):
             suma += dif
             print("Dif length: ", dif)
         else:
+            #length = len(can_grids[l])
             length = len(grids[l])
         ## Grid depth mean
         #print("SUMA / Length: ", suma, " / ", length)
@@ -298,16 +299,16 @@ if(all_files):
             ##Divide grids
             obj_grids = grid_division(obj_data, can_x_grid_divs, can_y_grid_divs, n_div) #Divide grids
 
-            data_size = []
-            data_size.append(filename.replace("_seg.pcd",""))
-            for i in range(len(obj_grids)):
-                data_size.append(len(obj_grids[i]))
-            wr.writerow(data_size)
+#            data_size = []
+#            data_size.append(filename.replace("_seg.pcd",""))
+#            for i in range(len(obj_grids)):
+#                data_size.append(len(obj_grids[i]))
+#            wr.writerow(data_size)
 
-#            ## Compute deformation metrics (grids depth mean)
-#            def_measures, obj_transl_data = deformation_metric(can_grids, can_min_depth, obj_grids)
-#            ##Save means in csv
-#            save_mean_values(filename.replace("_seg.pcd", ""), def_measures)
+            ## Compute deformation metrics (grids depth mean)
+            def_measures, obj_transl_data = deformation_metric(can_grids, can_min_depth, obj_grids)
+            ##Save means in csv
+            save_mean_values(filename.replace("_seg.pcd", ""), def_measures)
 #            plotname = save_img + filename.replace("_seg.pcd", ".jpg")
 #            plot(can_transl_data, obj_transl_data, obj_grids, can_x_grid_divs, can_y_grid_divs, can_min_depth, def_measures, plotname)
 
