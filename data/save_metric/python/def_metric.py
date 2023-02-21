@@ -9,27 +9,27 @@ import open3d as o3d
 
 import matplotlib.pyplot as plt
 
-n_div = 5 # Grid division
+n_div = 2 # Grid division
 
 data_directory="/home/pal/Desktop/all/dataset/Picks/PCD/segmented/"
 write_directory = "./results/" + str(n_div) + "x" + str(n_div) + "/" ##./results/2x2/
 
 ## Canonical object
 #can_obj_file = 'o1_gr_can_seg.pcd'
-pcd_file = "o2_gr_can_seg.pcd"
+all_files = False
+pcd_file = "o2_gr_e01_seg.pcd"
 pcd_dir = data_directory+pcd_file
-all_files = True
 
 ## CSV file to save def metric
-save_def_metric = True
-def_metric_file = "o2_" + str(n_div) + "x" + str(n_div) + ".csv" ##o1_2x2.csv
+save_def_metric = False
+def_metric_file = str(n_div) + "x" + str(n_div) + ".csv" ##o1_2x2.csv
 def_metric_dir = write_directory+def_metric_file
 if(save_def_metric):
     my_file = open(def_metric_dir, "wb")
     wr = csv.writer(my_file, delimiter=",")
 
 ## Save results
-show_plot = False
+show_plot = True
 print_info = False
 
 save_plots_dir = write_directory + "/plots/"
@@ -43,6 +43,9 @@ if(save_grid_sizes):
     grid_sizes_wr = csv.writer(my_file, delimiter=",")
 
 metrics_name = ["M1","M2","M3","M4", "M5","M6","M7","M8","M9","M10","M11","M12","M13","M14","M15","M16","M17","M18","M19","M20","M21","M22","M23","M24","M25"]
+classes = ["A","B","A","C","A","B","A","C","A","B","A","C","C","A","D","D","F","D","D","G","D","D","F","D"]
+n_exp=0
+
 
 ##################################################################################################
 
@@ -120,8 +123,8 @@ def create_canonical():
     syn_can_depth = []
 
     xsteps = 0.007
-    xmin = -0.04
-    xmax = 0.16
+    xmin = -0.05
+    xmax = 0.15
     ysteps = 0.007
     ymin = -0.17
     ymax = 0.04
@@ -210,17 +213,13 @@ def grid_division(data, x_thrs, y_thrs, n_div):
             grids.append(grid2)
 
     print("Data size: ", len(data))
-    print("Grid1 size: ", len(grids[0]))
-    print("Grid2 size: ", len(grids[1]))
-    print("Grid3 size: ", len(grids[2]))
-    print("Grid4 size: ", len(grids[3]))
+    for i in range(0,len(grids)):
+        print("Grid size: ", len(grids[i]))
     if(print_info):
         print("Data size: ", len(data))
-        print("Sum grid sizes: ", len(grids[0])+len(grids[1])+len(grids[2])+len(grids[3]))
-       # print("Grid1 size: ", len(grids[3]))
-       # print("Grid2 size: ", len(grids[1]))
-       # print("Grid3 size: ", len(grids[2]))
-       # print("Grid4 size: ", len(grids[0]))
+        #print("Sum grid sizes: ", len(grids[0])+len(grids[1])+len(grids[2])+len(grids[3]))
+        for i in range(0,len(grids)):
+            print("Grid size: ", len(grids[i]))
 
     return grids
 
@@ -249,8 +248,12 @@ def deformation_metric(can_grids, can_min_depth, obj_data, grids):
     transl_data = []
     obj_depth = obj_data[:,2]
     max_depth=max(obj_depth)
-    max_depth_trasl = max_depth-can_min_depth
-    print("Max depth: ", max_depth)
+    if(max_depth<0.6):
+        max_depth_trasl = max_depth-can_min_depth
+    else:
+        print("max depth > 1: ")
+        max_depth_trasl = 0.58-can_min_depth # 0.65 should be max posible depth (half size cloth)
+    print("Max depth: ", max_depth, " / ", max_depth_trasl)
 
     for l in range (len(grids)):
         #mean1 = np.mean(grids[l][:,2])
@@ -266,6 +269,7 @@ def deformation_metric(can_grids, can_min_depth, obj_data, grids):
             new_point=[new_grid[i][0], new_grid[i][1], point]
             transl_data.append(new_point)
 
+        print("sum visible depths: ", suma)
         ## Fill empty points
         if len(grids[l]) < len(can_grids[l]):
             length = len(can_grids[l])
@@ -282,17 +286,19 @@ def deformation_metric(can_grids, can_min_depth, obj_data, grids):
         dif_to_mean = suma/length
         means.append(dif_to_mean)
 
+    print("Means: ", means)
     if(print_info):
         print("Means: ", means)
 
     return means, transl_data
 
-def save_mean_values(exp_name, mean_data):
+def save_mean_values(exp_name, n_exp, mean_data):
     #print("Writing mean values...")
     data = []
 
     #print(mean_data)
     data.append(exp_name)
+    data.append(classes[n_exp])
     for i in range(len(mean_data)):
         data.append(mean_data[i])
     wr.writerow(data)
@@ -349,26 +355,25 @@ if not all_files :
     print("Getting experiment file: ", pcd_file)
     obj_pcd = o3d.io.read_point_cloud(pcd_dir) #Read pcd files from folder
     obj_data = np.asarray(obj_pcd.points)
-#    plot(obj_data, "EXPERIMENT")
+    plot(obj_data, "EXPERIMENT")
     ## Divide grids
     obj_grids = grid_division(obj_data, can_x_grid_divs, can_y_grid_divs, n_div) #Divide grids
     ## Compute deformation metrics (grids depth mean)
     def_measures, obj_transl_data = deformation_metric(can_grids, can_min_depth, obj_data, obj_grids) # Compute deformation metrics (grids depth mean)
-#    plot(obj_transl_data, "transl exp")
+    plot(obj_transl_data, "transl exp")
     ## Save results
     if(save_def_metric): ##Save means in csv
         ##Write CSV headers
         headers = ["File"]
         for i in range(0, n_div*n_div):
             headers.append(metrics_name[i])
-        wr.writerow(headers)
-        ##Write mean values
-        #save_mean_values(pcd_file.replace("_seg.pcd", ""), def_measures)
+        #wr.writerow(headers)
+        #save_mean_values(pcd_file.replace("_seg.pcd", ""), n_exp, def_measures)
     if(save_grid_sizes): ##Save grid sizes
         write_grid_sizes(pcd_file.replace("_seg.pcd", ""), obj_grids)
     if(show_plot):
-            plotname = save_plots_dir + pcd_file.replace("_seg.pcd", "_plot.png")
-            plot_with_info(can_transl_data, obj_transl_data, obj_grids, can_x_grid_divs, can_y_grid_divs, can_min_depth, def_measures, plotname)
+        plotname = save_plots_dir + pcd_file.replace("_seg.pcd", "_plot.png")
+        plot_with_info(can_transl_data, obj_transl_data, obj_grids, can_x_grid_divs, can_y_grid_divs, can_min_depth, def_measures, plotname)
 
 
     ######### For all experiments
@@ -378,7 +383,7 @@ if(all_files):
     print(data_directory)
     ##Write CSV headers
     if(save_def_metric):
-        headers = ["File"]
+        headers = ["File","Class_GT"]
         for i in range(0, n_div*n_div):
             headers.append(metrics_name[i])
         wr.writerow(headers)
@@ -394,7 +399,8 @@ if(all_files):
             ## Compute deformation metrics (grids depth mean)
             def_measures, obj_transl_data = deformation_metric(can_grids, can_min_depth, obj_data, obj_grids)
             if(save_def_metric): ##Save means in csv
-                save_mean_values(filename.replace("_seg.pcd", ""), def_measures)
+                save_mean_values(filename.replace("_seg.pcd", ""), n_exp, def_measures)
+                n_exp+=1
             if(save_grid_sizes): ##Save grid sizes
                 write_grid_sizes(filename.replace("_seg.pcd", ""), obj_grids)
             if(show_plot):
