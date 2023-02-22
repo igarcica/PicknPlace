@@ -1,2 +1,24 @@
 
-synthetic canonical
+
+-Syn canonical -> created based on resolution
+-Filling with max depth when grid[x] < max_can_grid size
+-Align syn can to min object (without gripper) -> best grid div in y
+
+-Entire object point cloud (sin recortar)
+
+
+-----
+
+Problemas:
+
+-o1_08, 09: Hay traslacion en x por lo que hay mas puntos en M3 que en M1 y no hace fill en M3 por lo que M3<M1 cuando hay mas deformacion en M3
+
+
+
+Cambios:
+
+- Resolución 2: 0.075 en x y en y. Pero con minimas rotaciones hará que se llene cuando no debe (o1_e08 M1)
+
+
+
+

@@ -1,0 +1,28 @@
+
+- Results obtained with same parameters as before but increasing filling value to object's size
+
+
+o1/ same results as in 4 and 5
+
+o2/
+-La metrica en general ha aumentado
+
+e01, e03:
+-Good metric: M3>M2, M4<M2,M3
+e02:
+-Good metric: M3>M2yM4, M2>M3yM4
+
+e04:
+-M4 sigue siendo bajita comparado con otros (e05,06) pero marca mas diferencia con e09
+-Da mismo valor que M3 de e09 siendo misma deformacion-OK
+
+e07,e08,e09:
+-Good metric: M1yM3 > M4
+
+o3/
+-Good metric: Ha igualado mas los lados de e01,02
+
+e05,06:
+-Ha marcado diferencia entr M2 y M4, pero M2>M3 cuando deberia ser al reves
+-Esta rellenando M4 (bien) y M2 (no tan bien, aunque son pocos puntos)
+
