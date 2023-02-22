@@ -11,14 +11,18 @@ import matplotlib.pyplot as plt
 
 n_div = 2 # Grid division
 
-data_directory="/home/pal/Desktop/all/dataset/Picks/PCD/segmented/"
-write_directory = "./results/" + str(n_div) + "x" + str(n_div) + "/" ##./results/2x2/
+#data_directory="/home/pal/Desktop/all/dataset/Picks/PCD/segmented/"
+data_directory="/home/pal/Desktop/more_data/dataset/PCD/"
+write_directory = "./results/4/" + str(n_div) + "x" + str(n_div) + "/" ##./results/2x2/
+
 
 ## Canonical object
-#can_obj_file = 'o1_gr_can_seg.pcd'
 all_files = False
-pcd_file = "o2_gr_e01_seg.pcd"
+pcd_file = "o1_gr_e09.pcd"
 pcd_dir = data_directory+pcd_file
+syn_can = True
+can_pcd_file = 'o5_gr_can.pcd'
+can_pcd_dir = data_directory+can_pcd_file
 
 ## CSV file to save def metric
 save_def_metric = False
@@ -43,9 +47,20 @@ if(save_grid_sizes):
     grid_sizes_wr = csv.writer(my_file, delimiter=",")
 
 metrics_name = ["M1","M2","M3","M4", "M5","M6","M7","M8","M9","M10","M11","M12","M13","M14","M15","M16","M17","M18","M19","M20","M21","M22","M23","M24","M25"]
-classes = ["A","B","A","C","A","B","A","C","A","B","A","C","C","A","D","D","F","D","D","G","D","D","F","D"]
+#classes = ["A","B","A","C","A","B","A","C","A","B","A","C","C","A","D","D","F","D","D","G","D","D","F","D"]
+classes = ["A","B","B","B","B","B","B","B","B","B","B","B","B","A","D","D","D","C","C","C","C","C","C","C","C","C","A","C","C","C","E","C","C","E","C","E","C","C","C","A","B","B","B","B","B","B","B","B","B","B","B","B","A","C","C","C","C","C","C","E","C","C","C","C","E"]
+
 n_exp=0
 
+if(all_files):
+    save_def_metric=True
+    show_plot = False
+else:
+    save_def_metric = False
+    show_plot = True
+    
+towel=True
+pillowc=False
 
 ##################################################################################################
 
@@ -104,7 +119,8 @@ def plot_with_info(can, data, grids, x_grid_divs, y_grid_divs, can_mean_depth, d
     fig.add_traces(planes_x)
     fig.add_traces(planes_y)
     fig.add_traces(point)
-    #fig.update_layout(scene=dict(zaxis=dict(range=[max(z_data), min(z_data)])))
+    fig.update_layout(scene=dict(zaxis=dict(range=[max(z_data), min(z_data)]), xaxis=dict(range=[max(x_data), min(x_data)])))
+    #fig.update_layout(scene=dict(zaxis=dict(range=[0.2, -0.2])))
 #    fig.update_layout(scene=dict(zaxis=dict(range=[0.31, 0])))
 #    fig.write_image(file_name)
     #plotly.offline.plot({"data": [fig1], "layout": mylayout}, auto_open=True)
@@ -122,12 +138,20 @@ def create_canonical():
     syn_can_y = []
     syn_can_depth = []
 
-    xsteps = 0.007
-    xmin = -0.05
-    xmax = 0.15
-    ysteps = 0.007
-    ymin = -0.17
-    ymax = 0.04
+    if(towel):
+        xsteps = 0.007
+        xmin = -0.1
+        xmax = 0.134
+        ysteps = 0.007
+        ymin = -0.184
+        ymax = 0.04
+    if(pillowc):
+        xsteps = 0.007
+        xmin = -0.11
+        xmax = 0.134
+        ysteps = 0.007
+        ymin = -0.196
+        ymax = 0.02
 
     syn_can_x = np.arange(xmin,xmax,xsteps)
     syn_can_y = np.arange(ymin,ymax,ysteps)
@@ -152,6 +176,8 @@ def can_grid_division(data, n_div):
     max_x = max(data[:,0])
     min_y = min(data[:,1])
     max_y = max(data[:,1])
+    if(pillowc):
+        max_y = max(data[:,1])#0.05)
     min_z = min(data[:,2])
     max_z = max(data[:,2])
     x_thr = (max_x - min_x)/n_div
@@ -160,13 +186,15 @@ def can_grid_division(data, n_div):
 
     ## Grids
     ## Get XY thresholds based on given number divisions
-    for n in range(n_div):
+    x_thrs.append(min_x-1)
+    y_thrs.append(min_y-1)
+    for n in range(1,n_div):
         next_x_thr = min_x + (x_thr*n)
         x_thrs.append(next_x_thr)
         next_y_thr = min_y + (y_thr*n)
         y_thrs.append(next_y_thr)
-    x_thrs.append(max_x)
-    y_thrs.append(max_y)
+    x_thrs.append(max_x+1)
+    y_thrs.append(max_y+1)
     if(print_info):
         print("X threshohld: ", x_thrs, " / Y threshohld: ", y_thrs)
 
@@ -203,10 +231,10 @@ def grid_division(data, x_thrs, y_thrs, n_div):
 
     ## Cluster different grids
     for n in range(n_div):
-        grid = data[x_thrs[n]<data[:,0]]
+        grid = data[x_thrs[n]<=data[:,0]]
         grid = grid[x_thrs[n+1]>grid[:,0]]
         for b in range(n_div):
-            gridy = grid[y_thrs[b]<grid[:,1]]
+            gridy = grid[y_thrs[b]<=grid[:,1]]
             grid2 = gridy[y_thrs[b+1]>gridy[:,1]]
             #file_n = str(n)+str(b)+".html"
             #plot(grid2,file_n)
@@ -226,60 +254,93 @@ def grid_division(data, x_thrs, y_thrs, n_div):
 def canonical_params(data, grids):
     # Get canonical grid sizes
     grid_sizes = []
+    max_can_grid_len = 0
+
+    ## Get max grid size
     for i in range(len(grids)):
         grid_sizes.append(len(grids[i]))
+        can_grid_len = len(grids[i])
+        if(can_grid_len > max_can_grid_len):
+            max_can_grid_len = can_grid_len
 
     depth = data[:,2]
 # Get mean depth (or min?)
     mean_depth = np.mean(depth)
     min_depth = min(depth)
 
+    print("Can max grid len: ", max_can_grid_len)
     if(print_info):
+        print("Max grid len: ", max_can_grid_len)
         print("Canonical mean: ", mean_depth)
         print("Canonical min: ", min_depth)
 
-    return min_depth, mean_depth, grid_sizes
+    return min_depth, mean_depth, max_can_grid_len
 
-def deformation_metric(can_grids, can_min_depth, obj_data, grids):
+def deformation_metric(can_grids, can_min_depth, can_max_grid_len, obj_data, grids):
     print("Computing deformation metric...")
     means = []
     suma = 0
-    length = 300
     transl_data = []
     obj_depth = obj_data[:,2]
+    min_depth=min(obj_depth)
     max_depth=max(obj_depth)
-    if(max_depth<0.6):
-        max_depth_trasl = max_depth-can_min_depth
+    if(max_depth<0.7):
+        max_depth_trasl = max_depth-min_depth #can_min_depth
     else:
         print("max depth > 1: ")
-        max_depth_trasl = 0.58-can_min_depth # 0.65 should be max posible depth (half size cloth)
-    print("Max depth: ", max_depth, " / ", max_depth_trasl)
+        max_depth_trasl = 0.62-min_depth # can_min_depth # 0.62 should be max posible depth (half size cloth)
+    print("Max depth: ", max_depth, " - Min depth: ", min_depth, " = ", max_depth_trasl)
 
     for l in range (len(grids)):
         #mean1 = np.mean(grids[l][:,2])
         #mean1 = mean1-0.42
+        fill = False
+        x = grids[l][:,0]
+        y = grids[l][:,1]
+        can_x = can_grids[l][:,0]
+        can_y = can_grids[l][:,1]
+
         depth = grids[l][:,2]
         new_grid = grids[l]
         ## Depth points traslation
         suma = 0
         for i in range(len(depth)):
             #point = (depth[i]-can_min_depth)/(1-can_min_depth)
-            point = depth[i] - can_min_depth #0.42
+            point = depth[i] - min_depth #can_min_depth #0.42
             suma += point
             new_point=[new_grid[i][0], new_grid[i][1], point]
             transl_data.append(new_point)
 
         print("sum visible depths: ", suma)
-        ## Fill empty points
-        if len(grids[l]) < len(can_grids[l]):
-            length = len(can_grids[l])
-        #if len(grids[l]) < length:
-            #print("Filling empty points! l=",l)
-            dif = length-len(grids[l])
-            suma += dif*max_depth_trasl
-            print("Dif length: ", dif, " (", l,")")
+
+    ## Check if it is necessary to fill
+        fill=True
+        # max_x_grid = max(x)
+        # min_x_grid = min(x)
+        # mean_x_grid = np.mean(x)
+        # #print(mean_x_grid)
+        # print("Min: ", min_x_grid, " / Min can: ", min(can_x))
+        # print("Max: ", max_x_grid, " / Max can: ", max(can_x))
+        # if(max_x_grid < (max(can_x)-0.025) or min_x_grid > (min(can_x)+0.055)):
+        #     print("Can  be filled")
+        #     fill = True
+
+        if(fill):
+            ## Fill empty points
+            if len(grids[l]) < can_max_grid_len: #(can_grids[l]):
+                #length = len(can_grids[l])
+                length = can_max_grid_len
+            #if len(grids[l]) < length:
+                #print("Filling empty points! l=",l)
+                dif = length-len(grids[l])
+                #dif = length-len(grids[l])
+                suma += dif*max_depth_trasl
+                #print("FILLING")
+                print("Dif length: ", dif, " (", l,")")
+            else:
+                #length = len(can_grids[l])
+                length = len(grids[l])
         else:
-            #length = len(can_grids[l])
             length = len(grids[l])
         ## Grid depth mean
         #print("SUMA / Length: ", suma, " / ", length)
@@ -324,30 +385,32 @@ def write_csv(csv_file, exp_name, data):
 
 ##################################################################################################
 
+print(len(classes))
 ##With synthetic canonical data
-can_data = create_canonical()
-can_x_grid_divs, can_y_grid_divs, can_grids = can_grid_division(can_data, n_div) # Divide garment in grid
-can_min_depth, can_mean_depth, grid_sizes = canonical_params(can_data, can_grids) # Get canonical parameters
-can_def_measures, can_transl_data = deformation_metric(can_grids, can_min_depth, can_data, can_grids) # Compute deformation metrics (grids depth mean)
-#if(show_plot):
+if(syn_can):
+    print("Getting synthetic canonical")
+    can_data = create_canonical()
+    can_x_grid_divs, can_y_grid_divs, can_grids = can_grid_division(can_data, n_div) # Divide garment in grid
+    can_min_depth, can_mean_depth, can_max_grid_len = canonical_params(can_data, can_grids) # Get canonical parameters
+    can_def_measures, can_transl_data = deformation_metric(can_grids, can_min_depth, can_max_grid_len, can_data, can_grids) # Compute deformation metrics (grids depth mean)
+    #if(show_plot):
+        #plot(can_transl_data, "transl_canonical")
+        #plot(can_data, "CANONICAL")
+        #plot_with_info(can_transl_data, can_transl_data, can_grids, can_x_grid_divs, can_y_grid_divs, can_min_depth, can_def_measures, "hola")
+    if(save_grid_sizes):
+        write_grid_sizes("o1_gr_syn_can", can_grids)
+
+## With REAL Canonical object
+if not syn_can:
+    print("Getting canonical file: ", can_pcd_file)
+    can_pcd = o3d.io.read_point_cloud(can_pcd_dir)
+    can_data = np.asarray(can_pcd.points)
+    print(can_data.shape)
+    can_x_grid_divs, can_y_grid_divs, can_grids = can_grid_division(can_data, n_div) # Divide garment in grid
+    can_min_depth, can_mean_depth, can_max_grid_len = canonical_params(can_data, can_grids) # Get canonical parameters
+    can_def_measures, can_transl_data = deformation_metric(can_grids, can_min_depth, can_max_grid_len, can_data, can_grids) # Compute deformation metrics (grids depth mean)
     #plot(can_transl_data, "transl_canonical")
     #plot(can_data, "CANONICAL")
-    #plot_with_info(can_transl_data, can_transl_data, can_grids, can_x_grid_divs, can_y_grid_divs, can_min_depth, can_def_measures, "hola")
-if(save_grid_sizes):
-    write_grid_sizes("o1_gr_syn_can", can_grids)
-
-
-# ## With REAL Canonical object
-# #print("Directory:. ", can_obj_file)
-# can_pcd = o3d.io.read_point_cloud(can_obj_file)
-# can_data = np.asarray(can_pcd.points)
-# print(can_data.shape)
-#
-# can_x_grid_divs, can_y_grid_divs, can_grids = can_grid_division(can_data, n_div) # Divide garment in grid
-# can_min_depth, can_mean_depth, grid_sizes = canonical_params(can_data, can_grids) # Get canonical parameters
-# can_def_measures, can_transl_data = deformation_metric(can_grids, can_min_depth, can_data, can_grids) # Compute deformation metrics (grids depth mean)
-# #plot(can_transl_data, "transl_canonical")
-# #plot(can_data, "CANONICAL")
 
 
 if not all_files :
@@ -359,7 +422,7 @@ if not all_files :
     ## Divide grids
     obj_grids = grid_division(obj_data, can_x_grid_divs, can_y_grid_divs, n_div) #Divide grids
     ## Compute deformation metrics (grids depth mean)
-    def_measures, obj_transl_data = deformation_metric(can_grids, can_min_depth, obj_data, obj_grids) # Compute deformation metrics (grids depth mean)
+    def_measures, obj_transl_data = deformation_metric(can_grids, can_min_depth, can_max_grid_len, obj_data, obj_grids) # Compute deformation metrics (grids depth mean)
     plot(obj_transl_data, "transl exp")
     ## Save results
     if(save_def_metric): ##Save means in csv
@@ -370,9 +433,9 @@ if not all_files :
         #wr.writerow(headers)
         #save_mean_values(pcd_file.replace("_seg.pcd", ""), n_exp, def_measures)
     if(save_grid_sizes): ##Save grid sizes
-        write_grid_sizes(pcd_file.replace("_seg.pcd", ""), obj_grids)
+        write_grid_sizes(pcd_file.replace(".pcd", ""), obj_grids)
     if(show_plot):
-        plotname = save_plots_dir + pcd_file.replace("_seg.pcd", "_plot.png")
+        plotname = save_plots_dir + pcd_file.replace(".pcd", "_plot.png")
         plot_with_info(can_transl_data, obj_transl_data, obj_grids, can_x_grid_divs, can_y_grid_divs, can_min_depth, def_measures, plotname)
 
 
@@ -384,6 +447,7 @@ if(all_files):
     ##Write CSV headers
     if(save_def_metric):
         headers = ["File","Class_GT"]
+        #headers = ["File"]
         for i in range(0, n_div*n_div):
             headers.append(metrics_name[i])
         wr.writerow(headers)
@@ -397,32 +461,19 @@ if(all_files):
             ##Divide grids
             obj_grids = grid_division(obj_data, can_x_grid_divs, can_y_grid_divs, n_div) #Divide grids
             ## Compute deformation metrics (grids depth mean)
-            def_measures, obj_transl_data = deformation_metric(can_grids, can_min_depth, obj_data, obj_grids)
+            def_measures, obj_transl_data = deformation_metric(can_grids, can_min_depth, can_max_grid_len, obj_data, obj_grids)
             if(save_def_metric): ##Save means in csv
-                save_mean_values(filename.replace("_seg.pcd", ""), n_exp, def_measures)
+                save_mean_values(filename.replace(".pcd", ""), n_exp, def_measures)
                 n_exp+=1
             if(save_grid_sizes): ##Save grid sizes
-                write_grid_sizes(filename.replace("_seg.pcd", ""), obj_grids)
+                write_grid_sizes(filename.replace(".pcd", ""), obj_grids)
             if(show_plot):
-                plotname = save_plots_dir + filename.replace("_seg.pcd", ".jpg")
+                plotname = save_plots_dir + filename.replace(".pcd", ".jpg")
                 plot_with_info(can_transl_data, obj_transl_data, obj_grids, can_x_grid_divs, can_y_grid_divs, can_min_depth, def_measures, plotname)
 
-## PLOTS
-## Plot full garment
-#plot(can_data, "./plots/canonical.html")
-#plot(obj_data, "./plots/garment.html")
-
-## Plot grids
-#file_n = str(n)+str(b)+".html"
-#plot(grid2,file_n)
 
 
 
-##### TO DO
-# OK- Read PCD files one at a time
-# OK- Write def metric in csv file
-# OK- Classification
-
-##### REFS
+#### REFS
 # https://stackoverflow.com/questions/69372448/plotly-vertical-3d-surface-plot-in-z-x-plane-not-showing-up
 # https://stackoverflow.com/questions/62403763/how-to-add-planes-in-a-3d-scatter-plot

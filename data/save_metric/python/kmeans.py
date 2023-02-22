@@ -11,12 +11,12 @@ n_grids = n_div*n_div
 
 save_classification = True
 
-write_directory = "./results/" + str(n_div) + "x" + str(n_div) + "/"
+write_directory = "./results/1/" + str(n_div) + "x" + str(n_div) + "/"
 
 metrics_csv_file = str(n_div) + "x" + str(n_div) + ".csv" ##o1_2x2.csv
 metrics_csv_dir = write_directory+metrics_csv_file
 
-class_directory = "./results/"# + str(n_div) + "x" + str(n_div) + "/"
+class_directory = "./results/1/"# + str(n_div) + "x" + str(n_div) + "/"
 class_file = "test2.csv"
 class_dir = class_directory+class_file
 
@@ -24,6 +24,7 @@ plt.rcParams['figure.figsize'] = (16, 9)
 plt.style.use('ggplot')
 
 GT_name_classes = ['A','B','C','D','E']
+GT_name_classes_unk = ['A','B','C','D','E','X','Y','Z','M','N']
 
 ##################################################################################################
 
@@ -67,26 +68,48 @@ def info_clusters(pred_classes):
         print("----Diversidad de grupos----")
         print(diversidadGrupo)
 
-        hola=diversidadGrupo["cantidad"]
-        hola[np.isnan(hola)]=0
-        print(hola)
+        put_zero=diversidadGrupo["cantidad"]
+        put_zero[np.isnan(put_zero)]=0
+
+        divGrupo = diversidadGrupo.to_numpy()
+
         # Buscamos la clase de GT mayoritaria en la predicted class
-        indice = diversidadGrupo['cantidad']==max(diversidadGrupo['cantidad'])
-        test = diversidadGrupo[indice]
-        test2 = test["Class_GT_n"]
-        # print("Cantidad: ", max(diversidadGrupo['cantidad']))
-        # print(indice)
-        # print(test2)
-        related_GT_classes.append(float(test2))
-        pred_name_classes.append(GT_name_classes[int(test2)])
+        indices = diversidadGrupo['cantidad']==max(diversidadGrupo['cantidad'])
+        max_class = diversidadGrupo[indices]
+        repr_class = max_class["Class_GT_n"]
+        print(max_class)
+        print(repr_class)
+        print(divGrupo[:,0])
+        if(len(max_class)>1):
+            print("Empate")
+        l=8
+        for i in range(len(indices)):
+            if(indices[i]):
+                print(indices[i])
+                indice = indices[i]
+                #max_class = diversidadGrupo[indice]
+                repr_class = int(divGrupo[i,0])
+                print("Max class: ", max_class)
+#                repr_class = max_class["Class_GT_n"]
+                if(repr_class in related_GT_classes):
+                    print("Class already given")
+                    repr_class = l
+                    l=+1
+                    related_GT_classes.append(int(repr_class))
+                    pred_name_classes.append(GT_name_classes_unk[int(repr_class)])
+                else:
+                    print("Repr. class: ", repr_class)
+                    # print("Cantidad: ", max(diversidadGrupo['cantidad']))
+                    # print(indice)
+                    # print(test2)
+                    related_GT_classes.append(int(repr_class))
+                    pred_name_classes.append(GT_name_classes[int(repr_class)])
 
 
     print("Predicted classes: ", predicted_classes)
     print("Related GT classes: ", related_GT_classes)
     print("Class Names: ", pred_name_classes)
 
-# def success_class():
-#     s
 ##################################################################################################
 
 print("Reading data file: ", metrics_csv_dir)
