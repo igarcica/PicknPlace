@@ -6,25 +6,26 @@ from sklearn.cluster import KMeans
 from sklearn.metrics import pairwise_distances_argmin_min
 from mpl_toolkits.mplot3d import Axes3D
 
-n_div = 2
+n_div = 5
 n_grids = n_div*n_div
 
 save_classification = True
 
-write_directory = "./results/1/" + str(n_div) + "x" + str(n_div) + "/"
+write_directory = "./results/6/" + str(n_div) + "x" + str(n_div) + "/"
 
 metrics_csv_file = str(n_div) + "x" + str(n_div) + ".csv" ##o1_2x2.csv
 metrics_csv_dir = write_directory+metrics_csv_file
 
-class_directory = "./results/1/"# + str(n_div) + "x" + str(n_div) + "/"
-class_file = "test2.csv"
+class_directory = "./results/6/"# + str(n_div) + "x" + str(n_div) + "/"
+class_file = "clusters.csv"
 class_dir = class_directory+class_file
 
 plt.rcParams['figure.figsize'] = (16, 9)
 plt.style.use('ggplot')
 
-GT_name_classes = ['A','B','C','D','E']
-GT_name_classes_unk = ['A','B','C','D','E','X','Y','Z','M','N']
+GT_name_classes = ['Z','A','B','C','D','E']
+GT_name_classes_unk = ['Z','A','B','C','D','E','X','Y','Z','M','N','J']
+#classes = ["Z","A","A","B","B","B","B","C","C","C","A","A","B","Z","E","E","E","D","D","D","D","D","D","D","D","D","Z","D","D","D","E","D","D","E","D","E","D","D","D","Z","A","A","A","C","C","C","A","A","A","B","B","B","Z","D","D","D","D","D","D","E","D","D","D","D","E"]
 
 ##################################################################################################
 
@@ -53,17 +54,20 @@ def info_clusters(pred_classes):
     print(cantidadGrupo)
 
     ## Diversidad de GT classes en cada predicted class
-    predicted_classes = [0,1,2,3,4]
+    predicted_classes = [0,1,2,3,4,5]#,6,7]
     related_GT_classes = []
     pred_name_classes = []
+    combined = []
+    combined_class_name = []
 
     for i in range(0,len(predicted_classes)):
+        print("----------------------------------------------------------------------------------")
         group_referrer_index = pred_classes['label']==i
         group_referrals = pred_classes[group_referrer_index]
         print(group_referrals)
 
         diversidadGrupo =  pd.DataFrame()
-        diversidadGrupo['Class_GT_n']=[0,1,2,3,4]
+        diversidadGrupo['Class_GT_n']=[0,1,2,3,4,5]#,6,7]
         diversidadGrupo['cantidad']=group_referrals.groupby('Class_GT_n').size()
         print("----Diversidad de grupos----")
         print(diversidadGrupo)
@@ -80,30 +84,39 @@ def info_clusters(pred_classes):
         print(max_class)
         print(repr_class)
         print(divGrupo[:,0])
+
         if(len(max_class)>1):
-            print("Empate")
-        l=8
-        for i in range(len(indices)):
-            if(indices[i]):
-                print(indices[i])
-                indice = indices[i]
-                #max_class = diversidadGrupo[indice]
-                repr_class = int(divGrupo[i,0])
-                print("Max class: ", max_class)
-#                repr_class = max_class["Class_GT_n"]
-                if(repr_class in related_GT_classes):
-                    print("Class already given")
-                    repr_class = l
-                    l=+1
-                    related_GT_classes.append(int(repr_class))
-                    pred_name_classes.append(GT_name_classes_unk[int(repr_class)])
-                else:
-                    print("Repr. class: ", repr_class)
-                    # print("Cantidad: ", max(diversidadGrupo['cantidad']))
-                    # print(indice)
-                    # print(test2)
-                    related_GT_classes.append(int(repr_class))
-                    pred_name_classes.append(GT_name_classes[int(repr_class)])
+            print("\033[96m Empate \033[0m")
+            l=8
+            for i in range(len(indices)):
+                if(indices[i]):
+                    print(indices[i])
+                    indice = indices[i]
+                    repr_class = int(divGrupo[i,0])
+                    print("Max class: ", max_class)
+                    combined.append(int(repr_class))
+                    combined_class_name.append(GT_name_classes_unk[int(repr_class)])
+            related_GT_classes.append(combined)
+            pred_name_classes.append(combined_class_name)
+    ## Si la clase ya ha sido asignada
+                    # if(repr_class in related_GT_classes):
+                    #     print("\033[96m Class already given \033[0m")
+                    #     repr_class = l
+                    #     l=+1
+                    #     related_GT_classes.append(int(repr_class))
+                    #     pred_name_classes.append(GT_name_classes_unk[int(repr_class)])
+                    # else:
+                    #     print("\033[96m Repr. class: \033[0m", repr_class)
+                    #     # print("Cantidad: ", max(diversidadGrupo['cantidad']))
+                    #     # print(indice)
+                    #     # print(test2)
+                    #     related_GT_classes.append(int(repr_class))
+                    #     pred_name_classes.append(GT_name_classes[int(repr_class)])
+        else:
+            max_class = diversidadGrupo[indices]
+            repr_class = max_class["Class_GT_n"]
+            related_GT_classes.append(int(repr_class))
+            pred_name_classes.append(GT_name_classes_unk[int(repr_class)])
 
 
     print("Predicted classes: ", predicted_classes)
@@ -128,7 +141,7 @@ print("Training with metrics ", metrics)
 #print("Number trials and Metrics: ", train_data.shape)
 
 ## Fit cluster with deformation metric data
-kmeans = KMeans(n_clusters=5).fit(train_data)
+kmeans = KMeans(n_clusters=6).fit(train_data)
 
 # Predicting the clusters
 labels = kmeans.predict(train_data)

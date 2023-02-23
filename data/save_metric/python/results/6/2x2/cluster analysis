@@ -1,0 +1,70 @@
+
+con dos clusters:
+
+- Me separa todos los o2 (y 05_07) en un cluster y el resto en otro
+Conclusiones:
+- o5_e07 es clase 4 (D en vez de C)
+- o2: e01,02,03 es clase 4 (D en vez de E)
+
+3 clusters:
+-Me agrupa o2: 01,02,03 y 10,11,12
+-Me agrupa el resto de o2 + o5_e07
+Concl.
+- o2_01,02,03 o deberian ser clase D (en vez de E) o 10,11,12 deberian ser E en vez de D
+
+4 clusters:
+-La mayoria se quedan en el mismo cluser pero separa aun mas los o2
+o2_1,2,3,10,11,12
+o2_04,07,08,09
+o2_05,06 + o5_07
+
+
+5 clusters:
+-Los 3 clusters de antes 
+-Agrupa la mayoria de clase D (20 samples) y alguno suelto de 5 (3 samples)
+-Cluster mezcla Z,A,B,C
+
+6 clusters:
+-Los mismos 3 clusters de o2 que antes
+-El cluster con clase D
+-Agrupa todos clase Z + o1_04
+-Agrupa la mayoria clase A(10) + algunos sueltos de B(7) y C(6)
+
+7clusters:
+-Igual que antes pero me ha separado el cluster de o2_05,06+o5_07 en dos (separando el sample de o5)
+
+8 clusters:
+-Cluster con todos Z
+-Cluster con todos D + algun E (3samples)
+-Cluster o2_07,08,09
+-Cluster o2_05,06
+-Cluster resto o2 (01,02,03,10,11,12), mezcla D y E
+-Cluster mezcla A,B,C (con mayoria A)
+
+8 clusters:
+-o5_07
+-o2_07,08,09
+-o2_05,06
+-o2_01,02,03,10,11,12
+-o2_04
+-Mayoria D (o4 y o5)
+-Clase Z
+-Mezcla A,B,C
+
+
+Ideal number of clusters 6:
+-Agrupa Z, 
+-Agrupa A,B,C 
+-Agrupa D
+-Separa o2 en diferentes clusters
+
+
+
+------
+Conclusiones:
+- o5_e07 o esta mal el GT (D en vez de C), o esta mal la metrica
+- o2: 01,02,03 + 10,11,12 deberian ser la misma clase
+- deberia haber mas parecido entre o2 (sobretodo o2_05/06)
+
+
+Probar a clasificar por separado A,B,C y D,E
