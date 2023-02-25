@@ -8,27 +8,33 @@ import cv2
 from sklearn.cluster import KMeans
 from sklearn.metrics import pairwise_distances_argmin_min
 from mpl_toolkits.mplot3d import Axes3D
+import math
 
-n_div = 2
+n_div = 4
 n_grids = n_div*n_div
 
 save_classification = True
 
-write_directory = "./results/6/" + str(n_div) + "x" + str(n_div) + "/"
+dataset_directory = "/home/pal/Desktop/more_data/dataset/RGB/"
+write_directory = "./new_results/filling/" #+ str(n_div) + "x" + str(n_div) + "/"
 
 metrics_csv_file = str(n_div) + "x" + str(n_div) + ".csv" ##o1_2x2.csv
 metrics_csv_dir = write_directory+metrics_csv_file
 
-class_directory = "./results/6/"# + str(n_div) + "x" + str(n_div) + "/"
+class_directory = "./new_results/filling/"# + str(n_div) + "x" + str(n_div) + "/"
 class_file = "clusters.csv"
 class_dir = class_directory+class_file
 
 plt.rcParams['figure.figsize'] = (16, 9)
 plt.style.use('ggplot')
 
-GT_name_classes = ['Z','A','B','C','D','E']
-GT_name_classes_unk = ['Z','A','B','C','D','E','X','Y','Z','M','N','J']
+#GT_name_classes = ['Z','A','B','C','D','E']
+#GT_name_classes_unk = ['Z','A','B','C','D','E','X','Y','Z','M','N','J']
 #classes = ["Z","A","A","B","B","B","B","C","C","C","A","A","B","Z","E","E","E","D","D","D","D","D","D","D","D","D","Z","D","D","D","E","D","D","E","D","E","D","D","D","Z","A","A","A","C","C","C","A","A","A","B","B","B","Z","D","D","D","D","D","D","E","D","D","D","D","E"]
+
+GT_name_classes = ['A','B','C','D','E']
+GT_name_classes_unk = ['A','B','C','D','E','X','Y','Z','M','N','J']
+pred_classes2 = [0,1,2]
 
 ##################################################################################################
 
@@ -57,7 +63,7 @@ def info_clusters(pred_classes):
     print(cantidadGrupo)
 
     ## Diversidad de GT classes en cada predicted class
-    predicted_classes = [0,1,2,3,4,5]#,6,7]
+    predicted_classes = pred_classes2#[0,1,2]#,3]#,4,5]#,6,7]
     related_GT_classes = []
     pred_name_classes = []
     combined = []
@@ -76,7 +82,7 @@ def info_clusters(pred_classes):
         clusters_files.append(np.array(cluster_files))
 
         diversidadGrupo =  pd.DataFrame()
-        diversidadGrupo['Class_GT_n']=[0,1,2,3,4,5]#,6,7]
+        diversidadGrupo['Class_GT_n']=pred_classes2#[0,1,2]#,3]#,4,5]#,6,7]
         diversidadGrupo['cantidad']=group_referrals.groupby('Class_GT_n').size()
         print("----Diversidad de grupos----")
         print(diversidadGrupo)
@@ -142,25 +148,52 @@ def info_clusters(pred_classes):
     return clusters_files, related_GT_classes, pred_name_classes
 
 def plot_results(clusters_files):
+    print("\033[96m Plotting files \033[0m")
+    # #read img
+    # #creat subplot sizes
+    # # _, axs = plt.subplots(n_row, n_col, figsize=(12,12))
+    # # axs = axs.flatten()
+    # print(clusters_files) #Size: n clusters, n samples in each clusters
+    # print(len(clusters_files))
+    # #plt.figure(figsize=(10,10))
+    # fig, axs = plt.subplots(len(clusters_files), len(clusters_files[0]))
+    # for i in range(0,len(clusters_files)): # number of clusters_files
+    #     for n in range(0,len(clusters_files[i])):#len(clusters_files[i])): #number of samples in cluster
+    #         image_file = dataset_directory + clusters_files[i][n] + ".png"
+    #         #print(image_file)
+    #         img = mpimg.imread(image_file)
+    #         #plt.subplot(1,len(clusters_files[i]),i+1)
+    #         #plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+    #         #plt.show()
+    #         axs[i, n].imshow(img)
+    #         #axs[i, n].set_title('Axis [0, 0]')
+    # plt.show()
 
-    #read img
-    #creat subplot sizes
-    # _, axs = plt.subplots(n_row, n_col, figsize=(12,12))
-    # axs = axs.flatten()
-    print(clusters_files) #Size: n clusters, n samples in each clusters
-    print(len(clusters_files[0]))
-    plt.figure(figsize=(10,10))
-    for i in range(0,2): # number of clusters_files
-        for n in range(0,3):#len(clusters_files[i])): #number of samples in cluster
-            print(n)
-            print(i)
-            image_file = write_directory + clusters_files[i][n] + ".png"
-            print(image_file)
-            img = mpimg.imread(image_file)
-            plt.subplot(1,len(clusters_files[i]),i+1)
-            plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
-            plt.show()
+    file = 0
+    for i in range(0,len(clusters_files)): # number of clusters_files -3
+        size = np.sqrt(len(clusters_files[i])) # images grid
+        print(size)
+        size = int(math.ceil(size))
+        fig, axs = plt.subplots(size, size)
+        print(size)
+        for n in range(0,size): #len(clusters_files[i])): #number of samples in cluster
+            for m in range(0,size):
+                print("n: ", n, " / m: ", m, " / file: ", file, " / size: ", size)
+                image_file = dataset_directory + clusters_files[i][file] + ".png"
+                #print(image_file)
+                img = mpimg.imread(image_file)
+                axs[n, m].imshow(img)
+                axs[n, m].set_title(clusters_files[i][file])
+                if(file < len(clusters_files[i])-1):
+                    file +=1
+                else:
+                    file = 0
 
+        plt.show()
+
+
+def success_ratio():
+    print("Computing success ratio...")
 
 ##################################################################################################
 
@@ -183,7 +216,7 @@ print(dataframe[metrics])
 #print("Number trials and Metrics: ", train_data.shape)
 
 ## Fit cluster with deformation metric data
-kmeans = KMeans(n_clusters=6).fit(train_data)
+kmeans = KMeans(n_clusters=3).fit(train_data)
 
 # Predicting the clusters
 labels = kmeans.predict(train_data)
@@ -220,7 +253,7 @@ copy['label_name']=labels
 copy_n = copy.to_numpy()
 class_d = np.empty([1,3])
 for row in (copy_n):
-    print(pred_name_classes[int(row[2])])
+    #print(pred_name_classes[int(row[2])])
     new_row = [row[0], GT_name_classes[int(row[1])], pred_name_classes[int(row[2])]]
     class_d = np.vstack([class_d, new_row])
     class_wr.writerow(new_row)
@@ -258,15 +291,20 @@ for row in class_d:
         else:
             new_row = [row[0],row[1],row[2], 0]
         success_wr.writerow(new_row)
-total_success = (float(sum)/float(65))*100
+total_success = (float(sum)/float(60))*100
 print("Success: ", total_success)
+# success_wr.writerow(["Total", "-", "-",total_success])
+# success_wr.writerow(["Success Z", "-","-",float(Z_succ)/float(5)])
+# success_wr.writerow(["Success A", "-","-",float(A_succ)/float(24)])#10
+# #success_wr.writerow(["Success B", "-","-",float(B_succ)/float(8)])
+# #success_wr.writerow(["Success C", "-","-",float(C_succ)/float(6)])
+# success_wr.writerow(["Success D", "-","-",float(D_succ)/float(29)])
+# success_wr.writerow(["Success E", "-","-",float(E_succ)/float(8)])
+
 success_wr.writerow(["Total", "-", "-",total_success])
-success_wr.writerow(["Success Z", "-","-",float(Z_succ)/float(5)])
-success_wr.writerow(["Success A", "-","-",float(A_succ)/float(24)])#10
-#success_wr.writerow(["Success B", "-","-",float(B_succ)/float(8)])
-#success_wr.writerow(["Success C", "-","-",float(C_succ)/float(6)])
-success_wr.writerow(["Success D", "-","-",float(D_succ)/float(29)])
-success_wr.writerow(["Success E", "-","-",float(E_succ)/float(8)])
+success_wr.writerow(["Success A", "-","-",float(A_succ)/float(24)])
+success_wr.writerow(["Success B", "-","-",float(B_succ)/float(25)])
+success_wr.writerow(["Success C", "-","-",float(C_succ)/float(11)])
 
 
 
@@ -274,7 +312,7 @@ success_wr.writerow(["Success E", "-","-",float(E_succ)/float(8)])
 #related_GT_classes.append(int(repr_class))
 #pred_name_classes.append(GT_name_classes_unk[int(repr_class)])
 
-#plot_results(clusters_files)
+plot_results(clusters_files)
 
 # new_lab = kmeans.predict()
 # print(new_lab)

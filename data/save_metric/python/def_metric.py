@@ -8,17 +8,21 @@ import plotly.graph_objs as go
 import open3d as o3d
 
 import matplotlib.pyplot as plt
+import matplotlib as mlib
+from matplotlib import colors
+from matplotlib import cm
 
-n_div = 10 # Grid division
+n_div = 4 # Grid division
 
 #data_directory="/home/pal/Desktop/all/dataset/Picks/PCD/segmented/"
 data_directory="/home/pal/Desktop/more_data/dataset/PCD/"
-write_directory = "./results/7/" + str(n_div) + "x" + str(n_div) + "/" ##./results/2x2/
+#data_directory="/home/pal/Desktop/more_folds/dataset/PCD/"
+write_directory = "./new_results/filling/" #+ str(n_div) + "x" + str(n_div) + "/" ##./results/2x2/
 
 
 ## Canonical object
 all_files = True
-pcd_file = "o2_gr_e06.pcd"
+pcd_file = "o5_gr_e10.pcd"
 pcd_dir = data_directory+pcd_file
 syn_can = True
 can_pcd_file = 'o3_gr_can.pcd'
@@ -34,6 +38,7 @@ if(save_def_metric):
 
 ## Save results
 show_plot = False
+show_plot_metrics = False
 print_info = False
 
 save_plots_dir = write_directory + "/plots/"
@@ -47,10 +52,18 @@ if(save_grid_sizes):
     grid_sizes_wr = csv.writer(my_file, delimiter=",")
 
 objects = ["o1", "o2", "o3", "o4", "o5"]
-metrics_name = ["M1","M2","M3","M4", "M5","M6","M7","M8","M9","M10","M11","M12","M13","M14","M15","M16","M17","M18","M19","M20","M21","M22","M23","M24","M25"]
+#metrics_name = ["M1","M2","M3","M4", "M5","M6","M7","M8","M9","M10","M11","M12","M13","M14","M15","M16","M17","M18","M19","M20","M21","M22","M23","M24","M25"]
 #classes = ["A","B","A","C","A","B","A","C","A","B","A","C","C","A","D","D","F","D","D","G","D","D","F","D"]
 #classes = ["A","B","B","B","B","B","B","B","B","B","B","B","B","A","D","D","D","C","C","C","C","C","C","C","C","C","A","C","C","C","E","C","C","E","C","E","C","C","C","A","B","B","B","B","B","B","B","B","B","B","B","B","A","C","C","C","C","C","C","E","C","C","C","C","E"]
-classes = ["Z","A","A","B","B","B","B","C","C","C","A","A","B","Z","E","E","E","D","D","D","D","D","D","D","D","D","Z","D","D","D","E","D","D","E","D","E","D","D","D","Z","A","A","A","C","C","C","A","A","A","B","B","B","Z","D","D","D","D","D","D","E","D","D","D","D","E"]
+
+#classes = ["Z","A","A","B","B","B","B","C","C","C","A","A","B","Z","E","E","E","D","D","D","D","D","D","D","D","D","Z","D","D","D","E","D","D","E","D","E","D","D","D","Z","A","A","A","C","C","C","A","A","A","B","B","B","Z","D","D","D","D","D","D","E","D","D","D","D","E"]
+#n_classes = [0,1,1,2,2,2,2,3,3,3,1,1,2,0,5,5,5,4,4,4,4,4,4,4,4,4,0,4,4,4,5,4,4,5,4,5,4,4,4,0,1,1,1,3,3,3,1,1,1,2,2,2,0,4,4,4,4,4,4,3,4,4,4,4,4]
+#classes = ["Z","A","A","A","A","A","A","A","A","A","A","A","A","Z","C","C","C","B","B","B","B","B","B","B","B","B","Z","B","B","B","C","B","B","C","B","C","B","B","B","Z","A","A","A","A","A","A","A","A","A","A","A","A","Z","B","B","B","B","B","B","C","B","B","B","B","C"]
+#n_classes = [0,1,1,1,1,1,1,1,1,1,1,1,1,0,3,3,3,2,2,2,2,2,2,2,2,2,0,2,2,2,3,2,2,3,2,3,2,2,2,0,1,1,1,1,1,1,1,1,1,1,1,1,0,2,2,2,2,2,2,3,2,2,2,2,3]
+classes = ["A","A","A","A","A","A","A","A","A","A","A","A","C","C","C","B","B","B","B","B","B","C","C","C","B","B","B","C","B","B","C","B","C","B","B","B","A","A","A","A","A","A","A","A","A","A","A","A","B","B","B","B","B","B","C","B","B","B","B","C"]
+n_classes = [0,0,0,0,0,0,0,0,0,0,0,0,2,2,2,1,1,1,1,1,1,2,2,2,1,1,1,2,1,1,2,1,2,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,2,1,1,1,1,2]
+
+
 
 n_exp=0
 
@@ -131,6 +144,43 @@ def plot_with_info(can, data, grids, x_grid_divs, y_grid_divs, can_mean_depth, d
 #    fig.write_image(file_name)
     #plotly.offline.plot({"data": [fig1], "layout": mylayout}, auto_open=True)
     fig.show()
+
+def plot_metrics(metrics):
+
+    data = np.array([0,1,2,3,4,5,6,7,8])
+    #print(metrics)
+    size = len(metrics)
+    div=int(np.sqrt(size))
+    new_row = []
+    new_data = np.zeros([1,div])
+    #print(size)
+    #print(len(data))
+
+    for n in range(0,div):
+        for i in range(0+n,size,div):#np.sqrt(size)):#size[0],size[0]):
+            new_row.append(metrics[i])
+        new_data = np.vstack((new_data,new_row))
+        new_row[:] = []
+    data = np.delete(new_data,0,0)
+
+    # create discrete colormap
+    cmap = colors.ListedColormap(['red', 'blue'])
+    bounds = [0,0.02,0.05]
+    norm = colors.BoundaryNorm(bounds, cmap.N)
+
+    fig, ax = plt.subplots()
+    #ax.imshow(data, cmap='gist_rainbow', norm=colors.LogNorm(vmin=data.min(), vmax=0.1))#data.max()))
+    #ax.imshow(data, cmap='gist_rainbow', norm=colors.LogNorm(vmin=data.min(), vmax=data.max()))
+    ax.imshow(data, cmap='gist_rainbow', norm=colors.LogNorm(vmin=data.min(), vmax=2))#data.max()))
+#    ax.imshow(data, cmap=cmap, norm=norm)
+#    ax.imshow(data, cmap=cm.coolwarm, norm=colors.LogNorm(vmin=0.0,vmax=0.1))
+
+    # draw gridlines
+    #ax.grid(which='major', axis='both', linestyle='-', color='k', linewidth=2)
+    ax.set_xticks(np.arange(0, 1, 1));
+    ax.set_yticks(np.arange(0, 1, 1));
+
+    plt.show()
 
 def remove_gripper(obj_data):
     gripper_thrs = [0.03, 0.0, -0.15] #xmax, xmin, ymax
@@ -543,6 +593,7 @@ def save_mean_values(exp_name, n_exp, mean_data):
     #print(mean_data)
     data.append(exp_name)
     data.append(classes[n_exp])
+    data.append(n_classes[n_exp])
     for i in range(len(mean_data)):
         data.append(mean_data[i])
     wr.writerow(data)
@@ -568,6 +619,8 @@ def write_csv(csv_file, exp_name, data):
 
 ##################################################################################################
 
+
+
 ######## For one unique experiment
 if not all_files :
     print("Getting experiment file: ", pcd_file)
@@ -587,7 +640,9 @@ if not all_files :
     ## Compute deformation metrics (grids depth mean)
     #def_measures, obj_transl_data = deformation_metric(can_grids, can_min_depth, can_max_grid_len, can_edge_size, obj_data, obj_grids) # Compute deformation metrics (grids depth mean)
     def_measures, obj_transl_data = new_def_metric(obj_grids)
-    plot(obj_transl_data, "transl exp")
+    #plot(obj_transl_data, "transl exp")
+    if(show_plot_metrics):
+        plot_metrics(def_measures)
     ## Save results
     if(save_def_metric): ##Save means in csv
         ##Write CSV headers
@@ -611,7 +666,7 @@ if(all_files):
     print(data_directory)
     ##Write CSV headers
     if(save_def_metric):
-        headers = ["File","Class_GT"]
+        headers = ["File","Class_GT","Class_GT_n"]
         #headers = ["File"]
         for i in range(0, n_div*n_div):
             #headers.append(metrics_name[i])
@@ -653,3 +708,5 @@ if(all_files):
 #### REFS
 # https://stackoverflow.com/questions/69372448/plotly-vertical-3d-surface-plot-in-z-x-plane-not-showing-up
 # https://stackoverflow.com/questions/62403763/how-to-add-planes-in-a-3d-scatter-plot
+# https://stackoverflow.com/questions/43971138/python-plotting-colored-grid-based-on-values
+# # https://matplotlib.org/stable/tutorials/colors/colormaps.html
