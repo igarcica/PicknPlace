@@ -9,7 +9,7 @@ import open3d as o3d
 
 import matplotlib.pyplot as plt
 
-n_div = 2 # Grid division
+n_div = 10 # Grid division
 
 #data_directory="/home/pal/Desktop/all/dataset/Picks/PCD/segmented/"
 data_directory="/home/pal/Desktop/more_data/dataset/PCD/"
@@ -497,13 +497,15 @@ def new_def_metric(grids):
             transl_data.append(new_point)
         print("sum visible depths: ", suma)
 
-        if(length ==0): #<= 1):
+        if(length == 0): #<= 1):
             print("Empty grid!")
-            mean = 100
+            mean = 1
         else:
             mean = suma/length
             mean = mean/length
             mean=mean*100
+        if(mean>1):
+            mean = 1
         means.append(mean)
 
     print("Means: ", means)
@@ -591,7 +593,8 @@ if not all_files :
         ##Write CSV headers
         headers = ["File"]
         for i in range(0, n_div*n_div):
-            headers.append(metrics_name[i])
+            text = "M"+str(i+1)
+            headers.append(text)
         #wr.writerow(headers)
         #save_mean_values(pcd_file.replace("_seg.pcd", ""), n_exp, def_measures)
     if(save_grid_sizes): ##Save grid sizes
@@ -611,7 +614,9 @@ if(all_files):
         headers = ["File","Class_GT"]
         #headers = ["File"]
         for i in range(0, n_div*n_div):
-            headers.append(metrics_name[i])
+            #headers.append(metrics_name[i])
+            text = "M"+str(i+1)
+            headers.append(text)
         wr.writerow(headers)
     for filename in sorted(os.listdir(data_directory)):
         f = os.path.join(data_directory, filename)

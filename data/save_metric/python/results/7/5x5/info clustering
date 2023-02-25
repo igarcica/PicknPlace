@@ -1,0 +1,164 @@
+----------------------------------------------------------------------------------
+         File  Class_GT_n  label
+20  o2_gr_e07           4      0
+21  o2_gr_e08           4      0
+22  o2_gr_e09           4      0
+27  o3_gr_e01           4      0
+28  o3_gr_e02           4      0
+29  o3_gr_e03           4      0
+36  o3_gr_e10           4      0
+37  o3_gr_e11           4      0
+38  o3_gr_e12           4      0
+53  o5_gr_e01           4      0
+54  o5_gr_e02           4      0
+55  o5_gr_e03           4      0
+----Diversidad de grupos----
+   Class_GT_n  cantidad
+0           0       NaN
+1           1       NaN
+2           2       NaN
+3           3       NaN
+4           4      12.0
+5           5       NaN
+kmeans.py:76: SettingWithCopyWarning: 
+A value is trying to be set on a copy of a slice from a DataFrame
+
+See the caveats in the documentation: http://pandas.pydata.org/pandas-docs/stable/indexing.html#indexing-view-versus-copy
+  put_zero[np.isnan(put_zero)]=0
+   Class_GT_n  cantidad
+4           4      12.0
+4    4
+Name: Class_GT_n, dtype: int64
+[0. 1. 2. 3. 4. 5.]
+----------------------------------------------------------------------------------
+         File  Class_GT_n  label
+0   o1_gr_can           0      1
+1   o1_gr_e01           1      1
+2   o1_gr_e02           1      1
+3   o1_gr_e03           2      1
+4   o1_gr_e04           2      1
+5   o1_gr_e05           2      1
+6   o1_gr_e06           2      1
+7   o1_gr_e07           3      1
+8   o1_gr_e08           3      1
+9   o1_gr_e09           3      1
+10  o1_gr_e10           1      1
+11  o1_gr_e11           1      1
+12  o1_gr_e12           2      1
+13  o2_gr_can           0      1
+26  o3_gr_can           0      1
+39  o4_gr_can           0      1
+40  o4_gr_e01           1      1
+41  o4_gr_e02           1      1
+42  o4_gr_e03           1      1
+43  o4_gr_e04           3      1
+44  o4_gr_e05           3      1
+45  o4_gr_e06           3      1
+46  o4_gr_e07           1      1
+47  o4_gr_e08           1      1
+48  o4_gr_e09           1      1
+49  o4_gr_e10           2      1
+50  o4_gr_e11           2      1
+51  o4_gr_e12           2      1
+52  o5_gr_can           0      1
+61  o5_gr_e09           4      1
+64  o5_gr_e12           4      1
+----Diversidad de grupos----
+   Class_GT_n  cantidad
+0           0       5.0
+1           1      10.0
+2           2       8.0
+3           3       6.0
+4           4       2.0
+5           5       NaN
+   Class_GT_n  cantidad
+1           1      10.0
+1    1
+Name: Class_GT_n, dtype: int64
+[0. 1. 2. 3. 4. 5.]
+----------------------------------------------------------------------------------
+         File  Class_GT_n  label
+56  o5_gr_e04           4      2
+57  o5_gr_e05           4      2
+58  o5_gr_e06           4      2
+59  o5_gr_e07           3      2
+62  o5_gr_e10           4      2
+63  o5_gr_e11           4      2
+----Diversidad de grupos----
+   Class_GT_n  cantidad
+0           0       NaN
+1           1       NaN
+2           2       NaN
+3           3       1.0
+4           4       5.0
+5           5       NaN
+   Class_GT_n  cantidad
+4           4       5.0
+4    4
+Name: Class_GT_n, dtype: int64
+[0. 1. 2. 3. 4. 5.]
+----------------------------------------------------------------------------------
+         File  Class_GT_n  label
+14  o2_gr_e01           5      3
+15  o2_gr_e02           5      3
+16  o2_gr_e03           5      3
+30  o3_gr_e04           5      3
+31  o3_gr_e05           4      3
+32  o3_gr_e06           4      3
+33  o3_gr_e07           5      3
+34  o3_gr_e08           4      3
+35  o3_gr_e09           5      3
+60  o5_gr_e08           4      3
+----Diversidad de grupos----
+   Class_GT_n  cantidad
+0           0       NaN
+1           1       NaN
+2           2       NaN
+3           3       NaN
+4           4       4.0
+5           5       6.0
+   Class_GT_n  cantidad
+5           5       6.0
+5    5
+Name: Class_GT_n, dtype: int64
+[0. 1. 2. 3. 4. 5.]
+----------------------------------------------------------------------------------
+         File  Class_GT_n  label
+18  o2_gr_e05           4      4
+19  o2_gr_e06           4      4
+----Diversidad de grupos----
+   Class_GT_n  cantidad
+0           0       NaN
+1           1       NaN
+2           2       NaN
+3           3       NaN
+4           4       2.0
+5           5       NaN
+   Class_GT_n  cantidad
+4           4       2.0
+4    4
+Name: Class_GT_n, dtype: int64
+[0. 1. 2. 3. 4. 5.]
+----------------------------------------------------------------------------------
+         File  Class_GT_n  label
+17  o2_gr_e04           4      5
+23  o2_gr_e10           4      5
+24  o2_gr_e11           4      5
+25  o2_gr_e12           4      5
+----Diversidad de grupos----
+   Class_GT_n  cantidad
+0           0       NaN
+1           1       NaN
+2           2       NaN
+3           3       NaN
+4           4       4.0
+5           5       NaN
+   Class_GT_n  cantidad
+4           4       4.0
+4    4
+Name: Class_GT_n, dtype: int64
+[0. 1. 2. 3. 4. 5.]
+('Predicted classes: ', [0, 1, 2, 3, 4, 5])
+('Related GT classes: ', [4, 1, 4, 5, 4, 4])
+('Class Names: ', ['D', 'A', 'D', 'E', 'D', 'D'])
+
