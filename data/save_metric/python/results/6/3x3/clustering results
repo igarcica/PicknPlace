@@ -1,9 +1,0 @@
-
-RESULTS 6 CLUSTERS
-
-- 20 samples clase D + 1 sample class C (05_e07) + 2 class E (o3_07,09)
-- Cluster with mix of classes A,B,C,Z: 10 samples class A, 8 class B, 6 class C, 5 class Z
-- 3 samples class D: o2_10,11,12
-- 4 samples class E: o2_01,02,03 + 03_04
-- 3 samples class D: o2_04,05,06
-- 3 samples class D: o2_07,08,09

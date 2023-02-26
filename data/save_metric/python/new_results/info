@@ -1,9 +1,0 @@
-
-
-all1:
-
-GT con 3 clases + clase X para o2_05,06
-predecir 4 clases (para obviar la de o2_05,06...)
--en mas numero de grid no me separa esos casos
--me separa clase B en dos
-
