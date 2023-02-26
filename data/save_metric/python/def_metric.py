@@ -12,24 +12,27 @@ import matplotlib as mlib
 from matplotlib import colors
 from matplotlib import cm
 
-n_div = 4 # Grid division
+n_div = 2 # Grid division
 
 #data_directory="/home/pal/Desktop/all/dataset/Picks/PCD/segmented/"
-data_directory="/home/pal/Desktop/more_data/dataset/PCD/"
+#data_directory="/home/pal/Desktop/more_data/dataset/PCD/"
 #data_directory="/home/pal/Desktop/more_folds/dataset/PCD/"
-write_directory = "./new_results/filling/" #+ str(n_div) + "x" + str(n_div) + "/" ##./results/2x2/
+data_directory="/home/pal/Desktop/all/PCD/"
+#write_directory = "./new_results/filling/" #+ str(n_div) + "x" + str(n_div) + "/" ##./results/2x2/
+write_directory = "./all/filling/" #+ str(n_div) + "x" + str(n_div) + "/"
 
 
 ## Canonical object
 all_files = True
-pcd_file = "o5_gr_e10.pcd"
+pcd_file = "o5-10_gr_e10.pcd"
 pcd_dir = data_directory+pcd_file
 syn_can = True
-can_pcd_file = 'o3_gr_can.pcd'
+can_pcd_file = 'o2_gr_e11.pcd'
 can_pcd_dir = data_directory+can_pcd_file
 
 ## CSV file to save def metric
 save_def_metric = True
+use_new_def_metric = False
 def_metric_file = str(n_div) + "x" + str(n_div) + ".csv" ##o1_2x2.csv
 def_metric_dir = write_directory+def_metric_file
 if(save_def_metric):
@@ -40,6 +43,7 @@ if(save_def_metric):
 show_plot = False
 show_plot_metrics = False
 print_info = False
+folds = True
 
 save_plots_dir = write_directory + "/plots/"
 save_plots = False
@@ -51,7 +55,7 @@ if(save_grid_sizes):
     my_file = open(grid_sizes_dir, "wb")
     grid_sizes_wr = csv.writer(my_file, delimiter=",")
 
-objects = ["o1", "o2", "o3", "o4", "o5"]
+objects = ["o1", "o2", "o3", "o4", "o5", "o1-01","o1-04", "o2-01", "o2-04", "o2-07", "o2-10", "o5-01", "o5-04", "o5-07", "o5-10"]
 #metrics_name = ["M1","M2","M3","M4", "M5","M6","M7","M8","M9","M10","M11","M12","M13","M14","M15","M16","M17","M18","M19","M20","M21","M22","M23","M24","M25"]
 #classes = ["A","B","A","C","A","B","A","C","A","B","A","C","C","A","D","D","F","D","D","G","D","D","F","D"]
 #classes = ["A","B","B","B","B","B","B","B","B","B","B","B","B","A","D","D","D","C","C","C","C","C","C","C","C","C","A","C","C","C","E","C","C","E","C","E","C","C","C","A","B","B","B","B","B","B","B","B","B","B","B","B","A","C","C","C","C","C","C","E","C","C","C","C","E"]
@@ -63,16 +67,20 @@ objects = ["o1", "o2", "o3", "o4", "o5"]
 classes = ["A","A","A","A","A","A","A","A","A","A","A","A","C","C","C","B","B","B","B","B","B","C","C","C","B","B","B","C","B","B","C","B","C","B","B","B","A","A","A","A","A","A","A","A","A","A","A","A","B","B","B","B","B","B","C","B","B","B","B","C"]
 n_classes = [0,0,0,0,0,0,0,0,0,0,0,0,2,2,2,1,1,1,1,1,1,2,2,2,1,1,1,2,1,1,2,1,2,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,2,1,1,1,1,2]
 
+classes_f = ["B","B","B","B","B","B","B","B","B","D","D","D","B","B","B","B","A","B","B","B","B","D","D","D","B","B","B","A","A","A"]
+n_classes_f = [1,1,1,1,1,1,1,1,1,3,3,3,1,1,1,1,0,1,1,1,1,3,3,3,1,1,1,0,0,0]
+
+classes_all = ["B","B","B","B","B","B","A","A","A","A","A","A","A","A","A","A","A","A","B","B","B","D","D","D","B","B","B","B","A","B","C","C","C","B","B","B","B","B","B","C","C","C","B","B","B","C","B","B","C","B","C","B","B","B","A","A","A","A","A","A","A","A","A","A","A","A","B","B","B","D","D","D","B","B","B","A","A","A","B","B","B","B","B","B","C","B","B","B","B","C"]
+n_classes_all = [1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,3,3,3,1,1,1,1,0,1,2,2,2,1,1,1,1,1,1,2,2,2,1,1,1,2,1,1,2,1,2,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,3,3,3,1,1,1,0,0,0,1,1,1,1,1,1,2,1,1,1,1,2]
+
+#n_classes_all = [0,0,0,0,0,0,0,0,0,0,0,0,2,2,2,1,1,1,1,1,1,2,2,2,1,1,1,2,1,1,2,1,2,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,2,1,1,1,1,2,1,1,1,1,1,1,1,1,1,3,3,3,1,1,1,1,0,1,1,1,1,3,3,3,1,1,1,0,0,0]
+
+classes = classes_all
+n_classes = n_classes_all
+
 
 
 n_exp=0
-
-# if(all_files):
-#     save_def_metric=True
-#     show_plot = False
-# else:
-#     save_def_metric = False
-#     show_plot = True
 
 object = "o1"
 # towel = True
@@ -139,7 +147,7 @@ def plot_with_info(can, data, grids, x_grid_divs, y_grid_divs, can_mean_depth, d
     fig.add_traces(planes_y)
     fig.add_traces(point)
     #fig.update_layout(scene=dict(zaxis=dict(range=[max(z_data), min(z_data)]), xaxis=dict(range=[max(x_data), min(x_data)])))
-    fig.update_layout(scene=dict(zaxis=dict(range=[0.2, -0.2]), xaxis=dict(range=[0.2, -0.2]), yaxis=dict(range=[-0.2, 0.2]) ))
+    fig.update_layout(scene=dict(zaxis=dict(range=[0.2, -0.2]), xaxis=dict(range=[0.3, -0.3]), yaxis=dict(range=[-0.2, 0.2]) ))
 #    fig.update_layout(scene=dict(zaxis=dict(range=[0.31, 0])))
 #    fig.write_image(file_name)
     #plotly.offline.plot({"data": [fig1], "layout": mylayout}, auto_open=True)
@@ -183,7 +191,7 @@ def plot_metrics(metrics):
     plt.show()
 
 def remove_gripper(obj_data):
-    gripper_thrs = [0.03, 0.0, -0.15] #xmax, xmin, ymax
+    gripper_thrs = [0.05, 0.0, -0.15] #xmax, xmin, ymax
 
     rightx_data = obj_data[gripper_thrs[0]<obj_data[:,0]]
     leftx_data = obj_data[gripper_thrs[1]>obj_data[:,0]]
@@ -244,21 +252,102 @@ def create_canonical(obj_name, align_canonical):
     syn_can_x = []
     syn_can_y = []
     syn_can_depth = []
+    print(obj_name)
 
-    # if(towel):
-    #     xsteps = 0.007
-    #     xmin = -0.1
-    #     xmax = 0.134
-    #     ysteps = 0.007
-    #     ymin = -0.184
-    #     ymax = 0.04
-    # if(pillowc):
-    #     xsteps = 0.007
-    #     xmin = -0.11
-    #     xmax = 0.134
-    #     ysteps = 0.007
-    #     ymin = -0.196
-    #     ymax = 0.02
+    if(obj_name == "o1-01"): #can01
+        print("\033[96m Creating canonical for o1... \033[0m")
+        xsteps = 0.009
+        xmin = -0.2
+        xmax = xmin+0.46
+        ysteps = 0.01
+        ymin = -0.184
+        ymax = ymin+0.26
+        obj_edge_size = 0.25
+    if(obj_name == "o1-04"): #can04
+        print("\033[96m Creating canonical for o1... \033[0m")
+        xsteps = 0.009
+        xmin = -0.21
+        xmax = xmin+0.46
+        ysteps = 0.01
+        ymin = -0.184
+        ymax = ymin+0.19
+        obj_edge_size = 0.25
+    if(obj_name == "o2-01"):
+        print("\033[96m Creating canonical for o2 \033[0m")
+        xsteps = 0.009
+        xmin = -0.19
+        xmax = xmin+0.44
+        ysteps = 0.01
+        ymin = -0.196
+        ymax = ymin+0.2
+        obj_edge_size = 0.28 # 0.22?
+    if(obj_name == "o2-04"):
+        print("\033[96m Creating canonical for o2 \033[0m")
+        xsteps = 0.009
+        xmin = -0.09
+        xmax = xmin+0.23#0.13
+        ysteps = 0.01
+        ymin = -0.196
+        ymax = ymin+0.28#0.0
+        obj_edge_size = 0.28
+    if(obj_name == "o2-07"):
+        print("\033[96m Creating canonical for o2 \033[0m")
+        xsteps = 0.009
+        xmin = -0.11
+        xmax = xmin+0.28#0.16
+        ysteps = 0.01
+        ymin = -0.196
+        ymax = ymin+0.16
+        obj_edge_size = 0.15 #0.28
+    if(obj_name == "o2-10"):
+        print("\033[96m Creating canonical for o2 \033[0m")
+        print("hola")
+        xsteps = 0.009
+        xmin = -0.08
+        xmax = xmin+0.23#0.16
+        ysteps = 0.01
+        ymin = -0.196
+        ymax = ymin+0.15
+        obj_edge_size = 0.12 #0.28
+    if(obj_name == "o5-01"):
+        print("\033[96m Creating canonical for o5 \033[0m")
+        xsteps = 0.009
+        xmin = -0.145
+        xmax = xmin+0.35
+        ysteps = 0.01
+        ymin = -0.19
+        ymax = ymin+0.18
+        obj_edge_size = 0.18#0.24
+    if(obj_name == "o5-04"):
+        print("\033[96m Creating canonical for o2 \033[0m")
+        print("hola")
+        xsteps = 0.009
+        xmin = -0.06
+        xmax = xmin+0.19
+        ysteps = 0.01
+        ymin = -0.196
+        ymax = ymin+0.25
+        obj_edge_size = 0.25
+    if(obj_name == "o5-07"):
+        print("\033[96m Creating canonical for o2 \033[0m")
+        print("hola")
+        xsteps = 0.009
+        xmin = -0.09
+        xmax = xmin+0.24
+        ysteps = 0.01
+        ymin = -0.196
+        ymax = ymin+0.13
+        obj_edge_size = 0.12
+    if(obj_name == "o5-10"):
+        print("\033[96m Creating canonical for o2 \033[0m")
+        print("hola")
+        xsteps = 0.009
+        xmin = -0.07
+        xmax = xmin+0.19
+        ysteps = 0.01
+        ymin = -0.196
+        ymax = ymin+0.13
+        obj_edge_size = 0.12
 
     if(obj_name == "o1"):
         print("\033[96m Creating canonical for o1... \033[0m")
@@ -629,7 +718,7 @@ if not all_files :
             obj_name = objects[n]
     obj_pcd = o3d.io.read_point_cloud(pcd_dir) #Read pcd files from folder
     obj_data = np.asarray(obj_pcd.points)
-    #plot(obj_data, "EXPERIMENT")
+    plot(obj_data, "EXPERIMENT")
     ## Remove gripper and get minimum x of object to align canonical
     align_canonical, obj_data = remove_gripper(obj_data)
     ## Get canonical
@@ -638,9 +727,11 @@ if not all_files :
     ## Divide grids
     obj_grids = grid_division(obj_data, can_x_grid_divs, can_y_grid_divs, n_div) #Divide grids
     ## Compute deformation metrics (grids depth mean)
-    #def_measures, obj_transl_data = deformation_metric(can_grids, can_min_depth, can_max_grid_len, can_edge_size, obj_data, obj_grids) # Compute deformation metrics (grids depth mean)
-    def_measures, obj_transl_data = new_def_metric(obj_grids)
-    #plot(obj_transl_data, "transl exp")
+    if not use_new_def_metric:
+        def_measures, obj_transl_data = deformation_metric(can_grids, can_min_depth, can_max_grid_len, can_edge_size, obj_data, obj_grids) # Compute deformation metrics (grids depth mean)
+    else:
+        def_measures, obj_transl_data = new_def_metric(obj_grids)
+    plot(obj_transl_data, "transl exp")
     if(show_plot_metrics):
         plot_metrics(def_measures)
     ## Save results

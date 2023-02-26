@@ -7,8 +7,10 @@ n_grids = n_div*n_div #4, 9, 16, 25...
 metrics_name = ["M1","M2","M3","M4", "M5","M6","M7","M8","M9","M10","M11","M12","M13","M14","M15","M16","M17","M18","M19","M20","M21","M22","M23","M24","M25"]
 
 #data_directory="/home/pal/Desktop/all/dataset/Picks/RGB/cropped/"
-data_directory="/home/pal/Desktop/more_data/dataset/RGB/"
-write_directory = "./results/4/" + str(n_div) + "x" + str(n_div) + "/"
+#data_directory="/home/pal/Desktop/more_data/dataset/RGB/"
+#data_directory="/home/pal/Desktop/more_folds/dataset/RGB/"
+data_directory="/home/pal/Desktop/all/RGB/"
+write_directory = "./new_folds/filling/" + str(n_div) + "x" + str(n_div) + "/"
 
 metrics_csv_file = str(n_div) + "x" + str(n_div) + ".csv" ##o1_2x2.csv
 metrics_csv_dir = write_directory+metrics_csv_file
@@ -67,7 +69,7 @@ def print_metric_img(img, image_file, metrics_df):
     for n in range(0,n_div):
         for m in range(0,n_div):
             metric_value = float(file_metrics[metrics_name[k]])
-            text = str(round(metric_value,3))
+            text = str(round(metric_value,2))
             cv2.putText(img, text, (locs_y[n], locs_x[m]), cv2.FONT_HERSHEY_SIMPLEX, size, (221, 82, 196), 2)
             k+=1
     cv2.putText(img, image_name, (295,505), cv2.FONT_HERSHEY_SIMPLEX, size, (0,0,0), 2)
@@ -83,7 +85,7 @@ def print_metric_img(img, image_file, metrics_df):
 
 ##################################################################################################
 metrics_df = pd.read_csv(metrics_csv_dir) ##Read CSV --> Metrics
-print(metrics_df)
+#print(metrics_df)
 
 if not(all_files):
     img = cv2.imread(image_dir)

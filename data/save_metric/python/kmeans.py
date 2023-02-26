@@ -10,18 +10,22 @@ from sklearn.metrics import pairwise_distances_argmin_min
 from mpl_toolkits.mplot3d import Axes3D
 import math
 
-n_div = 4
+n_div = 6
 n_grids = n_div*n_div
 
 save_classification = True
 
-dataset_directory = "/home/pal/Desktop/more_data/dataset/RGB/"
-write_directory = "./new_results/filling/" #+ str(n_div) + "x" + str(n_div) + "/"
+#dataset_directory = "/home/pal/Desktop/more_data/dataset/RGB/"
+dataset_directory = "/home/pal/Desktop/all/RGB/"
+#write_directory = "./new_results/filling/" #+ str(n_div) + "x" + str(n_div) + "/"
+#write_directory = "./new_folds/filling/" + str(n_div) + "x" + str(n_div) + "/"
+write_directory = "./all/filling/"
 
 metrics_csv_file = str(n_div) + "x" + str(n_div) + ".csv" ##o1_2x2.csv
 metrics_csv_dir = write_directory+metrics_csv_file
 
-class_directory = "./new_results/filling/"# + str(n_div) + "x" + str(n_div) + "/"
+#class_directory = "./new_folds/filling/" + str(n_div) + "x" + str(n_div) + "/"
+class_directory = "./all/"# + str(n_div) + "x" + str(n_div) + "/"
 class_file = "clusters.csv"
 class_dir = class_directory+class_file
 
@@ -34,7 +38,7 @@ plt.style.use('ggplot')
 
 GT_name_classes = ['A','B','C','D','E']
 GT_name_classes_unk = ['A','B','C','D','E','X','Y','Z','M','N','J']
-pred_classes2 = [0,1,2]
+pred_classes2 = [0,1,2,3,4]
 
 ##################################################################################################
 
@@ -178,7 +182,7 @@ def plot_results(clusters_files):
         print(size)
         for n in range(0,size): #len(clusters_files[i])): #number of samples in cluster
             for m in range(0,size):
-                print("n: ", n, " / m: ", m, " / file: ", file, " / size: ", size)
+                #print("n: ", n, " / m: ", m, " / file: ", file, " / size: ", size)
                 image_file = dataset_directory + clusters_files[i][file] + ".png"
                 #print(image_file)
                 img = mpimg.imread(image_file)
@@ -188,6 +192,7 @@ def plot_results(clusters_files):
                     file +=1
                 else:
                     file = 0
+        file = 0
 
         plt.show()
 
@@ -216,7 +221,7 @@ print(dataframe[metrics])
 #print("Number trials and Metrics: ", train_data.shape)
 
 ## Fit cluster with deformation metric data
-kmeans = KMeans(n_clusters=3).fit(train_data)
+kmeans = KMeans(n_clusters=4, init='random').fit(train_data)
 
 # Predicting the clusters
 labels = kmeans.predict(train_data)
@@ -291,7 +296,7 @@ for row in class_d:
         else:
             new_row = [row[0],row[1],row[2], 0]
         success_wr.writerow(new_row)
-total_success = (float(sum)/float(60))*100
+total_success = (float(sum)/float(90))*100
 print("Success: ", total_success)
 # success_wr.writerow(["Total", "-", "-",total_success])
 # success_wr.writerow(["Success Z", "-","-",float(Z_succ)/float(5)])
@@ -302,9 +307,10 @@ print("Success: ", total_success)
 # success_wr.writerow(["Success E", "-","-",float(E_succ)/float(8)])
 
 success_wr.writerow(["Total", "-", "-",total_success])
-success_wr.writerow(["Success A", "-","-",float(A_succ)/float(24)])
-success_wr.writerow(["Success B", "-","-",float(B_succ)/float(25)])
-success_wr.writerow(["Success C", "-","-",float(C_succ)/float(11)])
+success_wr.writerow(["Success A", "-","-",(float(A_succ)/float(28))*100])#24)])
+success_wr.writerow(["Success B", "-","-",(float(B_succ)/float(45))*100])#25)])
+success_wr.writerow(["Success C", "-","-",(float(C_succ)/float(11))*100])
+success_wr.writerow(["Success D", "-","-",(float(D_succ)/float(6))*100])
 
 
 
@@ -312,7 +318,7 @@ success_wr.writerow(["Success C", "-","-",float(C_succ)/float(11)])
 #related_GT_classes.append(int(repr_class))
 #pred_name_classes.append(GT_name_classes_unk[int(repr_class)])
 
-plot_results(clusters_files)
+#plot_results(clusters_files)
 
 # new_lab = kmeans.predict()
 # print(new_lab)
