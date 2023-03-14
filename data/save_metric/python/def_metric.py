@@ -12,27 +12,31 @@ import matplotlib as mlib
 from matplotlib import colors
 from matplotlib import cm
 
-n_div = 2 # Grid division
+
+##################################################################################################
+## INPUT PARAMETERS
+
+n_div = 5 # Grid division
 
 #data_directory="/home/pal/Desktop/all/dataset/Picks/PCD/segmented/"
 #data_directory="/home/pal/Desktop/more_data/dataset/PCD/"
 #data_directory="/home/pal/Desktop/more_folds/dataset/PCD/"
 data_directory="/home/pal/Desktop/all/PCD/"
 #write_directory = "./new_results/filling/" #+ str(n_div) + "x" + str(n_div) + "/" ##./results/2x2/
-write_directory = "./all/filling/" #+ str(n_div) + "x" + str(n_div) + "/"
+write_directory = "./metrics/filling/" + str(n_div) + "x" + str(n_div) + "/"
 
 
 ## Canonical object
 all_files = True
-pcd_file = "o5-10_gr_e10.pcd"
+pcd_file = "o5_gr_e10.pcd"
 pcd_dir = data_directory+pcd_file
 syn_can = True
 can_pcd_file = 'o2_gr_e11.pcd'
 can_pcd_dir = data_directory+can_pcd_file
 
 ## CSV file to save def metric
-save_def_metric = True
-use_new_def_metric = False
+save_def_metric = False
+use_filling_def_metric = True
 def_metric_file = str(n_div) + "x" + str(n_div) + ".csv" ##o1_2x2.csv
 def_metric_dir = write_directory+def_metric_file
 if(save_def_metric):
@@ -41,9 +45,8 @@ if(save_def_metric):
 
 ## Save results
 show_plot = False
-show_plot_metrics = False
+show_plot_metrics = True
 print_info = False
-folds = True
 
 save_plots_dir = write_directory + "/plots/"
 save_plots = False
@@ -90,6 +93,8 @@ object = "o1"
 # linen = False
 
 ##################################################################################################
+## FUNCTIONS
+
 
 def plot(data, file_name):
     data = np.array(data)
@@ -153,7 +158,7 @@ def plot_with_info(can, data, grids, x_grid_divs, y_grid_divs, can_mean_depth, d
     #plotly.offline.plot({"data": [fig1], "layout": mylayout}, auto_open=True)
     fig.show()
 
-def plot_metrics(metrics):
+def plot_metrics(filename, metrics):
 
     data = np.array([0,1,2,3,4,5,6,7,8])
     #print(metrics)
@@ -179,7 +184,10 @@ def plot_metrics(metrics):
     fig, ax = plt.subplots()
     #ax.imshow(data, cmap='gist_rainbow', norm=colors.LogNorm(vmin=data.min(), vmax=0.1))#data.max()))
     #ax.imshow(data, cmap='gist_rainbow', norm=colors.LogNorm(vmin=data.min(), vmax=data.max()))
-    ax.imshow(data, cmap='gist_rainbow', norm=colors.LogNorm(vmin=data.min(), vmax=2))#data.max()))
+
+    ax.imshow(data, cmap='gist_rainbow', norm=colors.LogNorm(vmin=0.01, vmax=0.3)) # 0.001-0.5 (azul-rosa) / 0.01-0.5 (verde-azul-lila) / 0.01-1 (verde-azul) /
+    #ax.imshow(data, cmap='gist_rainbow', norm=colors.LogNorm(vmin=data.min(), vmax=2))#data.max()))
+
 #    ax.imshow(data, cmap=cmap, norm=norm)
 #    ax.imshow(data, cmap=cm.coolwarm, norm=colors.LogNorm(vmin=0.0,vmax=0.1))
 
@@ -188,7 +196,9 @@ def plot_metrics(metrics):
     ax.set_xticks(np.arange(0, 1, 1));
     ax.set_yticks(np.arange(0, 1, 1));
 
-    plt.show()
+    #plt.show()
+    file_name = write_directory + filename + "_pat.png"
+    plt.savefig(file_name)
 
 def remove_gripper(obj_data):
     gripper_thrs = [0.05, 0.0, -0.15] #xmax, xmin, ymax
@@ -707,7 +717,7 @@ def write_csv(csv_file, exp_name, data):
 
 
 ##################################################################################################
-
+## MAIN
 
 
 ######## For one unique experiment
@@ -727,13 +737,11 @@ if not all_files :
     ## Divide grids
     obj_grids = grid_division(obj_data, can_x_grid_divs, can_y_grid_divs, n_div) #Divide grids
     ## Compute deformation metrics (grids depth mean)
-    if not use_new_def_metric:
+    if use_filling_def_metric:
         def_measures, obj_transl_data = deformation_metric(can_grids, can_min_depth, can_max_grid_len, can_edge_size, obj_data, obj_grids) # Compute deformation metrics (grids depth mean)
     else:
         def_measures, obj_transl_data = new_def_metric(obj_grids)
     plot(obj_transl_data, "transl exp")
-    if(show_plot_metrics):
-        plot_metrics(def_measures)
     ## Save results
     if(save_def_metric): ##Save means in csv
         ##Write CSV headers
@@ -748,6 +756,8 @@ if not all_files :
     if(show_plot):
         plotname = save_plots_dir + pcd_file.replace(".pcd", "_plot.png")
         plot_with_info(can_transl_data, obj_transl_data, obj_grids, can_x_grid_divs, can_y_grid_divs, can_min_depth, def_measures, plotname)
+    if(show_plot_metrics):
+        plot_metrics(filename.replace(".pcd", ""), def_measures)
 
 
 ######### For all experiments #########
@@ -782,8 +792,10 @@ if(all_files):
             ##Divide grids
             obj_grids = grid_division(obj_data, can_x_grid_divs, can_y_grid_divs, n_div) #Divide grids
             ## Compute deformation metrics (grids depth mean)
-            #def_measures, obj_transl_data = deformation_metric(can_grids, can_min_depth, can_max_grid_len, can_edge_size, obj_data, obj_grids)
-            def_measures, obj_transl_data = new_def_metric(obj_grids)
+            if use_filling_def_metric:
+                def_measures, obj_transl_data = deformation_metric(can_grids, can_min_depth, can_max_grid_len, can_edge_size, obj_data, obj_grids)
+            else:
+                def_measures, obj_transl_data = new_def_metric(obj_grids)
             if(save_def_metric): ##Save means in csv
                 save_mean_values(filename.replace(".pcd", ""), n_exp, def_measures)
                 n_exp+=1
@@ -792,6 +804,8 @@ if(all_files):
             if(show_plot):
                 plotname = save_plots_dir + filename.replace(".pcd", ".jpg")
                 plot_with_info(can_transl_data, obj_transl_data, obj_grids, can_x_grid_divs, can_y_grid_divs, can_min_depth, def_measures, plotname)
+            if(show_plot_metrics):
+                plot_metrics(filename.replace(".pcd", ""), def_measures)
 
 
 
