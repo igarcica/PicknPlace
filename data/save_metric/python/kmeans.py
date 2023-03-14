@@ -10,24 +10,26 @@ from sklearn.metrics import pairwise_distances_argmin_min
 from mpl_toolkits.mplot3d import Axes3D
 import math
 
-n_div = 6
+n_div = 2
 n_grids = n_div*n_div
 
+get_total_success = True
 save_classification = True
 
 #dataset_directory = "/home/pal/Desktop/more_data/dataset/RGB/"
 dataset_directory = "/home/pal/Desktop/all/RGB/"
 #write_directory = "./new_results/filling/" #+ str(n_div) + "x" + str(n_div) + "/"
 #write_directory = "./new_folds/filling/" + str(n_div) + "x" + str(n_div) + "/"
-write_directory = "./all/filling/"
+write_directory = "./results/filling/"
 
 metrics_csv_file = str(n_div) + "x" + str(n_div) + ".csv" ##o1_2x2.csv
 metrics_csv_dir = write_directory+metrics_csv_file
 
 #class_directory = "./new_folds/filling/" + str(n_div) + "x" + str(n_div) + "/"
-class_directory = "./all/"# + str(n_div) + "x" + str(n_div) + "/"
+class_directory = "./results/filling/"# + str(n_div) + "x" + str(n_div) + "/"
 class_file = "clusters.csv"
 class_dir = class_directory+class_file
+
 
 plt.rcParams['figure.figsize'] = (16, 9)
 plt.style.use('ggplot')
@@ -196,121 +198,212 @@ def plot_results(clusters_files):
 
         plt.show()
 
-
-def success_ratio():
+def success_ratio(class_dir, labels, file_n, tot_success_wr):
     print("Computing success ratio...")
+
+    ## Get prediction success rate
+    print("Reading data file: ", class_dir)
+    pred_classes_df = pd.read_csv(class_dir) #Load data
+
+    clusters_files, related_GT_classes, pred_name_classes = info_clusters(pred_classes_df)
+
+    my_file = open(class_dir, "wb")
+    class_wr = csv.writer(my_file, delimiter=",")
+    copy =  pd.DataFrame()
+    copy['File']=pred_classes_df['File'].values
+    copy['Class_GT']=pred_classes_df['Class_GT_n'].values
+    copy['label_name']=labels
+    copy_n = copy.to_numpy()
+    class_d = np.empty([1,3])
+    for row in (copy_n):
+        #print(pred_name_classes[int(row[2])])
+        new_row = [row[0], GT_name_classes[int(row[1])], pred_name_classes[int(row[2])]]
+        class_d = np.vstack([class_d, new_row])
+        class_wr.writerow(new_row)
+    #print(class_d)
+
+    success_file = "success_" + str(file_n) + "x" + str(file_n) + ".csv"
+    my_file = open(class_directory+success_file, "wb")
+    #my_file = open(class_directory+"success.csv", "wb")
+    success_wr = csv.writer(my_file, delimiter=",")
+    sum = 0
+    start=True
+    Z_succ = 0
+    A_succ = 0
+    B_succ = 0
+    C_succ = 0
+    D_succ = 0
+    E_succ = 0
+    for row in class_d:
+        if start:
+            start=False
+        else:
+            if(row[1]==row[2]):
+                new_row = [row[0],row[1],row[2], 1]
+                sum +=1
+                if(row[2]=="Z"):
+                    Z_succ +=1
+                if(row[2]=="A"):
+                    A_succ +=1
+                if(row[2]=="B"):
+                    B_succ +=1
+                if(row[2]=="C"):
+                    C_succ +=1
+                if(row[2]=="D"):
+                    D_succ +=1
+                if(row[2]=="E"):
+                    E_succ +=1
+            else:
+                new_row = [row[0],row[1],row[2], 0]
+            success_wr.writerow(new_row)
+    total_success = (float(sum)/float(90))*100
+    print("Success: ", total_success)
+    # success_wr.writerow(["Total", "-", "-",total_success])
+    # success_wr.writerow(["Success Z", "-","-",float(Z_succ)/float(5)])
+    # success_wr.writerow(["Success A", "-","-",float(A_succ)/float(24)])#10
+    # #success_wr.writerow(["Success B", "-","-",float(B_succ)/float(8)])
+    # #success_wr.writerow(["Success C", "-","-",float(C_succ)/float(6)])
+    # success_wr.writerow(["Success D", "-","-",float(D_succ)/float(29)])
+    # success_wr.writerow(["Success E", "-","-",float(E_succ)/float(8)])
+
+    success_wr.writerow(["Total", "-", "-",total_success])
+    success_wr.writerow(["Success A", "-","-",(float(A_succ)/float(28))*100])#24)])
+    success_wr.writerow(["Success B", "-","-",(float(B_succ)/float(45))*100])#25)])
+    success_wr.writerow(["Success C", "-","-",(float(C_succ)/float(11))*100])
+    success_wr.writerow(["Success D", "-","-",(float(D_succ)/float(6))*100])
+
+#    for row in (tot_success_file):
+#        print(row)
+        # new_row = [row[0], (float(A_succ)/float(28))*100]
+        # class_wr.writerow(new_row)
+        # new_row = [row[0], (float(B_succ)/float(28))*100]
+        # class_wr.writerow(new_row)
+        # new_row = [row[0], (float(C_succ)/float(28))*100]
+        # class_wr.writerow(new_row)
+        # new_row = [row[0], (float(D_succ)/float(28))*100]
+        # class_wr.writerow(new_row)
+
+
+    #n_buckets = str(file_n) + "x" + str(file_n)
+    #tot_success_wr.writerow([n_buckets,n_buckets])
+    tot_success_wr.writerow([(float(A_succ)/float(28))*100])#24)])
+    tot_success_wr.writerow([(float(B_succ)/float(45))*100])#25)])
+    tot_success_wr.writerow([(float(C_succ)/float(11))*100])
+    tot_success_wr.writerow([(float(D_succ)/float(6))*100])
+    tot_success_wr.writerow([total_success])
+
+    # for row in hola:
+    #     writer.writerow(row+["hola",2,3,4,5])
+
+
+    return success_file
+
+def tot_success():
+
+    # hola = []
+    # hola = ["Success_A"]
+    # hola = np.vstack([hola, "Success_B"])
+    # hola = np.vstack([hola, "Success_C"])
+    # hola = np.vstack([hola, "Success_D"])
+    # hola = np.vstack([hola, "Total"])
+    # print(hola)
+
+
+    dir = write_directory+"all_success_column.csv"
+    print(dir)
+    tot_success_content = pd.read_csv(dir)
+    # for row in range(0,6):
+    #     new_wr.writerow(tot_success_content[0]+tot_success_content[6])
+    # tot_success_content["new_col"] = [1,2,3,4,5]
+
+    print(tot_success_content.values[0])
+
+    success_file = "total_success.csv"
+    my_file = open(class_directory+success_file, "wb")
+    #my_file = open(class_directory+"success.csv", "wb")
+    test_wr = csv.writer(my_file, delimiter=",")
+
+    label = ["Success_A", "Success_B", "Success_C", "Success_D", "TOTAL"]
+    test_wr.writerow(["","2x2","3x3","4x4","5x5"])
+    for n in range(0,5):
+        new_row = label[n]
+        # new_row = np.append(new_row, tot_success_content.values[n])
+        print(n)
+        for i in range(n,n+20,5):
+            print(i)
+            new_row = np.append(new_row, tot_success_content.values[i])
+        print(new_row)
+        test_wr.writerow(new_row)
+        new_row = []
+
+def train_kmeans(metrics_csv_dir):
+
+    print("Reading data file: ", metrics_csv_dir)
+    dataframe = pd.read_csv(metrics_csv_dir) #Load data
+    info_dataframe(dataframe)
+
+    ## Define training data: Deformation metrics (according to grid division)
+    metrics_name = ["M1","M2","M3","M4","M5","M6","M7","M8","M9","M10","M11","M12","M13","M14","M15","M16","M17","M18","M19","M20","M21","M22","M23","M24","M25"]
+    metrics = []
+    for i in range(0,n_grids):
+        text = "M"+str(i+1)
+        metrics.append(text)
+        train_data = np.array(dataframe[metrics])
+        #metrics.append(metrics_name[i])
+        #train_data = np.array(dataframe[metrics])
+    #y = np.array(dataframe['Class_GT'])
+    print("Training with metrics ", metrics)
+    print(dataframe[metrics])
+    #print("Number trials and Metrics: ", train_data.shape)
+
+    ## Fit cluster with deformation metric data
+    kmeans = KMeans(n_clusters=4, init='random').fit(train_data)
+    #kmeans = KMeans(n_clusters=4).fit(train_data)
+
+    # Predicting the clusters
+    labels = kmeans.predict(train_data)
+    print("Labels: ", labels)
+
+    ##Create new CSV with GT and predicted classes
+    pred_classes =  pd.DataFrame()
+    pred_classes['File']=dataframe['File'].values
+    pred_classes['Class_GT_n']=dataframe['Class_GT_n'].values
+    pred_classes['label']=labels
+    if(save_classification):
+        pred_classes.to_csv(class_dir, index=False)
+
+    ## vemos el representante del grupo, el usuario cercano a su centroid
+    closest, _ = pairwise_distances_argmin_min(kmeans.cluster_centers_, train_data)
+    #print(closest)
+    print("Closest exps to centroids: ")
+    users=dataframe['File'].values
+    for row in closest:
+        print(users[row])
+
+    return labels
 
 ##################################################################################################
 
-print("Reading data file: ", metrics_csv_dir)
-dataframe = pd.read_csv(metrics_csv_dir) #Load data
-info_dataframe(dataframe)
+if not get_total_success:
+    success_file = "all_success_column.csv"
+    my_file = open(class_directory+success_file, "wb")
+    #my_file = open(class_directory+"success.csv", "wb")
+    tot_success_wr = csv.writer(my_file, delimiter=",")
 
-## Define training data: Deformation metrics (according to grid division)
-metrics_name = ["M1","M2","M3","M4","M5","M6","M7","M8","M9","M10","M11","M12","M13","M14","M15","M16","M17","M18","M19","M20","M21","M22","M23","M24","M25"]
-metrics = []
-for i in range(0,n_grids):
-    text = "M"+str(i+1)
-    metrics.append(text)
-    train_data = np.array(dataframe[metrics])
-    #metrics.append(metrics_name[i])
-    #train_data = np.array(dataframe[metrics])
-#y = np.array(dataframe['Class_GT'])
-print("Training with metrics ", metrics)
-print(dataframe[metrics])
-#print("Number trials and Metrics: ", train_data.shape)
 
-## Fit cluster with deformation metric data
-kmeans = KMeans(n_clusters=4, init='random').fit(train_data)
+    tot_success_wr.writerow(["Success_rates"])
+    for i in range(2,6):
+        metrics_csv_file = str(i) + "x" + str(i) + ".csv" ##2x2.csv
+        metrics_csv_dir = write_directory+metrics_csv_file
 
-# Predicting the clusters
-labels = kmeans.predict(train_data)
-print("Labels: ", labels)
+        ## Train kmeans with deformation data
+        labels = train_kmeans(metrics_csv_dir)
 
-##Create new CSV with GT and predicted classes
-pred_classes =  pd.DataFrame()
-pred_classes['File']=dataframe['File'].values
-pred_classes['Class_GT_n']=dataframe['Class_GT_n'].values
-pred_classes['label']=labels
-if(save_classification):
-    pred_classes.to_csv(class_dir, index=False)
+        ## Get prediction success rate
+        success_file = success_ratio(class_dir, labels, i, tot_success_wr)
 
-## vemos el representante del grupo, el usuario cercano a su centroid
-closest, _ = pairwise_distances_argmin_min(kmeans.cluster_centers_, train_data)
-#print(closest)
-print("Closest exps to centroids: ")
-users=dataframe['File'].values
-for row in closest:
-    print(users[row])
-
-## Get prediction success rate
-print("Reading data file: ", class_dir)
-pred_classes_df = pd.read_csv(class_dir) #Load data
-
-clusters_files, related_GT_classes, pred_name_classes = info_clusters(pred_classes_df)
-
-my_file = open(class_dir, "wb")
-class_wr = csv.writer(my_file, delimiter=",")
-copy =  pd.DataFrame()
-copy['File']=pred_classes_df['File'].values
-copy['Class_GT']=pred_classes_df['Class_GT_n'].values
-copy['label_name']=labels
-copy_n = copy.to_numpy()
-class_d = np.empty([1,3])
-for row in (copy_n):
-    #print(pred_name_classes[int(row[2])])
-    new_row = [row[0], GT_name_classes[int(row[1])], pred_name_classes[int(row[2])]]
-    class_d = np.vstack([class_d, new_row])
-    class_wr.writerow(new_row)
-#print(class_d)
-
-my_file = open(class_directory+"success.csv", "wb")
-success_wr = csv.writer(my_file, delimiter=",")
-sum = 0
-start=True
-Z_succ = 0
-A_succ = 0
-B_succ = 0
-C_succ = 0
-D_succ = 0
-E_succ = 0
-for row in class_d:
-    if start:
-        start=False
-    else:
-        if(row[1]==row[2]):
-            new_row = [row[0],row[1],row[2], 1]
-            sum +=1
-            if(row[2]=="Z"):
-                Z_succ +=1
-            if(row[2]=="A"):
-                A_succ +=1
-            if(row[2]=="B"):
-                B_succ +=1
-            if(row[2]=="C"):
-                C_succ +=1
-            if(row[2]=="D"):
-                D_succ +=1
-            if(row[2]=="E"):
-                E_succ +=1
-        else:
-            new_row = [row[0],row[1],row[2], 0]
-        success_wr.writerow(new_row)
-total_success = (float(sum)/float(90))*100
-print("Success: ", total_success)
-# success_wr.writerow(["Total", "-", "-",total_success])
-# success_wr.writerow(["Success Z", "-","-",float(Z_succ)/float(5)])
-# success_wr.writerow(["Success A", "-","-",float(A_succ)/float(24)])#10
-# #success_wr.writerow(["Success B", "-","-",float(B_succ)/float(8)])
-# #success_wr.writerow(["Success C", "-","-",float(C_succ)/float(6)])
-# success_wr.writerow(["Success D", "-","-",float(D_succ)/float(29)])
-# success_wr.writerow(["Success E", "-","-",float(E_succ)/float(8)])
-
-success_wr.writerow(["Total", "-", "-",total_success])
-success_wr.writerow(["Success A", "-","-",(float(A_succ)/float(28))*100])#24)])
-success_wr.writerow(["Success B", "-","-",(float(B_succ)/float(45))*100])#25)])
-success_wr.writerow(["Success C", "-","-",(float(C_succ)/float(11))*100])
-success_wr.writerow(["Success D", "-","-",(float(D_succ)/float(6))*100])
+else:
+    tot_success()
 
 
 
