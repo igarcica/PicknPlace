@@ -5,7 +5,7 @@ import os
 ##################################################################################################
 ## INPUT PARAMETERS
 
-n_div = 4
+n_div = 10
 n_grids = n_div*n_div #4, 9, 16, 25...
 #metrics_name = ["M1","M2","M3","M4", "M5","M6","M7","M8","M9","M10","M11","M12","M13","M14","M15","M16","M17","M18","M19","M20","M21","M22","M23","M24","M25"]
 
@@ -13,7 +13,7 @@ n_grids = n_div*n_div #4, 9, 16, 25...
 #data_directory="/home/pal/Desktop/more_data/dataset/RGB/"
 #data_directory="/home/pal/Desktop/more_folds/dataset/RGB/"
 data_directory="/home/pal/Desktop/all/RGB/"
-write_directory = "./metrics/filling/" + str(n_div) + "x" + str(n_div) + "/"
+write_directory = "./metrics/not_filling_peso/" + str(n_div) + "x" + str(n_div) + "/"
 
 metrics_csv_file = str(n_div) + "x" + str(n_div) + ".csv" ##o1_2x2.csv
 metrics_csv_dir = write_directory+metrics_csv_file
@@ -26,7 +26,7 @@ save_img = True
 show_img = False
 
 crop_imgs=False
-print_metrics=True
+print_metrics=False
 
 
 ##################################################################################################
@@ -73,10 +73,11 @@ def print_metric_img(img, image_file, metrics_df):
     for n in range(0,n_div): # y coordinates
         for m in range(0,n_div): # x coordinates
             metric_name = "M"+str(k)
-            #metric_value = float(file_metrics[metrics_name[k]])
-            metric_value = float(file_metrics[metric_name]) # Search next metric (M1, M2, M3,...)
+            metric_value = file_metrics[metric_name].values
+            #metric_value = float(file_metrics[metric_name]) # Search next metric (M1, M2, M3,...)
             text = str(round(metric_value,3))
-            cv2.putText(img, text, (locs_y[n], locs_x[m]), cv2.FONT_HERSHEY_SIMPLEX, size, (221, 82, 196), 2)
+            if(print_metrics):
+                cv2.putText(img, text, (locs_y[n], locs_x[m]), cv2.FONT_HERSHEY_SIMPLEX, size, (221, 82, 196), 2)
             k+=1
 
     ## Print file name
@@ -108,9 +109,9 @@ metrics_df = pd.read_csv(metrics_csv_dir) ##Read CSV --> Metrics
 if not(all_files):
     img = cv2.imread(image_dir)
     #print(img.shape)
-    if(crop_imgs):
+    if crop_imgs :
         crop_image(image_dir)
-    if(print_metrics):
+    else:
         metrics_df = pd.read_csv(metrics_csv_dir) ##Read CSV --> Metrics
         print_metric_img(img, image_file, metrics_df) ## Print metrics in image
 
@@ -121,7 +122,7 @@ if(all_files):
         f = os.path.join(data_directory, filename)
         if os.path.isfile(f) and filename.endswith('.png'):
             img = cv2.imread(f)
-            if(crop_imgs):
+            if crop_imgs:
                 crop_image(f)
-            if(print_metrics):
+            else:
                 print_metric_img(img, filename, metrics_df)

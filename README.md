@@ -132,7 +132,7 @@ This will
 
 ### How to compute the deformation metric and clusterise
 
-Go to the /data folder, to compute the deformation metric, define in the script "def_metric.py" the path with the PCD files of the experiments and the path where you want to save the results. Also select the number of desired buckets.
+Go to the /data folder, to compute the deformation metric, set the path with the PCD files of the experiments and the path where you want to save the results in the "def_metrics.py" script. Also select the number of desired buckets.
 
 ``python def_metric.py``
 
