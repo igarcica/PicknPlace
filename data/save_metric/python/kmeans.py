@@ -9,6 +9,7 @@ from sklearn.cluster import KMeans
 from sklearn.metrics import pairwise_distances_argmin_min
 from mpl_toolkits.mplot3d import Axes3D
 import math
+#from yellowbrick.cluster import KElbowVisualizer
 
 max_n_div = 10
 
@@ -586,8 +587,40 @@ def train_kmeans(metrics_csv_dir, n_div):
     print_info(activate_print, "Training with metrics ", metrics)
     print_info(activate_print, "Number trials and Metrics: ", train_data.shape)
 
+    # model = KMeans()
+    # visualizer = KElbowVisualizer(model, k=(1,11))
+
     ## Fit cluster with deformation metric data
-    kmeans = KMeans(n_clusters=4, init='random', n_init=20, max_iter=500, tol=1e-8, random_state=0).fit(train_data)
+    #kmeans = KMeans(n_clusters=4, init='k-means++', n_init=20, max_iter=500, tol=1e-8, random_state=0).fit(train_data) #init kmeans ++ (starts selecting 1 centroid randomly)
+    #kmeans = KMeans(n_clusters=4, init='random', n_init=20, max_iter=500, tol=1e-8, random_state=0).fit(train_data) ## init random (starts selecting k centroids randomly)
+
+    ## Kmeans setting the initial centroids with samples from each class in the GT
+    #init_centroids = [dataframe.iloc[0,3],dataframe.iloc[0,3],dataframe.iloc[0,3],dataframe.iloc[0,3]]
+    init_centroids = np.empty([1,n_div*n_div])
+    ## sample for class A
+    sample = dataframe.iloc[7].values
+    sample_point = sample[3:n_div*n_div+3]
+    init_centroids = np.vstack([init_centroids, sample_point])
+    print_info(True, "Sample used as centroid of class A: "+sample[0])
+    ## sample for class B
+    sample = dataframe.iloc[4].values
+    sample_point = sample[3:n_div*n_div+3]
+    init_centroids = np.vstack([init_centroids, sample_point])
+    print_info(True, "Sample used as centroid of class B: "+sample[0])
+    ## sample for class C
+    sample = dataframe.iloc[31].values
+    sample_point = sample[3:n_div*n_div+3]
+    init_centroids = np.vstack([init_centroids, sample_point])
+    print_info(True, "Sample used as centroid of class C: "+sample[0])
+    ## sample for class D
+    sample = dataframe.iloc[70].values
+    sample_point = sample[3:n_div*n_div+3]
+    init_centroids = np.vstack([init_centroids, sample_point])
+    print_info(True, "Sample used as centroid of class D: "+sample[0])
+    ## Create initial centroid points
+    init_centroids = np.delete(init_centroids,0,0)
+    #print(init_centroids)
+    kmeans = KMeans(n_clusters=4, init=init_centroids, n_init=20, max_iter=500, tol=1e-8, random_state=None).fit(train_data) ## init random (starts selecting k centroids randomly)
 
     # Predicting the clusters
     labels = kmeans.predict(train_data)

@@ -16,7 +16,7 @@ from matplotlib import cm
 ##################################################################################################
 ## INPUT PARAMETERS
 
-n_div = 10 # Grid division
+n_div = 2 # Grid division
 
 #data_directory="/home/pal/Desktop/all/dataset/Picks/PCD/segmented/"
 #data_directory="/home/pal/Desktop/more_data/dataset/PCD/"
@@ -220,7 +220,8 @@ def plot_metrics(filename, metrics):
     plt.axis("off")
 
     #ax.imshow(data, cmap='gist_rainbow', norm=colors.LogNorm(vmin=0, vmax=1))
-    ax.imshow(data, cmap='gist_rainbow', norm=colors.LogNorm(vmin=0.001, vmax=1.0))
+    #ax.imshow(data, cmap='gist_rainbow', norm=colors.LogNorm(vmin=0.001, vmax=1.0)) #10x10
+    ax.imshow(data, cmap='gist_rainbow', norm=colors.LogNorm(vmin=0.00002, vmax=0.02)) #2x2
     #plt.show()
     file_name = write_directory + filename + "_pat.png"
     plt.savefig(file_name)
