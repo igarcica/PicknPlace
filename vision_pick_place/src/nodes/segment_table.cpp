@@ -127,6 +127,7 @@ namespace pal {
 
     ros::Publisher _convexCloudPub;
     ros::Publisher _cornersMarkersPub;
+    ros::Publisher _metricMarkersPub;
     ros::Publisher _graspPointPub;
     ros::Publisher _garmentEdgePub;
     ros::Publisher _pileHeightPub;
@@ -295,6 +296,7 @@ namespace pal {
 
     _convexCloudPub   = _pnh.advertise< pcl::PointCloud<pcl::PointXYZ> >("convex", 1);
     _cornersMarkersPub = _pnh.advertise<visualization_msgs::MarkerArray>("corners", 1);
+    _metricMarkersPub = _pnh.advertise<visualization_msgs::MarkerArray>("metric", 1);
     _graspPointPub    = _pnh.advertise<visualization_msgs::Marker>("grasp_point", 1);
 
     n_frames=0;
@@ -820,9 +822,9 @@ namespace pal {
     means_markers.markers.push_back(mean_marker4);
 
     //Publish means
-    if ( _cornersMarkersPub.getNumSubscribers() > 1 )
+    if ( _metricMarkersPub.getNumSubscribers() > 1 )
     {
-      _cornersMarkersPub.publish(means_markers);
+      _metricMarkersPub.publish(means_markers);
       means_markers.markers.clear();
     }
 

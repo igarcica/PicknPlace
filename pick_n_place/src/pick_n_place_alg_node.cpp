@@ -161,8 +161,8 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                  this->success &= home_the_robot();
                  if (this->success)
                  {
-  		   this->state=EXPERIMENTS1;
-                   //this->state=PRE_GRASP;
+  		   //this->state=EXPERIMENTS1;
+                   this->state=PRE_GRASP;
                    ros::Duration(0.5).sleep();
                  }
       break;
@@ -267,7 +267,8 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                               else if(kinova_linear_move_state==actionlib::SimpleClientGoalState::SUCCEEDED)
                               {
                                 this->success = true;
-                                this->state=ROTATE_POST_GRASP;
+                                //this->state=ROTATE_POST_GRASP;
+                                this->state=EXPERIMENTS1;
                                 ros::Duration(0.5).sleep();
                               }
                             }
