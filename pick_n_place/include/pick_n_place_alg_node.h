@@ -111,7 +111,8 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     kortex_driver::Pose tool_pose;
     bool success = true;
     //int state = 0;
-    bool start=false;
+    bool start_demo=false;
+    bool start_experiments=false;
     bool stop=false;
     int placing_strategy=2;
     pick_place_states_t state;

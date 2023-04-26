@@ -6,7 +6,8 @@ PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
 {
 
   this->state=IDLE;
-  this->start=false;
+  this->start_demo=false;
+  this->start_experiments=false;
   this->stop=false;
   double open_gripper = 0.35;
   double close_gripper = 0.97; //0.81;
@@ -126,7 +127,8 @@ void PicknPlaceAlgNode::mainNodeThread(void)
   {
     ROS_WARN("Demo Pick n Place has stopped!");
     this->state=IDLE;
-    this->start=false;
+    this->start_demo=false;
+    this->start_experiments=false;
     this->stop=false;
   }
   else
@@ -134,7 +136,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
     switch(this->state)
     {
       case IDLE: ROS_DEBUG("PicknPlaceAlgNode: state IDLE");
-                 if(this->start)
+                 if(this->start_demo)
                  {
                    ROS_DEBUG("Opening the gripper");
 		   this->get_pile_height = false;
@@ -143,12 +145,13 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                    {
                      this->state=HOME;
                      ros::Duration(0.5).sleep();
-                     this->start=false;
+                     this->start_demo=false;
                    }
                  }
-                 else if(config_.start2)
+                 else if(this->start_experiments)
 		 {
 		   this->state=CHOOSE_PLACING;
+		   this->start_experiments=false;
 		 }
 		 else
                    this->state=IDLE;
@@ -1367,9 +1370,36 @@ void PicknPlaceAlgNode::node_config_update(Config &config, uint32_t level)
     this->diagonal_move = config.diagonal_move;
     std::cout << this->diagonal_move << std::endl;
   }*/
-  if(config.start or config.start2)
+  if(config.get_grasp_point)
   {
-    this->start=true;
+    this->get_garment_position=true;
+//    this->get_garment_angle=true;
+    config.get_grasp_point=false;
+  }
+
+  //Start SM for demo (use 'towel' bool to change strategy for grasping and placing towel (less gripper closure + vertical place) or napkin (more gripper closure + place2)
+  if(config.start_demo)
+  {
+    this->start_demo=true;
+    if(config.towel)
+    {
+      this->close_gripper=0.81;
+      this->placing_strategy=2;//vertical
+      std::cout << this->placing_strategy << std::endl;
+    }
+    else
+    {
+      this->close_gripper=0.98;
+      this->placing_strategy=3;//place2
+      std::cout << this->placing_strategy << std::endl;
+    }
+    config.start_demo=false;
+  }
+
+  // Start SM for experiments (Starts from state X + Select placing strategy)
+  else if(config.start_experiments)
+  {
+    this->start_experiments=true;
     this->close_gripper=config.close_gripper;
     if(config.vertical_place)
     {
@@ -1391,19 +1421,14 @@ void PicknPlaceAlgNode::node_config_update(Config &config, uint32_t level)
       this->placing_strategy=2; //vertical
       std::cout << this->placing_strategy << std::endl;
     }
-    config.start=false;
+    config.start_experiments=false;
     this->pile_height=config.pile_height;
     std::cout << "Pile height: " << pile_height << std::endl;
     std::cout << "Garment edge: " << garment_height << std::endl;
   }
+
   if(config.stop)
     this->stop=true;
-  if(config.get_grasp_point)
-  {
-    this->get_garment_position=true;
-//    this->get_garment_angle=true;
-    config.get_grasp_point=false;
-  }
   if(config.test)
   {
     this->pre_grasp_center.x = config.grasp_x;
