@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+
+<!-- REALSENSE CAMERA -->
+  <include file="$(find pick_n_place)/launch/rs_camera.launch">
+    <arg name="camera" value="ext_camera" />
+    <arg name="filters" value="pointcloud" />
+    <arg name="serial_no" value="024222250058" />
+    <arg name="tf_prefix" value="ext_camera" />
+  </include>
+
+  <include file="$(find pick_n_place)/launch/rs_camera.launch">
+    <arg name="camera" value="lateral_camera" />
+    <arg name="filters" value="pointcloud" />
+    <arg name="serial_no" value="031222070182" />
+    <arg name="tf_prefix" value="lateral_camera" />
+  </include>
+
+  <include file="$(find pick_n_place)/launch/rs_camera.launch">
+    <arg name="camera" value="frontal_camera" />
+    <arg name="filters" value="pointcloud" />
+    <arg name="serial_no" value="846112071003" />
+    <arg name="tf_prefix" value="frontal_camera" />
+  </include>
+
+
+</launch>
