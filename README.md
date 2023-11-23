@@ -26,6 +26,15 @@ The package has the following structure:
             -kmeans.py: Clusterises pick files based on deformation metrics and computes success rate comparing it to the ground truth.
             -plot_results.py: Prints the deformation metrics in the corresponding files for visual information.
 
+<!--## Dependencies
+
+For hierarchhical.py
+
+sudp apt get insttal python3-pip
+pip3 install -U scikit-learn
+pip3 install numpy, pandas, matplotlib
+-->
+
 <!--## How to execute PnP demo
 
 First launch the camera node and robot driver, in this example the rs camera and kinova robot:
@@ -114,8 +123,8 @@ To visualize the computed metrics publish the point cloud of the pcd file and ru
 ```
 roscore
 rosrun pcl_ros pcd_to_pointcloud pointcloud_file.pcd 0.1
-rostopic echo /segment_table/corners
 roslaunch vision_pick_place picknplace.launch
+rosrun pcl_ros pointcloud_to_pcd input:=/segment_table/garment _prefix:=o3-03_gr_e06_
 ```
 
 To run all the pcd files one by one and write the results in a csv file:
@@ -129,6 +138,26 @@ python execution.py
 ```
 
 This will
+
+### How to prepare the dataset
+
+Save the clean segmented data of the deformed cloth, run the pcd of the entire view and save it:
+
+```
+roscore
+rosrun pcl_ros pcd_to_pointcloud pointcloud_file.pcd 0.1
+roslaunch vision_pick_place picknplace.launch
+rosrun pcl_ros pointcloud_to_pcd input:=/segment_table/garment _prefix:=o3-03_gr_e06
+```
+
+To prepare the color images cutting them:
+
+1. set the RGB folder path in plot_results.py
+2. Set crop_imgs to True and save_img to False
+3. Go to the path containing the script plot_results.py. Here is where the cropped images will be saved
+4. Run the script: ``python plot_results.py``
+
+
 
 ### How to compute the deformation metric and clusterise
 
@@ -150,6 +179,8 @@ To clusterise and compute the success rate based on a given ground truth, run th
 
 This script will return a CSV file with the predicted cluster of each file, the label given telating to the ground truth and the success of each class and total.
 
+To execute other clustering algorithms such as Hierarchical agglomerative clustering run:
 
+``python3 hierarchical.py``
 
 

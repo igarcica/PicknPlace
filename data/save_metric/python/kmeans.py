@@ -18,8 +18,8 @@ save_predicted_clusters = True  ## Save images with sample images of each cluste
 
 activate_print = False ## Print info in terminal
 
-metrics_directory = "./metrics/filling/" #+ str(n_div) + "x" + str(n_div) + "/"
-results_directory = "./results/filling/"
+metrics_directory = "./metrics_D/not_filling/" #+ str(n_div) + "x" + str(n_div) + "/"
+results_directory = "./results_D/not_filling/"
 
 plt.rcParams['figure.figsize'] = (16, 9)
 plt.style.use('ggplot')
@@ -276,7 +276,7 @@ def success_ratio_combine_GT_classes(pred_classes_df, n_div, GT_class_sizes, tot
             ## Write GT class, assigned label, and 0/1 if success or not
             success_wr.writerow(new_row)
 
-        total_success = (float(sum)/float(90))*100
+        total_success = (float(sum)/float(GT_class_sizes[4]))*100
         print_info(activate_print, "Success: ", total_success)
 
         ## Write class success and total in the corresponding n_bucket file
@@ -342,6 +342,10 @@ def info_dataframe(dataframe, n_div):
     print_info(activate_print, dataframe.describe())
     print_info(activate_print, dataframe.groupby('Class_GT').size()) ##Number of experiments in each grount truth class
     GT_class_sizes = dataframe.groupby('Class_GT').size().values
+    tot_class = 0
+    for i_class in range(0,len(GT_class_sizes)):
+        tot_class += GT_class_sizes[i_class]
+    GT_class_sizes = np.append(GT_class_sizes, tot_class)
     #dataframe.drop(['Class_GT'],1).hist() ## Dispersion
     #plt.show()
     #sb.pairplot(dataframe.dropna(), hue='Class_GT',size=4,vars=["M1","M2","M4"],kind='scatter') ##Cruzar 3 dimensiones para ver agrupaciones
@@ -613,7 +617,7 @@ def train_kmeans(metrics_csv_dir, n_div):
     init_centroids = np.vstack([init_centroids, sample_point])
     print_info(True, "Sample used as centroid of class C: "+sample[0])
     ## sample for class D
-    sample = dataframe.iloc[70].values
+    sample = dataframe.iloc[22].values #iloc[70].values
     sample_point = sample[3:n_div*n_div+3]
     init_centroids = np.vstack([init_centroids, sample_point])
     print_info(True, "Sample used as centroid of class D: "+sample[0])

@@ -12,88 +12,123 @@ import matplotlib as mlib
 from matplotlib import colors
 from matplotlib import cm
 
+from io import StringIO
+
 
 ##################################################################################################
 ## INPUT PARAMETERS
 
-n_div = 2 # Grid division
+max_n_div = 10 # Grid division
+
+GT_file = "./metrics_D/GT.csv"
 
 #data_directory="/home/pal/Desktop/all/dataset/Picks/PCD/segmented/"
 #data_directory="/home/pal/Desktop/more_data/dataset/PCD/"
 #data_directory="/home/pal/Desktop/more_folds/dataset/PCD/"
 data_directory="/home/pal/Desktop/all/PCD/"
+#data_directory="/home/pal/Desktop/more_D/PCD/"
 #write_directory = "./new_results/filling/" #+ str(n_div) + "x" + str(n_div) + "/" ##./results/2x2/
-write_directory = "./metrics/not_filling_peso/" + str(n_div) + "x" + str(n_div) + "/"
+#write_directory = "./metrics/not_filling_peso/" + str(n_div) + "x" + str(n_div) + "/"
+# write_directory = "./metrics_D/not_filling/" + str(n_div) + "x" + str(n_div) + "/"
+
+tests = False
+
+# ## Canonical object
+# all_files = False
+# pcd_file = "o2-04_gr_e05.pcd"
+# pcd_dir = data_directory+pcd_file
+# syn_can = True
+# can_pcd_file = 'o3-03_gr_can.pcd'
+# can_pcd_dir = data_directory+can_pcd_file
+#
+# save_def_metric = True
+# use_filling_def_metric = False
+# def_metric_file = str(n_div) + "x" + str(n_div) + ".csv" ## CSV file to save def metric
+# def_metric_dir = write_directory+def_metric_file
+# if(save_def_metric):
+#     my_file = open(def_metric_dir, "wb")
+#     wr = csv.writer(my_file, delimiter=",")
+#
+# ## Save results
+# show_plot = False
+# show_img_with_metrics = True
+# print_info = False
+#
+# save_plots_dir = write_directory + "/plots/"
+# save_plots = False
+#
+# save_grid_sizes = False
+# grid_sizes_file = "grid_sizes.csv"
+# grid_sizes_dir = write_directory+grid_sizes_file
+# if(save_grid_sizes):
+#     my_file = open(grid_sizes_dir, "wb")
+#     grid_sizes_wr = csv.writer(my_file, delimiter=",")
+#
+# activate_print = False
+
+if tests:
+    all_files = False
+    pcd_file = "o2-04_gr_e04.pcd"
+    pcd_dir = data_directory+pcd_file
+    save_def_metric = False
+    show_plot = True
+    show_img_with_metrics = True
+    save_img_with_metrics = False
+else:
+    all_files = True
+    save_def_metric = True
+    # def_metric_file = str(n_div) + "x" + str(n_div) + ".csv" ## CSV file to save def metric
+    # def_metric_dir = write_directory+def_metric_file
+    # my_file = open(def_metric_dir, "wb")
+    # def_metrics_wr = csv.writer(my_file, delimiter=",")
+    show_plot = False
+    show_img_with_metrics = True
+    save_img_with_metrics = True
 
 
-## Canonical object
-all_files = True
-pcd_file = "o5-04_gr_e04.pcd"
-pcd_dir = data_directory+pcd_file
 syn_can = True
-can_pcd_file = 'o2_gr_e11.pcd'
-can_pcd_dir = data_directory+can_pcd_file
 
-
-save_def_metric = True
 use_filling_def_metric = False
-def_metric_file = str(n_div) + "x" + str(n_div) + ".csv" ## CSV file to save def metric
-def_metric_dir = write_directory+def_metric_file
-if(save_def_metric):
-    my_file = open(def_metric_dir, "wb")
-    wr = csv.writer(my_file, delimiter=",")
 
-## Save results
-show_plot = False
-show_plot_metrics = True
-print_info = False
 
-save_plots_dir = write_directory + "/plots/"
-save_plots = False
-
-save_grid_sizes = False
-grid_sizes_file = "grid_sizes.csv"
-grid_sizes_dir = write_directory+grid_sizes_file
-if(save_grid_sizes):
-    my_file = open(grid_sizes_dir, "wb")
-    grid_sizes_wr = csv.writer(my_file, delimiter=",")
+# save_grid_sizes = False
+# grid_sizes_file = "grid_sizes.csv"
+# grid_sizes_dir = write_directory+grid_sizes_file
+#
+# save_plots_dir = write_directory + "/plots/"
+# save_plots = False
 
 activate_print = False
 
 
-objects = ["o1", "o2", "o3", "o4", "o5", "o1-01","o1-04", "o2-01", "o2-04", "o2-07", "o2-10", "o5-01", "o5-04", "o5-07", "o5-10"]
-#metrics_name = ["M1","M2","M3","M4", "M5","M6","M7","M8","M9","M10","M11","M12","M13","M14","M15","M16","M17","M18","M19","M20","M21","M22","M23","M24","M25"]
-#classes = ["A","B","A","C","A","B","A","C","A","B","A","C","C","A","D","D","F","D","D","G","D","D","F","D"]
-#classes = ["A","B","B","B","B","B","B","B","B","B","B","B","B","A","D","D","D","C","C","C","C","C","C","C","C","C","A","C","C","C","E","C","C","E","C","E","C","C","C","A","B","B","B","B","B","B","B","B","B","B","B","B","A","C","C","C","C","C","C","E","C","C","C","C","E"]
 
-#classes = ["Z","A","A","B","B","B","B","C","C","C","A","A","B","Z","E","E","E","D","D","D","D","D","D","D","D","D","Z","D","D","D","E","D","D","E","D","E","D","D","D","Z","A","A","A","C","C","C","A","A","A","B","B","B","Z","D","D","D","D","D","D","E","D","D","D","D","E"]
-#n_classes = [0,1,1,2,2,2,2,3,3,3,1,1,2,0,5,5,5,4,4,4,4,4,4,4,4,4,0,4,4,4,5,4,4,5,4,5,4,4,4,0,1,1,1,3,3,3,1,1,1,2,2,2,0,4,4,4,4,4,4,3,4,4,4,4,4]
-#classes = ["Z","A","A","A","A","A","A","A","A","A","A","A","A","Z","C","C","C","B","B","B","B","B","B","B","B","B","Z","B","B","B","C","B","B","C","B","C","B","B","B","Z","A","A","A","A","A","A","A","A","A","A","A","A","Z","B","B","B","B","B","B","C","B","B","B","B","C"]
-#n_classes = [0,1,1,1,1,1,1,1,1,1,1,1,1,0,3,3,3,2,2,2,2,2,2,2,2,2,0,2,2,2,3,2,2,3,2,3,2,2,2,0,1,1,1,1,1,1,1,1,1,1,1,1,0,2,2,2,2,2,2,3,2,2,2,2,3]
-classes = ["A","A","A","A","A","A","A","A","A","A","A","A","C","C","C","B","B","B","B","B","B","C","C","C","B","B","B","C","B","B","C","B","C","B","B","B","A","A","A","A","A","A","A","A","A","A","A","A","B","B","B","B","B","B","C","B","B","B","B","C"]
-n_classes = [0,0,0,0,0,0,0,0,0,0,0,0,2,2,2,1,1,1,1,1,1,2,2,2,1,1,1,2,1,1,2,1,2,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,2,1,1,1,1,2]
+objects = ["o1", "o2", "o3", "o4", "o5", "o1-01","o1-04", "o2-01", "o2-04", "o2-07", "o2-10", "o3-01", "o3-02", "o3-03", "o5-01", "o5-04", "o5-07", "o5-10"]
+# #metrics_name = ["M1","M2","M3","M4", "M5","M6","M7","M8","M9","M10","M11","M12","M13","M14","M15","M16","M17","M18","M19","M20","M21","M22","M23","M24","M25"]
+# #classes = ["A","B","A","C","A","B","A","C","A","B","A","C","C","A","D","D","F","D","D","G","D","D","F","D"]
+# #classes = ["A","B","B","B","B","B","B","B","B","B","B","B","B","A","D","D","D","C","C","C","C","C","C","C","C","C","A","C","C","C","E","C","C","E","C","E","C","C","C","A","B","B","B","B","B","B","B","B","B","B","B","B","A","C","C","C","C","C","C","E","C","C","C","C","E"]
+#
+# #classes = ["Z","A","A","B","B","B","B","C","C","C","A","A","B","Z","E","E","E","D","D","D","D","D","D","D","D","D","Z","D","D","D","E","D","D","E","D","E","D","D","D","Z","A","A","A","C","C","C","A","A","A","B","B","B","Z","D","D","D","D","D","D","E","D","D","D","D","E"]
+# #n_classes = [0,1,1,2,2,2,2,3,3,3,1,1,2,0,5,5,5,4,4,4,4,4,4,4,4,4,0,4,4,4,5,4,4,5,4,5,4,4,4,0,1,1,1,3,3,3,1,1,1,2,2,2,0,4,4,4,4,4,4,3,4,4,4,4,4]
+# #classes = ["Z","A","A","A","A","A","A","A","A","A","A","A","A","Z","C","C","C","B","B","B","B","B","B","B","B","B","Z","B","B","B","C","B","B","C","B","C","B","B","B","Z","A","A","A","A","A","A","A","A","A","A","A","A","Z","B","B","B","B","B","B","C","B","B","B","B","C"]
+# #n_classes = [0,1,1,1,1,1,1,1,1,1,1,1,1,0,3,3,3,2,2,2,2,2,2,2,2,2,0,2,2,2,3,2,2,3,2,3,2,2,2,0,1,1,1,1,1,1,1,1,1,1,1,1,0,2,2,2,2,2,2,3,2,2,2,2,3]
+# classes = ["A","A","A","A","A","A","A","A","A","A","A","A","C","C","C","B","B","B","B","B","B","C","C","C","B","B","B","C","B","B","C","B","C","B","B","B","A","A","A","A","A","A","A","A","A","A","A","A","B","B","B","B","B","B","C","B","B","B","B","C"]
+# n_classes = [0,0,0,0,0,0,0,0,0,0,0,0,2,2,2,1,1,1,1,1,1,2,2,2,1,1,1,2,1,1,2,1,2,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,2,1,1,1,1,2]
+#
+# classes_f = ["B","B","B","B","B","B","B","B","B","D","D","D","B","B","B","B","A","B","B","B","B","D","D","D","B","B","B","A","A","A"]
+# n_classes_f = [1,1,1,1,1,1,1,1,1,3,3,3,1,1,1,1,0,1,1,1,1,3,3,3,1,1,1,0,0,0]
+#
+# classes_all = ["B","B","B","B","B","B","A","A","A","A","A","A","A","A","A","A","A","A","B","B","B","D","D","D","B","B","B","B","A","B","C","C","C","B","B","B","B","B","B","C","C","C","B","B","B","C","B","B","C","B","C","B","B","B","A","A","A","A","A","A","A","A","A","A","A","A","B","B","B","D","D","D","B","B","B","A","A","A","B","B","B","B","B","B","C","B","B","B","B","C"]
+# n_classes_all = [1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,3,3,3,1,1,1,1,0,1,2,2,2,1,1,1,1,1,1,2,2,2,1,1,1,2,1,1,2,1,2,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,3,3,3,1,1,1,0,0,0,1,1,1,1,1,1,2,1,1,1,1,2]
+#
+# #n_classes_all = [0,0,0,0,0,0,0,0,0,0,0,0,2,2,2,1,1,1,1,1,1,2,2,2,1,1,1,2,1,1,2,1,2,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,2,1,1,1,1,2,1,1,1,1,1,1,1,1,1,3,3,3,1,1,1,1,0,1,1,1,1,3,3,3,1,1,1,0,0,0]
+#
+# classes = classes_all
+# n_classes = n_classes_all
 
-classes_f = ["B","B","B","B","B","B","B","B","B","D","D","D","B","B","B","B","A","B","B","B","B","D","D","D","B","B","B","A","A","A"]
-n_classes_f = [1,1,1,1,1,1,1,1,1,3,3,3,1,1,1,1,0,1,1,1,1,3,3,3,1,1,1,0,0,0]
-
-classes_all = ["B","B","B","B","B","B","A","A","A","A","A","A","A","A","A","A","A","A","B","B","B","D","D","D","B","B","B","B","A","B","C","C","C","B","B","B","B","B","B","C","C","C","B","B","B","C","B","B","C","B","C","B","B","B","A","A","A","A","A","A","A","A","A","A","A","A","B","B","B","D","D","D","B","B","B","A","A","A","B","B","B","B","B","B","C","B","B","B","B","C"]
-n_classes_all = [1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,3,3,3,1,1,1,1,0,1,2,2,2,1,1,1,1,1,1,2,2,2,1,1,1,2,1,1,2,1,2,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,3,3,3,1,1,1,0,0,0,1,1,1,1,1,1,2,1,1,1,1,2]
-
-#n_classes_all = [0,0,0,0,0,0,0,0,0,0,0,0,2,2,2,1,1,1,1,1,1,2,2,2,1,1,1,2,1,1,2,1,2,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,2,1,1,1,1,2,1,1,1,1,1,1,1,1,1,3,3,3,1,1,1,1,0,1,1,1,1,3,3,3,1,1,1,0,0,0]
-
-classes = classes_all
-n_classes = n_classes_all
 
 
 
-n_exp=0
 
-object = "o1"
-# towel = True
-# pillowc =  False
-# checkered = False
-# waffle = False
-# linen = False
 
 ##################################################################################################
 ## UTIL FUNCTIONS
@@ -108,6 +143,9 @@ def peso_def_metric(def_metric, dim):
     y = 5*dim #50
     def_metric = def_metric*y
     def_metric = def_metric/100000
+
+    print_info(activate_print, "Obj Dimension: "+str(dim))
+    print_info(activate_print, "Weight: "+str(y))
 
     return def_metric
 
@@ -220,15 +258,22 @@ def plot_metrics(filename, metrics):
     plt.axis("off")
 
     #ax.imshow(data, cmap='gist_rainbow', norm=colors.LogNorm(vmin=0, vmax=1))
-    #ax.imshow(data, cmap='gist_rainbow', norm=colors.LogNorm(vmin=0.001, vmax=1.0)) #10x10
-    ax.imshow(data, cmap='gist_rainbow', norm=colors.LogNorm(vmin=0.00002, vmax=0.02)) #2x2
-    #plt.show()
-    file_name = write_directory + filename + "_pat.png"
-    plt.savefig(file_name)
+    ax.imshow(data, cmap='gist_rainbow', norm=colors.LogNorm(vmin=0.001, vmax=1.0)) #10x10
+    #ax.imshow(data, cmap='gist_rainbow', norm=colors.LogNorm(vmin=0.00002, vmax=0.02)) #2x2
+    if(save_img_with_metrics):
+        file_name = write_directory + filename + "_pat.png"
+        plt.savefig(file_name)
+    else:
+        plt.show()
 
+
+
+
+##################################################################################################
 ## METRIC FUNCTIONS
 
 def remove_gripper(obj_data):
+    print("\033[94m Removing gripper \033[0m")
     gripper_thrs = [0.05, 0.0, -0.15] #xmax, xmin, ymax
 
     rightx_data = obj_data[gripper_thrs[0]<obj_data[:,0]]
@@ -327,7 +372,7 @@ def create_canonical(obj_name, align_canonical):
         xmax = xmin+0.23#0.13
         ysteps = 0.01
         ymin = -0.196
-        ymax = ymin+0.28#0.0
+        ymax = ymin+0.3#0.28
         obj_edge_size = 0.28
     if(obj_name == "o2-07"):
         print("\033[96m Creating canonical for o2-07 \033[0m")
@@ -383,6 +428,34 @@ def create_canonical(obj_name, align_canonical):
         ymin = -0.196
         ymax = ymin+0.13
         obj_edge_size = 0.12
+
+    if(obj_name == "o3-01"):
+        print("\033[96m Creating canonical for o3-01 \033[0m")
+        xsteps = 0.009
+        xmin = -0.06
+        xmax = xmin+0.19
+        ysteps = 0.01
+        ymin = -0.196
+        ymax = ymin+0.28#0.36
+        obj_edge_size = 0.25
+    if(obj_name == "o3-02"):
+        print("\033[96m Creating canonical for o3-02 \033[0m")
+        xsteps = 0.009
+        xmin = -0.06
+        xmax = xmin+0.19
+        ysteps = 0.01
+        ymin = -0.196
+        ymax = ymin+0.24#0.26
+        obj_edge_size = 0.25
+    if(obj_name == "o3-03"):
+        print("\033[96m Creating canonical for o3-03 \033[0m")
+        xsteps = 0.009
+        xmin = -0.03
+        xmax = xmin+0.11
+        ysteps = 0.01
+        ymin = -0.196
+        ymax = ymin+0.26
+        obj_edge_size = 0.25
 
     if(obj_name == "o1"):
         print("\033[96m Creating canonical for o1... \033[0m")
@@ -451,8 +524,8 @@ def create_canonical(obj_name, align_canonical):
 
     syn_can_x = np.arange(xmin,xmax,xsteps)
     syn_can_y = np.arange(ymin,ymax,ysteps)
-    print("X: ", len(syn_can_x))
-    print("Y: ", len(syn_can_y))
+    print_info(activate_print, "X: ", len(syn_can_x))
+    print_info(activate_print, "Y: ", len(syn_can_y))
 
     syn_can_matrix=[syn_can_x[0],syn_can_y[0],0.42]
     for i in range(0,len(syn_can_x)):
@@ -462,12 +535,12 @@ def create_canonical(obj_name, align_canonical):
 
     #print_info(True, "Xmin: ", xmin, "Xmax: ", xmax)
     #print_info(True, "New ymin: ", ymin, "New ymax: ", ymax)
-    print("Size: X: ", xmax-xmin, " / Y: ", ymax-ymin)
-    print_info(True, len(syn_can_matrix))
+    print_info(activate_print, "Size: X: " + str(xmax-xmin) + " / Y: " + str(ymax-ymin))
+    print_info(activate_print, len(syn_can_matrix))
 
     ## Canonical area
     can_dim = ((xmax-xmin)*100)*((ymax-ymin)*100)
-    print_info(True, can_dim)
+    print_info(activate_print, can_dim)
 
     return syn_can_matrix, obj_edge_size, can_dim
 
@@ -577,6 +650,7 @@ def canonical_params(data, grids):
 
 def deformation_metric(can_grids, can_min_depth, can_max_grid_len, can_edge_size, obj_data, grids):
     print("\033[94m Computing deformation metric... \033[0m")
+
     means = []
     suma = 0
     transl_data = []
@@ -652,6 +726,7 @@ def deformation_metric(can_grids, can_min_depth, can_max_grid_len, can_edge_size
 
 def new_def_metric(grids, can_dim):
     print("\033[94m Computing deformation metric NOT FILLING... \033[0m")
+
     ## Compute deformation metric where it is not necessary to fill the occluded points
     def_metrics = []
     transl_data = []
@@ -732,7 +807,7 @@ def save_mean_values(exp_name, n_exp, mean_data):
     data.append(n_classes[n_exp])
     for i in range(len(mean_data)):
         data.append(mean_data[i])
-    wr.writerow(data)
+    def_metrics_wr.writerow(data)
 
 def write_grid_sizes(exp_name, obj_grids):
     print("\033[94m Writing grid sizes... \033[0m")
@@ -750,17 +825,17 @@ def write_csv(csv_file, exp_name, data):
     data_size.append(exp_name)
     for i in range(len(data)):
         data_size.append(data[i])
-    wr.writerow(data_size)
+    def_metrics_wr.writerow(data_size)
 
 
 
 ##################################################################################################
 ## MAIN
-#
-# test = np.arange(0,10,0.02)
-# print(test)
-# print(len(test))
-# syn_can_x = np.arange(ymin,ymax,xsteps)
+
+## Get ground truth
+GT = pd.read_csv(GT_file)
+classes = GT["Class_GT"].values
+n_classes = GT["Class_GT_n"].values
 
 ######## For one unique experiment
 if not all_files :
@@ -770,11 +845,12 @@ if not all_files :
             obj_name = objects[n]
     obj_pcd = o3d.io.read_point_cloud(pcd_dir) #Read pcd files from folder
     obj_data = np.asarray(obj_pcd.points)
-    plot(obj_data, "EXPERIMENT")
+    # plot(obj_data, "EXPERIMENT")
     ## Remove gripper and get minimum x of object to align canonical
     align_canonical, obj_data = remove_gripper(obj_data)
+    # plot(obj_data, "No gripper")
     ## Get canonical
-    can_data, can_x_grid_divs, can_y_grid_divs, can_grids, can_min_depth, can_max_grid_len, can_def_measures, can_transl_data, can_edge_size = get_canonical(obj_name, align_canonical, n_div)
+    can_data, can_x_grid_divs, can_y_grid_divs, can_grids, can_min_depth, can_max_grid_len, can_def_measures, can_transl_data, can_edge_size, can_dim = get_canonical(obj_name, align_canonical, n_div)
     #get_resolution(can_data)
     ## Divide grids
     obj_grids = grid_division(obj_data, can_x_grid_divs, can_y_grid_divs, n_div) #Divide grids
@@ -782,8 +858,8 @@ if not all_files :
     if use_filling_def_metric:
         def_measures, obj_transl_data = deformation_metric(can_grids, can_min_depth, can_max_grid_len, can_edge_size, obj_data, obj_grids) # Compute deformation metrics (grids depth mean)
     else:
-        def_measures, obj_transl_data = new_def_metric(obj_grids)
-    plot(obj_transl_data, "transl exp")
+        def_measures, obj_transl_data = new_def_metric(obj_grids, can_dim)
+    # plot(obj_transl_data, "transl exp")
     ## Save results
     if(save_def_metric): ##Save means in csv
         ##Write CSV headers
@@ -793,61 +869,75 @@ if not all_files :
             headers.append(text)
         #wr.writerow(headers)
         #save_mean_values(pcd_file.replace("_seg.pcd", ""), n_exp, def_measures)
-    if(save_grid_sizes): ##Save grid sizes
-        write_grid_sizes(pcd_file.replace(".pcd", ""), obj_grids)
+    # if(save_grid_sizes): ##Save grid sizes
+    #     write_grid_sizes(pcd_file.replace(".pcd", ""), obj_grids)
     if(show_plot):
         plotname = save_plots_dir + pcd_file.replace(".pcd", "_plot.png")
         plot_with_info(can_transl_data, obj_transl_data, obj_grids, can_x_grid_divs, can_y_grid_divs, can_min_depth, def_measures, plotname)
-    if(show_plot_metrics):
-        plot_metrics(filename.replace(".pcd", ""), def_measures)
+    if(show_img_with_metrics):
+        plot_metrics(pcd_file.replace(".pcd", ""), def_measures)
 
 
 ######### For all experiments #########
 if(all_files):
-    ##Read pcd files from folder
-    print("\033[94m Reading PCD files \033[0m")
-    print(data_directory)
-    ##Write CSV headers
-    if(save_def_metric):
-        headers = ["File","Class_GT","Class_GT_n"]
-        #headers = ["File"]
-        for i in range(0, n_div*n_div):
-            #headers.append(metrics_name[i])
-            text = "M"+str(i+1)
-            headers.append(text)
-        wr.writerow(headers)
-    for filename in sorted(os.listdir(data_directory)):
-        f = os.path.join(data_directory, filename)
-        if os.path.isfile(f) and filename.endswith('.pcd'):
-            print("-------------------------------------------------------------------------------")
-            for n in range(len(objects)):
-                if objects[n] in filename:
-                    obj_name = objects[n]
-            print(filename)
-            obj_pcd = o3d.io.read_point_cloud(f)
-            obj_data = np.asarray(obj_pcd.points)
-            ## Remove gripper and get minimum x of object to align canonical
-            align_canonical, obj_data = remove_gripper(obj_data)
-            ## Get canonical
-            can_data, can_x_grid_divs, can_y_grid_divs, can_grids, can_min_depth, can_max_grid_len, can_def_measures, can_transl_data, can_edge_size, can_dim = get_canonical(obj_name, align_canonical, n_div)
-            #get_resolution(can_data)
-            ##Divide grids
-            obj_grids = grid_division(obj_data, can_x_grid_divs, can_y_grid_divs, n_div) #Divide grids
-            ## Compute deformation metrics (grids depth mean)
-            if use_filling_def_metric:
-                def_measures, obj_transl_data = deformation_metric(can_grids, can_min_depth, can_max_grid_len, can_edge_size, obj_data, obj_grids)
-            else:
-                def_measures, obj_transl_data = new_def_metric(obj_grids, can_dim)
-            if(save_def_metric): ##Save means in csv
-                save_mean_values(filename.replace(".pcd", ""), n_exp, def_measures)
-                n_exp+=1
-            if(save_grid_sizes): ##Save grid sizes
-                write_grid_sizes(filename.replace(".pcd", ""), obj_grids)
-            if(show_plot):
-                plotname = save_plots_dir + filename.replace(".pcd", ".jpg")
-                plot_with_info(can_transl_data, obj_transl_data, obj_grids, can_x_grid_divs, can_y_grid_divs, can_min_depth, def_measures, plotname)
-            if(show_plot_metrics):
-                plot_metrics(filename.replace(".pcd", ""), def_measures)
+    for n_div in range(4,max_n_div+1): ## Use all the def metric files with different n_buckets
+        print("\033[92m ----- Clustering for N Buckets: \033[96m "+str(n_div)+"x"+str(n_div)+"\033[92m ----- \033[0m")
+
+        all_files = False
+        n_exp=0
+
+        write_directory = "./metrics_D/not_filling/" + str(n_div) + "x" + str(n_div) + "/"
+        def_metric_file = str(n_div) + "x" + str(n_div) + ".csv" ## CSV file to save def metric
+        def_metric_dir = write_directory+def_metric_file
+        my_file = open(def_metric_dir, "wb")
+        def_metrics_wr = csv.writer(my_file, delimiter=",")
+
+        ##Read pcd files from folder
+        print("\033[94m Reading PCD files \033[0m")
+        print(data_directory)
+        ##Write CSV headers
+        if(save_def_metric):
+            headers = ["File","Class_GT","Class_GT_n"]
+            #headers = ["File"]
+            for i in range(0, n_div*n_div):
+                #headers.append(metrics_name[i])
+                text = "M"+str(i+1)
+                headers.append(text)
+            def_metrics_wr.writerow(headers)
+        for filename in sorted(os.listdir(data_directory)):
+            f = os.path.join(data_directory, filename)
+            if os.path.isfile(f) and filename.endswith('.pcd'):
+                print("-------------------------------------------------------------------------------")
+                for n in range(len(objects)):
+                    if objects[n] in filename:
+                        obj_name = objects[n]
+                print(filename)
+                obj_pcd = o3d.io.read_point_cloud(f)
+                obj_data = np.asarray(obj_pcd.points)
+                ## Remove gripper and get minimum x of object to align canonical
+                align_canonical, obj_data = remove_gripper(obj_data)
+                ## Get canonical
+                can_data, can_x_grid_divs, can_y_grid_divs, can_grids, can_min_depth, can_max_grid_len, can_def_measures, can_transl_data, can_edge_size, can_dim = get_canonical(obj_name, align_canonical, n_div)
+                #get_resolution(can_data)
+                ##Divide grids
+                obj_grids = grid_division(obj_data, can_x_grid_divs, can_y_grid_divs, n_div) #Divide grids
+                ## Compute deformation metrics (grids depth mean)
+                if use_filling_def_metric:
+                    def_measures, obj_transl_data = deformation_metric(can_grids, can_min_depth, can_max_grid_len, can_edge_size, obj_data, obj_grids)
+                else:
+                    def_measures, obj_transl_data = new_def_metric(obj_grids, can_dim)
+                if(save_def_metric): ##Save means in csv
+                    save_mean_values(filename.replace(".pcd", ""), n_exp, def_measures)
+                    n_exp+=1
+                # if(save_grid_sizes): ##Save grid sizes
+                #     write_grid_sizes(filename.replace(".pcd", ""), obj_grids)
+                if(show_plot):
+                    plotname = save_plots_dir + filename.replace(".pcd", ".jpg")
+                    plot_with_info(can_transl_data, obj_transl_data, obj_grids, can_x_grid_divs, can_y_grid_divs, can_min_depth, def_measures, plotname)
+                if(show_img_with_metrics):
+                    plot_metrics(filename.replace(".pcd", ""), def_measures)
+
+            plt.close()
 
 
 

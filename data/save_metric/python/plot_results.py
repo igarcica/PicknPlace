@@ -5,18 +5,19 @@ import os
 ##################################################################################################
 ## INPUT PARAMETERS
 
-n_div = 10
-n_grids = n_div*n_div #4, 9, 16, 25...
+max_n_div = 10
+# n_grids = n_div*n_div #4, 9, 16, 25...
 #metrics_name = ["M1","M2","M3","M4", "M5","M6","M7","M8","M9","M10","M11","M12","M13","M14","M15","M16","M17","M18","M19","M20","M21","M22","M23","M24","M25"]
 
 #data_directory="/home/pal/Desktop/all/dataset/Picks/RGB/cropped/"
 #data_directory="/home/pal/Desktop/more_data/dataset/RGB/"
 #data_directory="/home/pal/Desktop/more_folds/dataset/RGB/"
 data_directory="/home/pal/Desktop/all/RGB/"
-write_directory = "./metrics/not_filling_peso/" + str(n_div) + "x" + str(n_div) + "/"
+# write_directory = "./metrics_D/not_filling/" + str(n_div) + "x" + str(n_div) + "/"
+metrics_directory = "./metrics_D/not_filling/"
 
-metrics_csv_file = str(n_div) + "x" + str(n_div) + ".csv" ##o1_2x2.csv
-metrics_csv_dir = write_directory+metrics_csv_file
+# metrics_csv_file = str(n_div) + "x" + str(n_div) + ".csv" ##o1_2x2.csv
+# metrics_csv_dir = write_directory+metrics_csv_file
 
 all_files = True
 image_file = "o1_gr_e01.png"
@@ -51,7 +52,7 @@ def crop_image(img_file):
 
     return crop_img
 
-def print_metric_img(img, image_file, metrics_df):
+def print_metric_img(img, image_file, metrics_df, n_div, write_directory):
     print("Printing metrics in image ", image_file)
 
     ## Get deformation metrics for the given experiment based on the file name
@@ -101,7 +102,7 @@ def print_metric_img(img, image_file, metrics_df):
 ## MAIN
 
 
-metrics_df = pd.read_csv(metrics_csv_dir) ##Read CSV --> Metrics
+# metrics_df = pd.read_csv(metrics_csv_dir) ##Read CSV --> Metrics
 #print(metrics_df)
 
 
@@ -118,11 +119,20 @@ if not(all_files):
 
 ## Print metrics or crop for each PNG file in the given folder
 if(all_files):
-    for filename in sorted(os.listdir(data_directory)):
-        f = os.path.join(data_directory, filename)
-        if os.path.isfile(f) and filename.endswith('.png'):
-            img = cv2.imread(f)
-            if crop_imgs:
-                crop_image(f)
-            else:
-                print_metric_img(img, filename, metrics_df)
+    for i in range(6,max_n_div+1): ## Use all the def metric files with different n_buckets
+        print("\033[92m ----- Clustering for N Buckets: \033[96m "+str(i)+"x"+str(i)+"\033[92m ----- \033[0m")
+
+        write_directory = metrics_directory + str(i) + "x" + str(i) + "/"
+
+        metrics_csv_file = str(i) + "x" + str(i) + "/" + str(i) + "x" + str(i) + ".csv"
+        metrics_csv_dir = metrics_directory+metrics_csv_file
+        metrics_df = pd.read_csv(metrics_csv_dir) ##Read CSV --> Metrics
+
+        for filename in sorted(os.listdir(data_directory)):
+            f = os.path.join(data_directory, filename)
+            if os.path.isfile(f) and filename.endswith('.png'):
+                img = cv2.imread(f)
+                if crop_imgs:
+                    crop_image(f)
+                else:
+                    print_metric_img(img, filename, metrics_df, i, write_directory)
