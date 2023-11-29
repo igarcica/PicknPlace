@@ -15,16 +15,16 @@ The package has the following structure:
 - vision_pick_place: Contains all the necessary code related to perception (Segmentation, corner detection, grasp point selection, pile height, etc)
 - iri_kinova_linear_movement: For execution cartesian movements with Kinova.
 - data: Scripts to save data from pick and place executions and compute deformation metric.
-    . /save_data: Scripts to save data form pick and place executions (Color and depth images, depth topis in rosbag and pointcloud data as pcd file).
+    - /save_data: Scripts to save data form pick and place executions (Color and depth images, depth topis in rosbag and pointcloud data as pcd file).
     - /save_metric: 
-        -/c: Contains the code (in C++) to compute and write csv files with the deformation data (using the pcd files with full view and vision node)
-            -execution.py: Publishes the content of PCD files as point cloud during 8seg one at a time.
-            -/node: ROS node that subscribes to topic with deformation data (computed and published by thhe vision_pick_place node) and writes CSV files.
-        -/ptyhon: Contains the code (in python) to compute and write the csv files with the deformation data (using pcd files with segmented garment).
-            -def_metric.py: Computes the deformation metric and saves it in CSV files.
-            -clustering.py: Computes the centroid and inter/intra distances of the deformation data from csv files.
-            -kmeans.py: Clusterises pick files based on deformation metrics and computes success rate comparing it to the ground truth.
-            -plot_results.py: Prints the deformation metrics in the corresponding files for visual information.
+        - /c: Contains the code (in C++) to compute and write csv files with the deformation data (using the pcd files with full view and vision node)
+            - execution.py: Publishes the content of PCD files as point cloud during 8seg one at a time.
+            - /node: ROS node that subscribes to topic with deformation data (computed and published by the vision_pick_place node) and writes CSV files.
+        - /ptyhon: Contains the code (in python) to compute and write the csv files with the deformation data (using pcd files with segmented garment).
+            - def_metric.py: Computes the deformation metric and saves it in CSV files.
+            - clustering.py: Computes the centroid and inter/intra distances of the deformation data from csv files.
+            - kmeans.py: Clusterises pick files based on deformation metrics and computes success rate comparing it to the ground truth.
+            - plot_results.py: Prints the deformation metrics in the corresponding files for visual information.
 
 <!--## Dependencies
 

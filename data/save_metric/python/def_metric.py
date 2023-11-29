@@ -18,58 +18,22 @@ from io import StringIO
 ##################################################################################################
 ## INPUT PARAMETERS
 
-max_n_div = 10 # Grid division
 
 GT_file = "./metrics_D/GT.csv"
 
-#data_directory="/home/pal/Desktop/all/dataset/Picks/PCD/segmented/"
-#data_directory="/home/pal/Desktop/more_data/dataset/PCD/"
-#data_directory="/home/pal/Desktop/more_folds/dataset/PCD/"
-data_directory="/home/pal/Desktop/all/PCD/"
-#data_directory="/home/pal/Desktop/more_D/PCD/"
-#write_directory = "./new_results/filling/" #+ str(n_div) + "x" + str(n_div) + "/" ##./results/2x2/
-#write_directory = "./metrics/not_filling_peso/" + str(n_div) + "x" + str(n_div) + "/"
-# write_directory = "./metrics_D/not_filling/" + str(n_div) + "x" + str(n_div) + "/"
+data_directory ="/home/pal/Desktop/all/PCD/"
 
-tests = False
-
-# ## Canonical object
-# all_files = False
-# pcd_file = "o2-04_gr_e05.pcd"
-# pcd_dir = data_directory+pcd_file
-# syn_can = True
-# can_pcd_file = 'o3-03_gr_can.pcd'
-# can_pcd_dir = data_directory+can_pcd_file
-#
-# save_def_metric = True
-# use_filling_def_metric = False
-# def_metric_file = str(n_div) + "x" + str(n_div) + ".csv" ## CSV file to save def metric
-# def_metric_dir = write_directory+def_metric_file
-# if(save_def_metric):
-#     my_file = open(def_metric_dir, "wb")
-#     wr = csv.writer(my_file, delimiter=",")
-#
-# ## Save results
-# show_plot = False
-# show_img_with_metrics = True
-# print_info = False
-#
-# save_plots_dir = write_directory + "/plots/"
-# save_plots = False
-#
-# save_grid_sizes = False
-# grid_sizes_file = "grid_sizes.csv"
-# grid_sizes_dir = write_directory+grid_sizes_file
-# if(save_grid_sizes):
-#     my_file = open(grid_sizes_dir, "wb")
-#     grid_sizes_wr = csv.writer(my_file, delimiter=",")
-#
-# activate_print = False
+tests = False    # Compute metric of one file (True) or of all the files in folder (False)
+max_n_div = 10   # Grid division
+syn_can = True
+use_filling_def_metric = False
+activate_print = False
 
 if tests:
     all_files = False
     pcd_file = "o2-04_gr_e04.pcd"
     pcd_dir = data_directory+pcd_file
+    save_plots_dir = "./imgs/"
     save_def_metric = False
     show_plot = True
     show_img_with_metrics = True
@@ -77,55 +41,13 @@ if tests:
 else:
     all_files = True
     save_def_metric = True
-    # def_metric_file = str(n_div) + "x" + str(n_div) + ".csv" ## CSV file to save def metric
-    # def_metric_dir = write_directory+def_metric_file
-    # my_file = open(def_metric_dir, "wb")
-    # def_metrics_wr = csv.writer(my_file, delimiter=",")
+    write_directory = "./metrics_D/not_filling/"
     show_plot = False
     show_img_with_metrics = True
     save_img_with_metrics = True
 
 
-syn_can = True
-
-use_filling_def_metric = False
-
-
-# save_grid_sizes = False
-# grid_sizes_file = "grid_sizes.csv"
-# grid_sizes_dir = write_directory+grid_sizes_file
-#
-# save_plots_dir = write_directory + "/plots/"
-# save_plots = False
-
-activate_print = False
-
-
-
 objects = ["o1", "o2", "o3", "o4", "o5", "o1-01","o1-04", "o2-01", "o2-04", "o2-07", "o2-10", "o3-01", "o3-02", "o3-03", "o5-01", "o5-04", "o5-07", "o5-10"]
-# #metrics_name = ["M1","M2","M3","M4", "M5","M6","M7","M8","M9","M10","M11","M12","M13","M14","M15","M16","M17","M18","M19","M20","M21","M22","M23","M24","M25"]
-# #classes = ["A","B","A","C","A","B","A","C","A","B","A","C","C","A","D","D","F","D","D","G","D","D","F","D"]
-# #classes = ["A","B","B","B","B","B","B","B","B","B","B","B","B","A","D","D","D","C","C","C","C","C","C","C","C","C","A","C","C","C","E","C","C","E","C","E","C","C","C","A","B","B","B","B","B","B","B","B","B","B","B","B","A","C","C","C","C","C","C","E","C","C","C","C","E"]
-#
-# #classes = ["Z","A","A","B","B","B","B","C","C","C","A","A","B","Z","E","E","E","D","D","D","D","D","D","D","D","D","Z","D","D","D","E","D","D","E","D","E","D","D","D","Z","A","A","A","C","C","C","A","A","A","B","B","B","Z","D","D","D","D","D","D","E","D","D","D","D","E"]
-# #n_classes = [0,1,1,2,2,2,2,3,3,3,1,1,2,0,5,5,5,4,4,4,4,4,4,4,4,4,0,4,4,4,5,4,4,5,4,5,4,4,4,0,1,1,1,3,3,3,1,1,1,2,2,2,0,4,4,4,4,4,4,3,4,4,4,4,4]
-# #classes = ["Z","A","A","A","A","A","A","A","A","A","A","A","A","Z","C","C","C","B","B","B","B","B","B","B","B","B","Z","B","B","B","C","B","B","C","B","C","B","B","B","Z","A","A","A","A","A","A","A","A","A","A","A","A","Z","B","B","B","B","B","B","C","B","B","B","B","C"]
-# #n_classes = [0,1,1,1,1,1,1,1,1,1,1,1,1,0,3,3,3,2,2,2,2,2,2,2,2,2,0,2,2,2,3,2,2,3,2,3,2,2,2,0,1,1,1,1,1,1,1,1,1,1,1,1,0,2,2,2,2,2,2,3,2,2,2,2,3]
-# classes = ["A","A","A","A","A","A","A","A","A","A","A","A","C","C","C","B","B","B","B","B","B","C","C","C","B","B","B","C","B","B","C","B","C","B","B","B","A","A","A","A","A","A","A","A","A","A","A","A","B","B","B","B","B","B","C","B","B","B","B","C"]
-# n_classes = [0,0,0,0,0,0,0,0,0,0,0,0,2,2,2,1,1,1,1,1,1,2,2,2,1,1,1,2,1,1,2,1,2,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,2,1,1,1,1,2]
-#
-# classes_f = ["B","B","B","B","B","B","B","B","B","D","D","D","B","B","B","B","A","B","B","B","B","D","D","D","B","B","B","A","A","A"]
-# n_classes_f = [1,1,1,1,1,1,1,1,1,3,3,3,1,1,1,1,0,1,1,1,1,3,3,3,1,1,1,0,0,0]
-#
-# classes_all = ["B","B","B","B","B","B","A","A","A","A","A","A","A","A","A","A","A","A","B","B","B","D","D","D","B","B","B","B","A","B","C","C","C","B","B","B","B","B","B","C","C","C","B","B","B","C","B","B","C","B","C","B","B","B","A","A","A","A","A","A","A","A","A","A","A","A","B","B","B","D","D","D","B","B","B","A","A","A","B","B","B","B","B","B","C","B","B","B","B","C"]
-# n_classes_all = [1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,3,3,3,1,1,1,1,0,1,2,2,2,1,1,1,1,1,1,2,2,2,1,1,1,2,1,1,2,1,2,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,3,3,3,1,1,1,0,0,0,1,1,1,1,1,1,2,1,1,1,1,2]
-#
-# #n_classes_all = [0,0,0,0,0,0,0,0,0,0,0,0,2,2,2,1,1,1,1,1,1,2,2,2,1,1,1,2,1,1,2,1,2,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,2,1,1,1,1,2,1,1,1,1,1,1,1,1,1,3,3,3,1,1,1,1,0,1,1,1,1,3,3,3,1,1,1,0,0,0]
-#
-# classes = classes_all
-# n_classes = n_classes_all
-
-
 
 
 
@@ -135,8 +57,6 @@ objects = ["o1", "o2", "o3", "o4", "o5", "o1-01","o1-04", "o2-01", "o2-04", "o2-
 
 def print_info(activate, arg1, arg2="", arg3="", arg4="", arg5="", arg6=""):
     if(activate):
-        #print(arg1)
-        #print(arg2)
         print(str(arg1) + str(arg2) + str(arg3) + str(arg4) + str(arg5) + str(arg6))
 
 def peso_def_metric(def_metric, dim):
@@ -213,7 +133,7 @@ def plot_with_info(can, data, grids, x_grid_divs, y_grid_divs, can_mean_depth, d
     #plotly.offline.plot({"data": [fig1], "layout": mylayout}, auto_open=True)
     fig.show()
 
-def plot_metrics(filename, metrics):
+def plot_metrics(grid_write_dir, filename, metrics):
     print("\033[94m Plotting deformation pattern images... \033[0m")
 
     data = np.array([0,1,2,3,4,5,6,7,8])
@@ -261,11 +181,10 @@ def plot_metrics(filename, metrics):
     ax.imshow(data, cmap='gist_rainbow', norm=colors.LogNorm(vmin=0.001, vmax=1.0)) #10x10
     #ax.imshow(data, cmap='gist_rainbow', norm=colors.LogNorm(vmin=0.00002, vmax=0.02)) #2x2
     if(save_img_with_metrics):
-        file_name = write_directory + filename + "_pat.png"
+        file_name = grid_write_dir + filename + "_pat.png"
         plt.savefig(file_name)
     else:
         plt.show()
-
 
 
 
@@ -326,7 +245,6 @@ def get_canonical(obj_name, align_canonical, n_div):
     return can_data, can_x_grid_divs, can_y_grid_divs, can_grids, can_min_depth, can_max_grid_len, can_def_measures, can_transl_data, can_edge_size, can_dim
 
 def create_canonical(obj_name, align_canonical):
-    print("\033[90m create_canonical \033[0m")
     #Extract object size from point cloud
     #Having px/cm, distance to camera and object size compute new size and number of points
     #Create a rectangle with depth mean and new size (X,Y) with center the camera
@@ -839,7 +757,7 @@ n_classes = GT["Class_GT_n"].values
 
 ######## For one unique experiment
 if not all_files :
-    print("\033[94m Getting experiment file: ", pcd_file, "\033[0m")
+    print("\033[94m Getting experiment file: \033[0m", pcd_file)
     for n in range(len(objects)):
         if objects[n] in pcd_file:
             obj_name = objects[n]
@@ -850,10 +768,10 @@ if not all_files :
     align_canonical, obj_data = remove_gripper(obj_data)
     # plot(obj_data, "No gripper")
     ## Get canonical
-    can_data, can_x_grid_divs, can_y_grid_divs, can_grids, can_min_depth, can_max_grid_len, can_def_measures, can_transl_data, can_edge_size, can_dim = get_canonical(obj_name, align_canonical, n_div)
+    can_data, can_x_grid_divs, can_y_grid_divs, can_grids, can_min_depth, can_max_grid_len, can_def_measures, can_transl_data, can_edge_size, can_dim = get_canonical(obj_name, align_canonical, max_n_div)
     #get_resolution(can_data)
     ## Divide grids
-    obj_grids = grid_division(obj_data, can_x_grid_divs, can_y_grid_divs, n_div) #Divide grids
+    obj_grids = grid_division(obj_data, can_x_grid_divs, can_y_grid_divs, max_n_div) #Divide grids
     ## Compute deformation metrics (grids depth mean)
     if use_filling_def_metric:
         def_measures, obj_transl_data = deformation_metric(can_grids, can_min_depth, can_max_grid_len, can_edge_size, obj_data, obj_grids) # Compute deformation metrics (grids depth mean)
@@ -886,9 +804,10 @@ if(all_files):
         all_files = False
         n_exp=0
 
-        write_directory = "./metrics_D/not_filling/" + str(n_div) + "x" + str(n_div) + "/"
-        def_metric_file = str(n_div) + "x" + str(n_div) + ".csv" ## CSV file to save def metric
-        def_metric_dir = write_directory+def_metric_file
+        ## Create CSV file to save metrics
+        grid_write_directory = write_directory + str(n_div) + "x" + str(n_div) + "/"
+        #def_metric_file = str(n_div) + "x" + str(n_div) + ".csv" ## CSV file to save def metric
+        def_metric_dir = grid_write_directory + str(n_div) + "x" + str(n_div) + ".csv" ## CSV file to save def metric
         my_file = open(def_metric_dir, "wb")
         def_metrics_wr = csv.writer(my_file, delimiter=",")
 
@@ -935,7 +854,7 @@ if(all_files):
                     plotname = save_plots_dir + filename.replace(".pcd", ".jpg")
                     plot_with_info(can_transl_data, obj_transl_data, obj_grids, can_x_grid_divs, can_y_grid_divs, can_min_depth, def_measures, plotname)
                 if(show_img_with_metrics):
-                    plot_metrics(filename.replace(".pcd", ""), def_measures)
+                    plot_metrics(grid_write_directory, filename.replace(".pcd", ""), def_measures)
 
             plt.close()
 

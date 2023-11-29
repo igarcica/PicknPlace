@@ -7,18 +7,19 @@ import seaborn as sb
 import cv2
 from sklearn.cluster import KMeans
 from sklearn.metrics import pairwise_distances_argmin_min
+from sklearn.metrics import confusion_matrix
 from mpl_toolkits.mplot3d import Axes3D
 import math
-#from yellowbrick.cluster import KElbowVisualizer
 
 max_n_div = 10
 
-save_GT_classes = True          ## Save images with sample images of each GT class
-save_predicted_clusters = True  ## Save images with sample images of each cluster
+save_GT_classes = False          ## Save images with sample images of each GT class
+save_predicted_clusters = False  ## Save images with sample images of each cluster
+save_confusion_matrix = True     ## Save confusion matrix
 
 activate_print = False ## Print info in terminal
 
-metrics_directory = "./metrics_D/not_filling/" #+ str(n_div) + "x" + str(n_div) + "/"
+metrics_directory = "./metrics_D/not_filling/"
 results_directory = "./results_D/not_filling/"
 
 plt.rcParams['figure.figsize'] = (16, 9)
@@ -32,8 +33,6 @@ possible_classes_n = [0,1,2,3]#,4]
 
 def print_info(activate, arg1, arg2=""):
     if(activate):
-        #print(arg1)
-        #print(arg2)
         print(str(arg1) + str(arg2))
 
 ## Plots the images that compose each GT class
@@ -224,6 +223,7 @@ def success_ratio_combine_GT_classes(pred_classes_df, n_div, GT_class_sizes, tot
 
     ## All possible combinations of classes (for 4 GT classes)
     comb_classes = [["A","B","C","D"],["B","A","C","D"],["C","B","A","D"],["D","B","C","A"],["A","B","D","C"],["A","D","C","B"],["A","C","B","D"]]
+    comb_classes_n = [[0,1,2,3],[1,0,2,3],[2,1,0,3],[3,1,2,0],[0,1,3,2],[0,3,2,1],[0,2,1,3]]
 
     ## Convert dataframe to array
     print_info(activate_print, pred_classes_df)
@@ -309,7 +309,7 @@ def success_ratio_combine_GT_classes(pred_classes_df, n_div, GT_class_sizes, tot
     print_info(activate_print, "Best success rates: ", tot_success_array)
     print_info(activate_print, "Best combo: ", comb_classes[max_success_combination])
 
-    return success_file, tot_success_array, comb_classes[max_success_combination]
+    return success_file, tot_success_array, comb_classes[max_success_combination], comb_classes_n[max_success_combination]
 
 def tot_success(success_ratios):
     print("\033[96m Total Success \033[0m")
@@ -574,6 +574,39 @@ def get_clusters_files(pred_classes):
 
     return clusters_files
 
+## Creates the confusion matrix
+def compute_confusion_matrix(assigned_class_labels_n, pred_classes_df, n_div):
+    print("\033[96m Plotting confusion matrix \033[0m")
+
+    GT_pred_data = pred_classes_df.to_numpy() ## Dataframe containing: file name, GT class (int), predicted class (int)
+    GT_classes = np.vstack(GT_pred_data[:, 1]).astype(np.int)   ## Get the GT classes as an array (int format)
+    pred_classes = np.vstack(GT_pred_data[:, 2]).astype(np.int) ## Get the predicted classes as an array (int format)
+
+    ## Create new array with the predicted classes changing the labels (int format) to the assigned ones
+    correct_pred_classes_n = np.empty([1,1])
+    for n in pred_classes:
+        new_pred_label_n = assigned_class_labels_n[n[0]]
+        correct_pred_classes_n = np.vstack([correct_pred_classes_n, new_pred_label_n])
+    correct_pred_classes_n = np.delete(correct_pred_classes_n,0,0) ## Delete first row (initialization)
+
+    ## Compute confusion matrix
+    cm = confusion_matrix(GT_classes, correct_pred_classes_n)
+
+    ## Plot (and save) confusion matrix
+    if(save_confusion_matrix):
+        plt.imshow(cm,interpolation='none',cmap='Greens')
+        for (i, j), z in np.ndenumerate(cm):
+            plt.text(j, i, z, ha='center', va='center', color='black') ##Write in plot cm values
+            plt.grid(False)
+            plt.xticks([0,1,2,3],['A', 'B', 'C', 'D'])
+            plt.yticks([0,1,2,3],['A', 'B', 'C', 'D'])
+            plt.xlabel("kmeans label")
+            plt.ylabel("truth label")
+            #plt.show()
+            file_name = results_directory + str(n_div) + "x" + str(n_div) + "/confusion_mat.png"
+            plt.savefig(file_name)
+        plt.close()
+
 ## Trains kmeans with the computed metrics from a csv file
 def train_kmeans(metrics_csv_dir, n_div):
     print("\033[96m Train KMEANS \033[0m")
@@ -667,8 +700,9 @@ for i in range(2,max_n_div+1): ## Use all the def metric files with different n_
     #success_file, tot_success_array = success_ratio(pred_classes_df, i, assigned_class_labels, tot_success_array)
 
     ## Get prediction success rate selecting GT class label combination that maximises total success
-    success_file, tot_success_array, assigned_class_labels = success_ratio_combine_GT_classes(pred_classes_df, i, GT_class_sizes, tot_success_array)
+    success_file, tot_success_array, assigned_class_labels, assigned_class_labels_n = success_ratio_combine_GT_classes(pred_classes_df, i, GT_class_sizes, tot_success_array)
 
+    compute_confusion_matrix(assigned_class_labels_n, pred_classes_df, i)
     ## Plot sample images that compose each cluster (RGB and deformation pattern)
     if(save_predicted_clusters):
         print_info(activate_print, "\033[96m Plotting RGB files \033[0m")
@@ -681,39 +715,6 @@ tot_success_ratios = np.delete(tot_success_array,0,0)
 tot_success(tot_success_ratios)
 
 
-
-
-#related_GT_classes.append(int(repr_class))
-#pred_name_classes.append(GT_name_classes_unk[int(repr_class)])
-
-#plot_results(clusters_files)
-
-# new_lab = kmeans.predict()
-# print(new_lab)
-
-
-###########################
-
-#from sklearn.cluster import KMeans
-#import numpy as np
-#
-#X = np.array
-#
-### Parameters
-#n_div = 5 # Division
-#print_info = False
-#all_files = True
-#
-### Canonical object
-#can_obj_file = 'o1_gr_can_seg.pcd'
-##can_obj_file = 'o1_gr_e06_seg.pcd'
-##filename = "o1_gr_e03_seg.pcd"
-#save_img = "./plots/"
-#
-### CSV file to save def metric
-#data_filename = "./classes.csv"
-#my_file = open(data_filename, "wb")
-#wr = csv.writer(my_file, delimiter=",")
 
 
 #######  REFS
