@@ -68,35 +68,34 @@ typedef enum {IDLE,
               CLOSE_GRIPPER,
               CLOSE_GRIPPER2,
               POST_GRASP,
-              EXPERIMENTS1,
-              EXPERIMENTS2,
-              CHOOSE_PLACING,
-              WAIT_EXPERIMENTS2,
-              ROTATE_POST_GRASP,
               WAIT_POST_GRASP,
-              GO_TO_PLACE,
-              WAIT_GO_TO_PLACE,
-              ROTATE_PRE_PLACE,
+              CHOOSE_PLACING,
               PRE_PLACE_DIAGONAL,
-              WAIT_PRE_PLACE_DIAGONAL,
               PLACE_DIAGONAL,
               WAIT_PLACE_DIAGONAL,
-              PRE_PLACE2,
-              PLACE2,
+              PRE_PLACE_ROTATING,
+              PLACE_ROTATING,
               PLACE22,
               PRE_PLACE_RECTO,
               WAIT_PRE_PLACE_RECTO,
               PLACE_RECTO,
               WAIT_PLACE_RECTO,
-	      PILING,
-	      PILING2,
               OPEN_GRIPPER,
               POST_PLACE,
               WAIT_POST_PLACE,
               HIGH_POSITION,
               WAIT_HIGH_POSITION,
+              EXPERIMENTS1,
+              EXPERIMENTS2,
+              WAIT_EXPERIMENTS2,
+              ROTATE_POST_GRASP,
+              GO_TO_PLACE,
+              WAIT_GO_TO_PLACE,
+	            PILING,
+	            PILING2,
               END_POSITION,
               WAIT_END_POSITION,
+
               END} pick_place_states_t;
 
 /**
@@ -123,10 +122,10 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     kortex_driver::Pose pre_grasp_center;
     kortex_driver::Pose grasping_point_garment;
     float garment_width;
-    float garment_height;
+    float garment_edge_size;
     float pile_height;
     int cartesian_rf;
-    bool diagonal_move;
+    bool diagonal_place;
     bool clear_faults(void);
     bool set_cartesian_reference_frame(const int &cartesian_rf);
     bool send_gripper_command(double value);
@@ -143,6 +142,7 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     bool get_garment_position;
     bool get_garment_angle;
     bool get_pile_height;
+    bool get_garment_edge;
     ros::Subscriber garment_pose_subscriber;
     //ros::Subscriber garment_angle_subscriber;
     ros::Subscriber garment_edge_subscriber;
