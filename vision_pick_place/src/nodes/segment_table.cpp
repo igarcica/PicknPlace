@@ -36,6 +36,7 @@
 
 // PAL headers
 #include <vision_pick_place/pcl_filters.hpp>
+#include <vision_pick_place/planesegmConfig.h>
 
 // ROS headers
 #include <ros/ros.h>
@@ -48,6 +49,8 @@
 #include <pcl/surface/convex_hull.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <std_msgs/Float64.h>
+
+#include <dynamic_reconfigure/server.h>
 
 // Std C++ headers
 #include <string>
@@ -63,6 +66,11 @@ namespace pal {
 
     void run();
 
+    double _plane_outliers_min_k;
+    double _plane_outliers_stddev_mult;
+    double _nonplane_outliers_min_k;
+    double _nonplane_outliers_stddev_mult;
+
   protected:
 
     void cloudCallback(const sensor_msgs::PointCloud2ConstPtr& cloud);
@@ -70,7 +78,7 @@ namespace pal {
     void pickCloudCallback(const sensor_msgs::PointCloud2ConstPtr& pickCloud);
     void placeCloudCallback(const sensor_msgs::PointCloud2ConstPtr& placeCloud);
     void nonplaneCloudCallback(const sensor_msgs::PointCloud2ConstPtr& nonplaneCloud);
-    
+
     void garmentCloudCallback(const sensor_msgs::PointCloud2ConstPtr& garmentCloud);
 
     void start();
@@ -85,6 +93,11 @@ namespace pal {
                             const std::string& frameId);
 
     void normalizeVector(std::vector<double>& v);
+
+    void dynam_CB(const vision_pick_place::planesegmConfig &config, uint32_t level);
+
+    dynamic_reconfigure::Server<vision_pick_place::planesegmConfig> reconf_server;
+    dynamic_reconfigure::Server<vision_pick_place::planesegmConfig>::CallbackType reconf_cb;
 
     ros::NodeHandle& _nh, _pnh;
     ros::CallbackQueue _cbQueue;
@@ -109,7 +122,7 @@ namespace pal {
     ros::Subscriber _pickCloudSub;
     ros::Subscriber _placeCloudSub;
     ros::Subscriber _nonplaneCloudSub;
-    
+
     ros::Subscriber _garmentCloudSub;
 
     // ROS publishers
@@ -140,7 +153,7 @@ namespace pal {
     pcl::PointXYZ current_sum_c4;
     ros::Publisher _graspPointAnglePub;
 
-    double x_thr_canon, y_thr_canon, min_z_canon, grid1_size, grid2_size, grid3_size, grid4_size; 
+    double x_thr_canon, y_thr_canon, min_z_canon, grid1_size, grid2_size, grid3_size, grid4_size;
 
   };
 
@@ -150,6 +163,10 @@ namespace pal {
     _pnh(pnh),
     _enabled(false),
     _rate(1),
+    _plane_outliers_min_k(25),
+    _plane_outliers_stddev_mult(1.0),
+    _nonplane_outliers_min_k(50),
+    _nonplane_outliers_stddev_mult(0.1),
     _processingFrame(""),
     _axis(""),
     _min(0.5),
@@ -192,6 +209,9 @@ namespace pal {
     pnh.param<double>("downsampling_size", _downSamplingSize, _downSamplingSize);
 
     ROS_INFO_STREAM("The node will operate at maximum " << _rate << " Hz");
+
+    reconf_cb = boost::bind(&SegmentPlane::dynam_CB, this, _1, _2);
+    reconf_server.setCallback(reconf_cb);
 
     if ( _processingFrame.empty() )
       ROS_INFO("The point cloud will be filtered in its original frame");
@@ -310,6 +330,15 @@ namespace pal {
   {
   }
 
+  void SegmentPlane::dynam_CB(const vision_pick_place::planesegmConfig &config, uint32_t level)
+  {
+    std::cout << "SegmentPlane: Reconfigure parameters updated" << std::endl;
+    _plane_outliers_min_k = config.plane_outliers_min_k;
+    _plane_outliers_stddev_mult = config.plane_outliers_stddev_mult;
+    _nonplane_outliers_min_k = config.nonplane_outliers_min_k;
+    _nonplane_outliers_stddev_mult = config.nonplane_outliers_stddev_mult;
+  }
+
   void SegmentPlane::publishEmptyClouds(pcl::uint64_t& stamp,
                                         const std::string& frameId)
   {
@@ -388,20 +417,19 @@ namespace pal {
                                              &pclNonPlaneCloud,
                                              &planeCoeff);
 
-
     //filter outliers in the plane cloud
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr pclFilteredPlaneCloud(new pcl::PointCloud<pcl::PointXYZRGB>);
     if ( pclPlaneCloud->empty() )
       pclFilteredPlaneCloud = pclPlaneCloud;
     else
-      pal::statisticalOutlierRemoval<pcl::PointXYZRGB>(pclPlaneCloud, 25, 1.0,pclFilteredPlaneCloud);
+      pal::statisticalOutlierRemoval<pcl::PointXYZRGB>(pclPlaneCloud, _plane_outliers_min_k, _plane_outliers_stddev_mult, pclFilteredPlaneCloud);
 
     //filter outliers in the cloud not belonging to the main plane
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr pclFilteredNonPlaneCloud(new pcl::PointCloud<pcl::PointXYZRGB>);
     if ( pclNonPlaneCloud->empty() )
       pclFilteredNonPlaneCloud = pclNonPlaneCloud;
     else
-      pal::statisticalOutlierRemoval<pcl::PointXYZRGB>(pclNonPlaneCloud, 50, 0.1, pclFilteredNonPlaneCloud);
+      pal::statisticalOutlierRemoval<pcl::PointXYZRGB>(pclNonPlaneCloud, _nonplane_outliers_min_k, _nonplane_outliers_stddev_mult, pclFilteredNonPlaneCloud);
 
 /*    ROS_INFO_STREAM("Processing:");
     ROS_INFO_STREAM("\tInput cloud:                 " << pclCloud->points.size() << " points");
@@ -458,7 +486,7 @@ namespace pal {
     }
     else
       pickPassThroughCloud = pclCloud;
-   
+
     //Apply passthrough filter for Place zone
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr placePassThroughCloud(new pcl::PointCloud<pcl::PointXYZRGB>);
     if ( !_axisPlace.empty() )
@@ -478,15 +506,15 @@ namespace pal {
     }
     else
       placePassThroughCloud = pclCloud;
-   
-    //Publish Pick zone pointcloud 
+
+    //Publish Pick zone pointcloud
     if ( _pickCloudPub.getNumSubscribers() > 0 )
     {
       pickPassThroughCloud->header.stamp    = pclCloud->header.stamp;
       pickPassThroughCloud->header.frame_id = pclCloud->header.frame_id;
       _pickCloudPub.publish(pickPassThroughCloud);
     }
-    //Publish Place zone pointcloud 
+    //Publish Place zone pointcloud
     if ( _placeCloudPub.getNumSubscribers() > 0 )
     {
       placePassThroughCloud->header.stamp    = pclCloud->header.stamp;
@@ -512,8 +540,8 @@ namespace pal {
     }
     else
       garmentPassThroughCloud = pclCloud;
-    
-    //Publish garment (without robot arm) pointcloud 
+
+    //Publish garment (without robot arm) pointcloud
     if ( _garmentCloudPub.getNumSubscribers() > 0 )
     {
       garmentPassThroughCloud->header.stamp    = pclCloud->header.stamp;
@@ -553,13 +581,14 @@ namespace pal {
     double x_threshold = minPt.x + (maxPt.x - minPt.x)/2; //2 will be defined
     double y_threshold = minPt.y + (maxPt.y - minPt.y)/2; //2 will be defined
     double z_threshold = minPt.z + (maxPt.z - minPt.z)/2;
-    std::cout << "X threshold: " << x_threshold << " / Y threshold: " << y_threshold << " / Z threshold: " << z_threshold << std::endl;
+    /*std::cout << "X threshold: " << x_threshold << " / Y threshold: " << y_threshold << " / Z threshold: " << z_threshold << std::endl;
     std::cout << "Min X: " << minPt.x << " / Min Y: " << minPt.y << " / Min Z: " << minPt.z << std::endl;
     std::cout << "Max X: " << maxPt.x << " / Max Y: " << maxPt.y << " / Max Z: " << maxPt.z << std::endl;
-    
+    */
+
     if (_dataType.empty())
     {
-      ROS_INFO("Getting custom parameters");
+      //ROS_INFO("Getting custom parameters");
       x_thr_canon = x_threshold;
       y_thr_canon = y_threshold;
       min_z_canon = minPt.z;
@@ -569,7 +598,7 @@ namespace pal {
       grid4_size = 1;
     }
     //min_z_canon = minPt.z;
-    //CANONICAL VALUES 
+    //CANONICAL VALUES
     //std::cout << "CANONICAL Values: " << "Grid sizes: " << grid1_size << " / " << grid2_size << " / " << grid3_size << " / " << grid4_size << std::endl;
 
     //Apply passthrough filters for division - How to make it configurable?
@@ -581,23 +610,23 @@ namespace pal {
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr grid4PassThroughCloud(new pcl::PointCloud<pcl::PointXYZRGB>);
     if ( !_axisGridX.empty() )
     {
-      std::cout << "Dividing grid..." << std::endl;
+      //std::cout << "Dividing grid..." << std::endl;
       pal::passThrough<pcl::PointXYZRGB>(pclDepthRGBCloud, //Mitad izquierda
                                          "x",
                                          minPt.x, x_thr_canon, //Min defined before (minPt.x?)
                                          //minPt.x, x_threshold,
                                          //minPt.x, 0.05,
-                                         //minPt.x, 0.032, 
+                                         //minPt.x, 0.032,
                                          izqPassThroughCloud);
       pal::passThrough<pcl::PointXYZRGB>(izqPassThroughCloud, //Cuadrante izquierda superior
-                                         "y", 
+                                         "y",
                                          minPt.y, y_thr_canon,
                                          //minPt.y, y_threshold,
                                          //minPt.y, -0.07,
                                          //minPt.y, -0.25,
                                          grid4PassThroughCloud);
       pal::passThrough<pcl::PointXYZRGB>(izqPassThroughCloud, //Cuadrante izquierda inferior
-                                         "y", 
+                                         "y",
                                          y_thr_canon, maxPt.y,
                                          //y_threshold, maxPt.y,
                                          //-0.07, maxPt.y,
@@ -612,14 +641,14 @@ namespace pal {
                                          //0.032, _maxGridX,
                                          derPassThroughCloud);
       pal::passThrough<pcl::PointXYZRGB>(derPassThroughCloud, //Cuadrante derecha superior
-                                         "y", 
+                                         "y",
                                          minPt.y, y_thr_canon,
                                          //minPt.y, y_threshold,
                                          //minPt.y, -0.07,
                                          //minPt.y, -0.25,
                                          grid3PassThroughCloud);
       pal::passThrough<pcl::PointXYZRGB>(derPassThroughCloud, //Cuadrante derecha inferior
-                                         "y", 
+                                         "y",
                                          y_thr_canon, maxPt.y,
                                          //y_threshold, maxPt.y,
                                          //-0.07, maxPt.y,
@@ -632,12 +661,13 @@ namespace pal {
       grid3PassThroughCloud = pclDepthRGBCloud;
       grid4PassThroughCloud = pclDepthRGBCloud;
     }
-    
-    std::cout << "TOTAL Size: " << pclDepthRGBCloud->size() << std::endl;
+
+    /*std::cout << "TOTAL Size: " << pclDepthRGBCloud->size() << std::endl;
     std::cout << "Size Grid1: " << grid1PassThroughCloud->size() << std::endl;
     std::cout << "Size Grid2: " << grid2PassThroughCloud->size() << std::endl;
     std::cout << "Size Grid3: " << grid3PassThroughCloud->size() << std::endl;
     std::cout << "Size Grid4: " << grid4PassThroughCloud->size() << std::endl;
+    */
 
     //Publish grids pointclouds
     if ( _grid1CloudPub.getNumSubscribers() > 0 )
@@ -666,7 +696,7 @@ namespace pal {
     }
 
     //Compute mean
-    std::cout << "Computing mean..." << std::endl;
+    //std::cout << "Computing mean..." << std::endl;
 
     double max_z = 1.0;
     double sum = 0;
@@ -677,7 +707,7 @@ namespace pal {
       //sum = pclDepthRGBCloud->at(i).z + sum;
     }
     double mean = sum/pclDepthRGBCloud->size();
-    std::cout << "TOTAL mean: " << mean << std::endl;
+    //std::cout << "TOTAL mean: " << mean << std::endl;
 
     sum = 0;
     for(int i=0; i<grid1PassThroughCloud->size(); i++){
@@ -688,7 +718,7 @@ namespace pal {
     }
     if(grid1PassThroughCloud->size() < grid1_size)
     {
-      std::cout << "Null points exist in Grid 1" << std::endl;
+     // std::cout << "Null points exist in Grid 1" << std::endl;
       int dif = grid1_size - grid1PassThroughCloud->size();
       sum = sum + dif*1;
     }
@@ -696,7 +726,7 @@ namespace pal {
     //float mean1 = sum/grid1PassThroughCloud->size();
     //std::cout << "SUM: " << sum << std::endl;
     //std::cout << "Size: " << grid1PassThroughCloud->size() << std::endl;
-    std::cout << "GRID 1 mean: " << mean1 << std::endl;
+    //std::cout << "GRID 1 mean: " << mean1 << std::endl;
 
     sum = 0;
     for(int i=0; i<grid2PassThroughCloud->size(); i++){
@@ -707,13 +737,13 @@ namespace pal {
     }
     if(grid2PassThroughCloud->size() < grid2_size)
     {
-      std::cout << "Null points exist in Grid 2" << std::endl;
+      //std::cout << "Null points exist in Grid 2" << std::endl;
       int dif = grid2_size - grid2PassThroughCloud->size();
       sum = sum + dif*1;
     }
     float mean2 = sum/grid2_size;
     //float mean2 = sum/grid2PassThroughCloud->size();
-    std::cout << "GRID 2 mean: " << mean2 << std::endl;
+    //std::cout << "GRID 2 mean: " << mean2 << std::endl;
 
     sum = 0;
     for(int i=0; i<grid3PassThroughCloud->size(); i++){
@@ -724,13 +754,13 @@ namespace pal {
     }
     if(grid3PassThroughCloud->size() < grid3_size)
     {
-      std::cout << "Null points exist in Grid 3" << std::endl;
+     // std::cout << "Null points exist in Grid 3" << std::endl;
       int dif = grid3_size - grid3PassThroughCloud->size();
       sum = sum + dif*1;
     }
     float mean3 = sum/grid3_size;
     //float mean3 = sum/grid3PassThroughCloud->size();
-    std::cout << "GRID 3 mean: " << mean3 << std::endl;
+    //std::cout << "GRID 3 mean: " << mean3 << std::endl;
 
     sum = 0;
     for(int i=0; i<grid4PassThroughCloud->size(); i++){
@@ -741,19 +771,19 @@ namespace pal {
     }
     if(grid4PassThroughCloud->size() < grid4_size)
     {
-      std::cout << "Null points exist in Grid 4" << std::endl;
+      //std::cout << "Null points exist in Grid 4" << std::endl;
       int dif = grid4_size - grid4PassThroughCloud->size();
       sum = sum + dif*1;
     }
     float mean4 = sum/grid4_size;
     //float mean4 = sum/grid4PassThroughCloud->size();
-    std::cout << "GRID 4 mean: " << mean4 << std::endl;
+   // std::cout << "GRID 4 mean: " << mean4 << std::endl;
 
 //      v = grid1PassThroughCloud;
       //float average = accumulate( grid1PassThroughCloud->begin(), grid1PassThroughCloud->end(), 0.0/ grid1PassThroughCloud->size());
       //std::cout << "The average is" << average << std::endl;
 //    std::cout << grid1PassThroughCloud->begin() << std::endl;
-    
+
     visualization_msgs::Marker grid_marker1;
     visualization_msgs::Marker grid_marker2;
     visualization_msgs::Marker mean_marker1;
@@ -859,7 +889,7 @@ namespace pal {
     // To get the segmented cloud in PCL XYZ format (instead of XYZRGB)
     if ( (pickCloud->width * pickCloud->height) == 0)
     {
-      ROS_WARN("SegmentPlace: Empty pickCloud");
+      ROS_DEBUG("SegmentPlace: Empty pickCloud");
       return;
     }
 
@@ -1260,7 +1290,7 @@ namespace pal {
         //std::cout << "U1: " << u1 << "   U2: " << u2 << std::endl;
         //std::cout << "HOLA: " << hola1 << "   HOLA2: " << hola2 << std::endl;
         //std::cout << "COS ALPHA: " << cos_alpha << std::endl;
-        //std::cout << "ALPHA: " << alpha << std::endl; 
+        //std::cout << "ALPHA: " << alpha << std::endl;
 
 //        std_msgs::Float64 grasp_angle;
 //        grasp_angle.data = alpha;
@@ -1298,7 +1328,7 @@ namespace pal {
     _placeCloudSub = _nh.subscribe("placecloud", 1, &SegmentPlane::placeCloudCallback, this);
     _nonplaneCloudSub = _nh.subscribe("segmcloud", 1, &SegmentPlane::nonplaneCloudCallback, this);
     _enabled = true;
-    
+
     _garmentCloudSub = _nh.subscribe("garmentcloud", 1, &SegmentPlane::garmentCloudCallback, this);
   }
 

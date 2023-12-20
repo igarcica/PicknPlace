@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+
+<!-- REALSENSE CAMERA -->
+  <include file="$(find pick_n_place)/launch/rs_camera.launch">
+    <arg name="filters" value="pointcloud" />
+  </include>
+
+<!-- -->
+  <include file="$(find kortex_driver)/launch/kortex_driver.launch">
+    <arg name="gripper" value="robotiq_2f_85" />
+    <arg name="ip_address" value="192.168.1.12" />
+  </include>
+
+</launch>

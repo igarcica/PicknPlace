@@ -26,6 +26,7 @@ generate_messages(
 generate_dynamic_reconfigure_options(
   cfg/region.cfg
   cfg/segment.cfg
+  cfg/planesegm.cfg
  )
 
 catkin_package(
@@ -33,7 +34,7 @@ catkin_package(
 )
 
 
-include_directories(SYSTEM 
+include_directories(SYSTEM
   include
   ${catkin_INCLUDE_DIRS}
 )
@@ -71,6 +72,3 @@ install(TARGETS ${PROJECT_NAME} segment_table cylinder_detector region_segment d
 install(DIRECTORY launch
         DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
-
-
-
