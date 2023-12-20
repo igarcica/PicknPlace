@@ -422,10 +422,8 @@ void PicknPlaceAlgNode::mainNodeThread(void)
 			                         this->state=PRE_PLACE_RECTO;
 			                       else if(this->placing_strategy==3)
                                this->state=PRE_PLACE_ROTATING;
-                             else if(this->placing_strategy==3)
+                             else if(this->placing_strategy==4)
                                this->state=OPEN_GRIPPER;
-
-			                       std::cout << "Next state: " << this->state << std::endl;
                              ros::Duration(0.5).sleep();
 			   }
       break;

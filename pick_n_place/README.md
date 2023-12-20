@@ -13,6 +13,13 @@ Packages necessary for the demo:
 - vision_pick_place: Contains all the necessary code related to perception (Segmentation, corner detection, grasp point selection, pile height, etc)
 - iri_kinova_linear_movement: For execution cartesian movements with Kinova.
 
+## Features
+
+- Segments cloth in the table, detects closest largest edge and locates middle point to grasp.
+- Grasps the middle point according to its orientation (4 possible grasp orientations).
+- moves the grasped cloth under the camera to detect deformation.
+- 3 placings strategies can be choosen to place the object (vertically, diagonally and rotating the arm). Dynamic placings can also be performed but executed separately.
+
 ## Execution
 
 First launch the camera node and robot driver, in this example the rs camera and kinova robot:
@@ -30,10 +37,19 @@ The rqt_reconfigure includes the following variables:
 
 - ***Start SM:***
   - **get_grasp_point**: Confirm the grasp point selected (pink point in RVIZ). 
-  - **start**: Starts the state machine.
-  - **go**: Continues with the placing execution after checking the deformation.
+  - **start_demo**: Starts the state machine.
+  - **start_experiments**: Starts the state machine from the placing state to obtain data.
   - **stop**: Stops the state machine.
-  - **close_gripper**: gripper closing parameter (1.0 is completely close)
+  - **ok**: Continues with the placing execution after checking the deformation.
+  - **close**: Closes the gripper at the placing position (for start_experiments).
+  - **open**: Opens gripper once placed.
+  - **close_gripper**: Percentage of gripper closing (for different garment thickness).
+  - **towel**: "Fast button" for demo purposes (Predefines close_gripper and placing strategy for placing the towel vertically).
+  - **napkin**: "Fast button" for demo purposes (Predefines close_gripper and placing strategy for placing the napkin diagonally).
+  - **diagonal_place**: This will place the object with a diagonal movement.
+  - **vertical_place**: This will place the object with a vertical movement.
+  - **rotating_place**: This will place the obejct first rotating the gripper 90º.
+  - **dynamic_place**: -In progress-
 - ***Configuration parameters***:
   - **handeye**: XYZ and RPY offsets for handeye transformation between camera and kinova base.
 - ***Test pose parameters:***
@@ -41,3 +57,8 @@ The rqt_reconfigure includes the following variables:
   - **frame_id**: Reference frame of the fiven position.
   - **grasp**: Grasping target pose for testing.
 
+To execute the pick and place demo:
+1. Adjust the handeye parameters according to camera's position wrt base robot.
+2. To execute a predefined demo select towel or napkin and continue to the next step. Otherwise, introduce the closing percentage in close_gripper according to object's thickness and select the placing strategy (diagonal_place, vertical_place or rotating_place).
+3. Place the folded object in the "pick" zone and press get_grasp_point.
+4. Start the state machine pressing start_demo.
