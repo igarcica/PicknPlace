@@ -152,7 +152,7 @@ rosrun pcl_ros pointcloud_to_pcd input:=/segment_table/garment _prefix:=o3-03_gr
 
 To prepare the color images cutting them:
 
-1. set the RGB folder path in plot_results.py
+1. Set the RGB folder path in plot_results.py
 2. Set crop_imgs to True and save_img to False
 3. Go to the path containing the script plot_results.py. Here is where the cropped images will be saved
 4. Run the script: ``python plot_results.py``

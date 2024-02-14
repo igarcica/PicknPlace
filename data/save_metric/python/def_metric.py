@@ -23,20 +23,20 @@ GT_file = "./metrics_D/GT.csv"
 
 data_directory ="/home/pal/Desktop/all/PCD/"
 
-tests = False    # Compute metric of one file (True) or of all the files in folder (False)
-max_n_div = 10   # Grid division
-syn_can = True
+tests = True    ## Compute metric of one file (True) or of all the files in folder (False)
+max_n_div = 5   ## Grid division
+syn_can = True  ## Creates synthetic canonical when real canonical is not available
 use_filling_def_metric = False
 activate_print = False
 
 if tests:
     all_files = False
-    pcd_file = "o2-04_gr_e04.pcd"
+    pcd_file = "o5_gr_e10.pcd"
     pcd_dir = data_directory+pcd_file
     save_plots_dir = "./imgs/"
     save_def_metric = False
     show_plot = True
-    show_img_with_metrics = True
+    show_img_with_metrics = False
     save_img_with_metrics = False
 else:
     all_files = True
@@ -180,6 +180,13 @@ def plot_metrics(grid_write_dir, filename, metrics):
     #ax.imshow(data, cmap='gist_rainbow', norm=colors.LogNorm(vmin=0, vmax=1))
     ax.imshow(data, cmap='gist_rainbow', norm=colors.LogNorm(vmin=0.001, vmax=1.0)) #10x10
     #ax.imshow(data, cmap='gist_rainbow', norm=colors.LogNorm(vmin=0.00002, vmax=0.02)) #2x2
+
+    # Loop over data dimensions and create text annotations.
+    for i in range(0,div):
+        for j in range(0+i,size,div):
+            text = ax.text(j, i, data[i, j], ha="center", va="center", color="w")
+
+
     if(save_img_with_metrics):
         file_name = grid_write_dir + filename + "_pat.png"
         plt.savefig(file_name)
@@ -189,9 +196,14 @@ def plot_metrics(grid_write_dir, filename, metrics):
 
 
 ##################################################################################################
-## METRIC FUNCTIONS
+## METRIC FUNCTIONS (MAIN)
 
 def remove_gripper(obj_data):
+## Input: obj_data: Sample point cloud (segmented grasped cloth)
+## Output:
+    ## min_y_data: Minimum point to align canonical
+    ## obj_data_cut_gripper: point cloud of sample without gripper points
+
     print("\033[94m Removing gripper \033[0m")
     gripper_thrs = [0.05, 0.0, -0.15] #xmax, xmin, ymax
 
@@ -216,12 +228,29 @@ def remove_gripper(obj_data):
     return min_y_data, obj_data_cut_gripper
 
 def get_canonical(obj_name, align_canonical, n_div):
+## Description:
+## Inputs:
+    ## obj_name: Object name from list "objects"
+    ## align_canonical: Minimum point where to align canonical
+    ## n_div: Current grid division number
+## Outputs:
+    ## can_data: Point cloud of the canonical
+    ## can_x_grid_divs:
+    ## can_y_grid_divs:
+    ## can_grids:
+    ## can_min_depth:
+    ## can_max_grid_len:
+    ## can_def_measures:
+    ## can_transl_data:
+    ## can_edge_size:
+    ## can_area: Canonical area
+
     ##With synthetic canonical data
     if(syn_can):
-        can_data, can_edge_size, can_dim = create_canonical(obj_name, align_canonical)
-        can_x_grid_divs, can_y_grid_divs, can_grids = can_grid_division(can_data, n_div) # Divide garment in grid
-        can_min_depth, can_mean_depth, can_max_grid_len = canonical_params(can_data, can_grids) # Get canonical parameters
-        can_def_measures, can_transl_data = deformation_metric(can_grids, can_min_depth, can_max_grid_len, can_edge_size, can_data, can_grids) # Compute deformation metrics (grids depth mean)
+        can_data, can_edge_size, can_area = create_canonical(obj_name, align_canonical)     ## Creates canonical based on object size and given pointcloud resolution
+        can_x_grid_divs, can_y_grid_divs, can_grids = can_grid_division(can_data, n_div)    ## Divide garment in grid
+        can_min_depth, can_mean_depth, can_max_grid_len = canonical_params(can_data, can_grids) ## Get canonical parameters
+        can_def_measures, can_transl_data = deformation_metric(can_grids, can_min_depth, can_max_grid_len, can_edge_size, can_data, can_grids) ## Compute deformation metrics (grids depth mean)
         #if(show_plot):
             #plot(can_transl_data, "transl_canonical")
             #plot(can_data, "CANONICAL")
@@ -242,12 +271,22 @@ def get_canonical(obj_name, align_canonical, n_div):
         #plot(can_transl_data, "transl_canonical")
         #plot(can_data, "CANONICAL")
 
-    return can_data, can_x_grid_divs, can_y_grid_divs, can_grids, can_min_depth, can_max_grid_len, can_def_measures, can_transl_data, can_edge_size, can_dim
+    return can_data, can_x_grid_divs, can_y_grid_divs, can_grids, can_min_depth, can_max_grid_len, can_def_measures, can_transl_data, can_edge_size, can_area
+
+###################
 
 def create_canonical(obj_name, align_canonical):
+## Description:
     #Extract object size from point cloud
     #Having px/cm, distance to camera and object size compute new size and number of points
     #Create a rectangle with depth mean and new size (X,Y) with center the camera
+## Input:
+    ## obj_name: Sample name to obtain canonical parameters
+    ## align_canonical: Minimum point where to align canonical point cloud
+## Output:
+    ## syn_can_matrix: Canonical point cloud
+    ## obj_edge_size: Object edge size (short?)
+    ## can_area: Object flat area
 
     #X, Y?
     syn_can_matrix = []
@@ -457,12 +496,21 @@ def create_canonical(obj_name, align_canonical):
     print_info(activate_print, len(syn_can_matrix))
 
     ## Canonical area
-    can_dim = ((xmax-xmin)*100)*((ymax-ymin)*100)
-    print_info(activate_print, can_dim)
+    can_area = ((xmax-xmin)*100)*((ymax-ymin)*100)
+    print_info(activate_print, can_area)
 
-    return syn_can_matrix, obj_edge_size, can_dim
+    return syn_can_matrix, obj_edge_size, can_area
 
 def can_grid_division(data, n_div):
+## Description:
+## Input:
+    ## data: Canonical point cloud
+    ## n_div: current grid division number
+## Output:
+    ## x_thrs: horizontal divisions
+    ## y_thrs: vertical divisions
+    ## grids: Separateed grid pointclouds
+
     print("\033[96m Dividing in grids... \033[0m")
     x_thrs = []
     y_thrs = []
@@ -642,7 +690,7 @@ def deformation_metric(can_grids, can_min_depth, can_max_grid_len, can_edge_size
 
     return means, transl_data
 
-def new_def_metric(grids, can_dim):
+def new_def_metric(grids, can_area):
     print("\033[94m Computing deformation metric NOT FILLING... \033[0m")
 
     ## Compute deformation metric where it is not necessary to fill the occluded points
@@ -677,7 +725,7 @@ def new_def_metric(grids, can_dim):
             mean = mean/length
             mean=mean*100
             ## Pesar deformation metric segun tamano
-            mean = peso_def_metric(mean, can_dim)
+            mean = peso_def_metric(mean, can_area)
 
         ## When there are few visible points the mean will be > 1. Then set def metric to max (1)
         # if(mean>1):
@@ -752,35 +800,42 @@ def write_csv(csv_file, exp_name, data):
 
 ## Get ground truth
 GT = pd.read_csv(GT_file)
-classes = GT["Class_GT"].values
-n_classes = GT["Class_GT_n"].values
+classes = GT["Class_GT"].values     ## GT classes (string object format)
+n_classes = GT["Class_GT_n"].values ## GT classes (int object format)
 
-######## For one unique experiment
-if not all_files :
-    print("\033[94m Getting experiment file: \033[0m", pcd_file)
+######## For one unique sample
+if not all_files:
+    print("\033[94m Getting experiment file: \033[0m" + pcd_file)
+    ## Get object name
     for n in range(len(objects)):
         if objects[n] in pcd_file:
             obj_name = objects[n]
-    obj_pcd = o3d.io.read_point_cloud(pcd_dir) #Read pcd files from folder
+    ## Get sample point cloud
+    obj_pcd = o3d.io.read_point_cloud(pcd_dir)
     obj_data = np.asarray(obj_pcd.points)
-    # plot(obj_data, "EXPERIMENT")
+    #plot(obj_data, "EXPERIMENT") ## Plot sample point cloud
+
     ## Remove gripper and get minimum x of object to align canonical
     align_canonical, obj_data = remove_gripper(obj_data)
-    # plot(obj_data, "No gripper")
+    #plot(obj_data, "No gripper") ## Plot sample point cloud without (protruding) gripper points
+
     ## Get canonical
-    can_data, can_x_grid_divs, can_y_grid_divs, can_grids, can_min_depth, can_max_grid_len, can_def_measures, can_transl_data, can_edge_size, can_dim = get_canonical(obj_name, align_canonical, max_n_div)
+    can_data, can_x_grid_divs, can_y_grid_divs, can_grids, can_min_depth, can_max_grid_len, can_def_measures, can_transl_data, can_edge_size, can_area = get_canonical(obj_name, align_canonical, max_n_div)
     #get_resolution(can_data)
+
     ## Divide grids
     obj_grids = grid_division(obj_data, can_x_grid_divs, can_y_grid_divs, max_n_div) #Divide grids
+
     ## Compute deformation metrics (grids depth mean)
     if use_filling_def_metric:
         def_measures, obj_transl_data = deformation_metric(can_grids, can_min_depth, can_max_grid_len, can_edge_size, obj_data, obj_grids) # Compute deformation metrics (grids depth mean)
     else:
-        def_measures, obj_transl_data = new_def_metric(obj_grids, can_dim)
+        def_measures, obj_transl_data = new_def_metric(obj_grids, can_area)
     # plot(obj_transl_data, "transl exp")
+
     ## Save results
-    if(save_def_metric): ##Save means in csv
-        ##Write CSV headers
+    if(save_def_metric): ## Save means in csv
+        ## Write CSV headers
         headers = ["File"]
         for i in range(0, n_div*n_div):
             text = "M"+str(i+1)
@@ -836,7 +891,7 @@ if(all_files):
                 ## Remove gripper and get minimum x of object to align canonical
                 align_canonical, obj_data = remove_gripper(obj_data)
                 ## Get canonical
-                can_data, can_x_grid_divs, can_y_grid_divs, can_grids, can_min_depth, can_max_grid_len, can_def_measures, can_transl_data, can_edge_size, can_dim = get_canonical(obj_name, align_canonical, n_div)
+                can_data, can_x_grid_divs, can_y_grid_divs, can_grids, can_min_depth, can_max_grid_len, can_def_measures, can_transl_data, can_edge_size, can_area = get_canonical(obj_name, align_canonical, n_div)
                 #get_resolution(can_data)
                 ##Divide grids
                 obj_grids = grid_division(obj_data, can_x_grid_divs, can_y_grid_divs, n_div) #Divide grids
@@ -844,7 +899,7 @@ if(all_files):
                 if use_filling_def_metric:
                     def_measures, obj_transl_data = deformation_metric(can_grids, can_min_depth, can_max_grid_len, can_edge_size, obj_data, obj_grids)
                 else:
-                    def_measures, obj_transl_data = new_def_metric(obj_grids, can_dim)
+                    def_measures, obj_transl_data = new_def_metric(obj_grids, can_area)
                 if(save_def_metric): ##Save means in csv
                     save_mean_values(filename.replace(".pcd", ""), n_exp, def_measures)
                     n_exp+=1
