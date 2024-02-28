@@ -582,7 +582,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                               ROS_INFO("Sending to place position.");
                               this->pre_grasp_center.x = 0.12 + 0.1; //this->garment_edge_size + 0.12; //tool_pose.x-this->garment_edge_size-0.05;//-0.07;//*1.2;///1.5;
                               this->pre_grasp_center.y = tool_pose.y;
-                              this->pre_grasp_center.z = this->pile_height + config_.table_height + 0.1;
+                              this->pre_grasp_center.z = this->pile_height + config_.table_height + 0.13;
                               this->pre_grasp_center.theta_x = 0;
                               this->pre_grasp_center.theta_y = -125.5;
                               this->pre_grasp_center.theta_z = 180;
@@ -606,6 +606,31 @@ void PicknPlaceAlgNode::mainNodeThread(void)
 
       case PLACE22: ROS_DEBUG("PicknPlaceAlgNode: state PLACE22");
                               ROS_INFO("Sending to place2 position.");
+                              this->pre_grasp_center.x = 0.12 + 0.05; //tool_pose.x-0.07;
+                              this->pre_grasp_center.y = tool_pose.y;
+                              this->pre_grasp_center.z = tool_pose.z;
+                              this->pre_grasp_center.theta_x = 0;
+                              this->pre_grasp_center.theta_y = -125.5;
+                              this->pre_grasp_center.theta_z = 180;
+                              std::cout << "\033[1;36m Groing to: -> \033[1;36m  x: " << this->pre_grasp_center.x << ", y: " << this-> pre_grasp_center.y << ", z: " << this->pre_grasp_center.z << std::endl;
+                              this->success &= send_cartesian_pose(this->pre_grasp_center);
+                              if (this->success)
+                              {
+                                ROS_INFO("Success PLACE22");
+                                ros::Duration(0.5).sleep();
+                                this->state=PLACE222;
+                              }
+			      else
+                              {
+                                ROS_INFO("UNSUCCESS PLACE22");
+                                ros::Duration(0.5).sleep();
+                                this->state=PLACE222;
+                              }
+			        //this->state=END;
+      break;
+
+      case PLACE222: ROS_DEBUG("PicknPlaceAlgNode: state PLACE222");
+                              ROS_INFO("Sending to place2 position.");
                               this->pre_grasp_center.x = 0.12; //tool_pose.x-0.07;
                               this->pre_grasp_center.y = tool_pose.y;
                               this->pre_grasp_center.z = this->pile_height + config_.table_height + 0.055;
@@ -616,13 +641,13 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                               this->success &= send_cartesian_pose(this->pre_grasp_center);
                               if (this->success)
                               {
-                                ROS_INFO("Success PLACE2");
+                                ROS_INFO("Success PLACE222");
                                 ros::Duration(0.5).sleep();
                                 this->state=OPEN_GRIPPER;
                               }
 			      else
                               {
-                                ROS_INFO("UNSUCCESS PLACE2");
+                                ROS_INFO("UNSUCCESS PLACE222");
                                 ros::Duration(0.5).sleep();
                                 this->state=OPEN_GRIPPER;
                               }
@@ -1594,7 +1619,7 @@ bool PicknPlaceAlgNode::send_gripper_command(double value)
   }
   else
   {
-    ROS_INFO("PicknPlaceAlgNode:: Failed to call service on topic %s",this->send_gripper_cmd_client_.getService().c_str());
+    ROS_INFO("PicknPlaceAlgNode:: Failed to call service on topic % ",this->send_gripper_cmd_client_.getService().c_str());
     return false;
   }
   ROS_INFO("PicknPlaceAlgNode: Gripper command sended");
