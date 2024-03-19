@@ -8,22 +8,19 @@
     grasped placed notgrasped lifted - state
 )
 (:init
-    (garment-at towel grws)
+    (garment_obj towel)
 
+    (garment_at grws)
 
-    (at-pose multedges)
+    (at_pose singledge)
 
-    (garment-state notgrasped)
+    (garment_state notgrasped)
 
-
-
-
-    (= (time-cost) 0)
+    (= (time_cost) 0)
 
 )
 (:goal (and
-    (garment-state placed)
-    (at-pose singledge)
+    (garment_state grasped)
 ))
-(:metric minimize (time-cost))
+(:metric minimize (time_cost))
 )
