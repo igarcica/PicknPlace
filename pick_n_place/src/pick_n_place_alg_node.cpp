@@ -2,7 +2,10 @@
 
 PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
   algorithm_base::IriBaseAlgorithm<PicknPlaceAlgorithm>(),
-  kinova_linear_move_client_(private_node_handle_,"kinova_linear_move", true)
+  kinova_linear_move_client_(private_node_handle_,"kinova_linear_move", true),
+  as_(private_node_handle_, "activatesm", boost::bind(&PicknPlaceAlgNode::executeCB, this, _1), false)
+  //,
+  //action_name_("activatesm")
 {
 
   this->state=IDLE;
@@ -73,6 +76,12 @@ PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
   activate_publishing_client_ = this->private_node_handle_.serviceClient<kortex_driver::OnNotificationActionTopic>("/" + this->robot_name + "/base/activate_publishing_of_action_topic");
 
   // [init action servers]
+  //plan_server = new actionlib::SimpleActionServer<rosplan_dispatch_msgs::PlanAction>((*node_handle), "start_planning", boost::bind(&PlannerInterface::runPlanningServerAction, this, _1), false);
+  //action_server = new actionlib::SimpleActionServer<activatesm::activateSMAction>(nh_, name, boost::bind(&activateSMAction::executeCB, this, _1), false);
+  //  action_name_(name)
+  //as_(nh_, name, boost::bind(&activateSMAction::executeCB, this, _1), false);
+  ROS_INFO("PicknPlaceAlgNode:: Activating action server grasp");
+  as_.start();
 
   // [init action clients]
 
@@ -123,6 +132,12 @@ void PicknPlaceAlgNode::mainNodeThread(void)
 
   //activate_publishing_srv_.request.data = my_var;
 
+  //Manage PDDL actions
+  if(this->action_done)
+  {
+    //Manage errors (finished state of action: succeeded, aborted, failure, etc)
+    this->managePDDLactions(); //Notify PDDL action end
+  }
 
   if(this->state!=IDLE && this->stop)
   {
@@ -1009,6 +1024,125 @@ void PicknPlaceAlgNode::node_config_update(Config &config, uint32_t level)
 
   this->config_=config;
   this->alg_.unlock();
+}
+
+//PDDL action callback manager
+void PicknPlaceAlgNode::executeCB(const pick_n_place::activateSMGoalConstPtr &goal)
+{
+  // helper variables
+  ros::Rate r(1);
+  bool success = true;
+  std::string action_name_ = "activatesm";
+  pick_n_place::activateSMFeedback feedback_;
+  pick_n_place::activateSMResult result_;
+
+  // // Check if an action is already being executed
+  // if (m_server_state != ActionServerState::IDLE)
+  // {
+  //     ROS_WARN("There is already an active cartesian goal. It is being cancelled.");
+  //     // We have to call Stop after having received the ACTION_START notification from the arm
+  //     stop_all_movement();
+  // }
+
+  // push_back the seeds for the activateSM sequence
+  // feedback_.sequence.clear();
+  // feedback_.sequence.push_back(0);
+  // feedback_.sequence.push_back(1);
+
+  // publish info to the console for the user
+  ROS_WARN("Executing GRASP section of the finite state machine");
+  //ROS_INFO("%s: Executing, creating fibonacci sequence of order %i with seeds %i, %i", action_name_.c_str(), goal->order, feedback_.sequence[0], feedback_.sequence[1]);
+
+  ROS_INFO("Action %s ", goal->action_name.c_str());
+
+  // start executing the action
+  if(0==goal->action_name.compare("grasp")) 
+  {
+    ROS_WARN("PicknPlace: grasp action");
+    //ROS_INFO("Activated action %s ", goal->action_name.c_str());
+    this->do_grasp = true;
+  }
+      // start executing the action
+    if(0==goal->action_name.compare("grasp")) 
+    {
+      ROS_WARN("PicknPlace: GRASP action");
+    }
+    else if(0==goal->action_name.compare("drag")) 
+    {
+      ROS_WARN("PicknPlace: DRAG action");
+    }
+    else if(0==goal->action_name.compare("rotate")) 
+    {
+      ROS_WARN("PicknPlace: ROTATE action");
+    }
+    else if(0==goal->action_name.compare("lift")) 
+    {
+      ROS_WARN("PicknPlace: LIFT action");
+    }
+    else if(0==goal->action_name.compare("placevert")) 
+    {
+      ROS_WARN("PicknPlace: PLACE VERT action");
+    }
+    else
+    {
+      ROS_WARN("PicknPlace: No action received");
+      success = false;
+    }
+  
+  // for(int i=1; i<=goal->order; i++)
+  // {
+  //   // check that preempt has not been requested by the client
+  //   if (as_.isPreemptRequested() || !ros::ok())
+  //   {
+  //     ROS_INFO("%s: Preempted", action_name_.c_str());
+  //     // set the action state to preempted
+  //     as_.setPreempted();
+  //     success = false;
+  //     break;
+  //   }
+  //   feedback_.sequence.push_back(feedback_.sequence[i] + feedback_.sequence[i-1]);
+  //   // publish the feedback
+  //   as_.publishFeedback(feedback_);
+  //   // this sleep is not necessary, the sequence is computed at 1 Hz for demonstration purposes
+  //   r.sleep();
+  // }
+  //if(goal->action_name)
+
+  // Put a while, how? el while bloquea, que otra forma hay? 
+  //Usar funciones? Para que el result lo reciba la funcion correspondiente y no tenga que bloquear en medio de esta funcion?
+  // if(this->action_done)
+  //   //Manage also error if actions in FSM failed!
+  //   success=true; 
+  // else 
+  //   success=false;
+
+  // ROS_WARN("Action name: (%s)", goal->action_name.c_str());
+  // ROS_WARN("Activate grasp bool: (%d)", goal->activate_grasp);
+
+  // if(success)
+  // {
+  //   //result_.sequence = feedback_.sequence;
+  //   result_.done_action = true;
+  //   ROS_INFO("%s: Succeeded", action_name_.c_str());
+  //   // set the action state to succeeded
+  //   as_.setSucceeded(result_);
+  // }
+  if(!success)
+    as_.setAborted();
+}
+
+void PicknPlaceAlgNode::managePDDLactions(void)
+{
+  pick_n_place::activateSMResult result_;
+
+  //if (m_server_state != ActionServerState::IDLE)
+  // //Manage also error if actions in FSM failed!
+  // else 
+
+  result_.done_action = true;
+  
+  ROS_WARN("PicknPlace: Action ended with state...");
+  as_.setSucceeded(result_); // set the action state to succeeded
 }
 
 // Set and publish handeye transform

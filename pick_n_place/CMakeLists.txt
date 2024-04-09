@@ -6,7 +6,7 @@ find_package(catkin REQUIRED)
 # ********************************************************************
 #                 Add catkin additional components here
 # ********************************************************************
-find_package(catkin REQUIRED COMPONENTS iri_base_algorithm iri_kinova_linear_movement kortex_driver vision_pick_place iri_action_server message_generation std_msgs actionlib_msgs tf)
+find_package(catkin REQUIRED COMPONENTS iri_base_algorithm iri_kinova_linear_movement kortex_driver vision_pick_place iri_action_server message_generation std_msgs actionlib actionlib_msgs tf)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -34,10 +34,9 @@ find_package(catkin REQUIRED COMPONENTS iri_base_algorithm iri_kinova_linear_mov
 # )
 
 ## Generate actions in the 'action' folder
-#add_action_files(
-#   FILES
-#   demo_kinova.action
-#)
+add_action_files(
+   FILES activateSM.action
+)
 
 ## Generate added messages and services with any dependencies listed here
  generate_messages(

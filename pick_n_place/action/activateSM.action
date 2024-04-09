@@ -1,0 +1,11 @@
+#goal definition
+int32 order
+bool activate_grasp
+string action_name
+---
+#result definition
+int32[] sequence
+bool done_action
+---
+#feedback
+int32[] sequence

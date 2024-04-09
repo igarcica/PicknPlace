@@ -36,7 +36,7 @@
 			(at end (increase (time_cost) 1)))
 )
 
-(:durative-action approach
+(:durative-action drag
 	:parameters (?cloth - garment ?initws ?endws - workspace)
 	:duration ( = ?duration 1)
 	:condition (and 

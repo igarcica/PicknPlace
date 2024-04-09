@@ -21,9 +21,6 @@
 
 	<!-- sim actions -->
 	<include file="$(find rosplan_planning_system)/launch/includes/simulated_action.launch" >
-		<arg name="pddl_action_name" value="approach" />
-	</include>
-	<include file="$(find rosplan_planning_system)/launch/includes/simulated_action.launch" >
 		<arg name="pddl_action_name" value="rotate" />
     </include>
 	<include file="$(find rosplan_planning_system)/launch/includes/simulated_action.launch" >
@@ -37,6 +34,13 @@
 	<node name="rosplan_interface_grasp" pkg="rosplan_planning_system" type="tutorialInterface" respawn="false" output="screen">
 		<param name="knowledge_base"		value="rosplan_knowledge_base" />
 		<param name="pddl_action_name"		value="grasp" />
+		<param name="action_dispatch_topic" value="/rosplan_plan_dispatcher/action_dispatch" />
+		<param name="action_feedback_topic" value="/rosplan_plan_dispatcher/action_feedback" />
+	</node>
+
+	<node name="rosplan_interface_drag" pkg="rosplan_planning_system" type="tutorialInterface" respawn="false" output="screen">
+		<param name="knowledge_base"		value="rosplan_knowledge_base" />
+		<param name="pddl_action_name"		value="drag" />
 		<param name="action_dispatch_topic" value="/rosplan_plan_dispatcher/action_dispatch" />
 		<param name="action_feedback_topic" value="/rosplan_plan_dispatcher/action_feedback" />
 	</node>
