@@ -100,7 +100,6 @@ typedef enum {TEST,
 	            PILING2,
               END_POSITION,
               WAIT_END_POSITION,
-
               END} pick_place_states_t;
 
 /**
@@ -213,12 +212,11 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
 
     // [action server attributes]
     actionlib::SimpleActionServer<pick_n_place::activateSMAction> as_; 
-    //void executeCB(const pick_n_place::activateSMGoalConstPtr &goal);
     void goalCB();
     void preemptCB();
+    void managePDDLactions(void);
     bool action_done;
     bool do_grasp;
-    void managePDDLactions(void);
     bool start_test;
 
     // [action client attributes]

@@ -16,10 +16,11 @@ Constructing lookup tables: [10%] [20%] [30%] [40%] [50%] [60%] [70%] [80%] [90%
 Post filtering unreachable actions:  [10%] [20%] [30%] [40%] [50%] [60%] [70%] [80%] [90%] [100%]
 [01;34mNo analytic limits found, not considering limit effects of goal-only operators[00m
 All the ground actions in this problem are compression-safe
-Initial heuristic = 2.000
-b (1.000 | 1.000);;;; Solution Found
+Initial heuristic = 3.000
+b (2.000 | 60.000)b (1.000 | 61.001);;;; Solution Found
 ; States evaluated: 4
 ; Cost: 0.000
 ; Time 0.00
-0.000: (drag towel grws grrotws)  [1.000]
-1.001: (grasp towel grrotws singledge)  [60.000]
+0.000: (grasp towel grws singledge)  [60.000]
+60.001: (lift towel)  [1.000]
+61.002: (placevert towel)  [1.000]

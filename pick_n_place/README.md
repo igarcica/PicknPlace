@@ -62,3 +62,23 @@ To execute the pick and place demo:
 2. To execute a predefined demo select towel or napkin and continue to the next step. Otherwise, introduce the closing percentage in close_gripper according to object's thickness and select the placing strategy (diagonal_place, vertical_place or rotating_place).
 3. Place the folded object in the "pick" zone and press get_grasp_point.
 4. Start the state machine pressing start_demo.
+
+## Execution using ROSPlan
+
+Compile the PDDL package that includes the action client (RPTutorial10.cpp):
+
+``catkin_make --only-pkg-with-deps rosplan_planning_system``
+
+After launching the previous launches, launch the the knowledge base, problem and planner interface to store the PDDL model and generate the problem and call the planner:
+
+``cd PicknPlace/pnp_planner/launch``
+``roslaunch rosplan_tutorial10.launch``
+
+Generate the problem and the plan with the script:
+
+`` ./tutorial04.bash``
+
+<!-- To generate different plans, modify the init or goal conditions in the problem file "/pnp_planner/rosplan_problem.pddl". To check the output plan: 
+
+`` `` -->
+

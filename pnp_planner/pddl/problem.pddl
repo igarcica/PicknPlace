@@ -20,8 +20,7 @@
 
 )
 (:goal (and
-    (garment_at grrotws)
-    (garment_state grasped)
+    (garment_state placed)
 ))
 (:metric minimize (time_cost))
 )
