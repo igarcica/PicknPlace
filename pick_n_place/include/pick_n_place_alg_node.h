@@ -64,7 +64,8 @@
 #include <actionlib/server/simple_action_server.h>
 #include <pick_n_place/activateSMAction.h>
 
-typedef enum {IDLE,
+typedef enum {TEST,
+              IDLE,
               HOME,
               PRE_GRASP,
               GRASP,
@@ -212,10 +213,13 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
 
     // [action server attributes]
     actionlib::SimpleActionServer<pick_n_place::activateSMAction> as_; 
-    void executeCB(const pick_n_place::activateSMGoalConstPtr &goal);
+    //void executeCB(const pick_n_place::activateSMGoalConstPtr &goal);
+    void goalCB();
+    void preemptCB();
     bool action_done;
     bool do_grasp;
     void managePDDLactions(void);
+    bool start_test;
 
     // [action client attributes]
     actionlib::SimpleActionClient<iri_kinova_linear_movement::kinova_linear_movementAction> kinova_linear_move_client_;

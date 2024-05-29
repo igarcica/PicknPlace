@@ -7,27 +7,30 @@ Having a domain and problem file, a plan can be generated using a solver, in out
 
 ``ff -o domain_FOLDING.pddl -f problem_FOLDING.pddl -s 4 -w 1``
 
-## Execution ROSPlan
+## Demo execution with ROSPlan
 
 The defined PDDL domain can be encapsulated into ROSPlan [2]. 
 
+Launch the kinova, camera and demo:
+
+``roslaunch pick_n_place camera_n_kinova.launch``
+``roslaunch pick_n_place pick_n_place.launch``
+
 Launch the knowledge base, problem and planner interface to store the PDDL model and generate the problem and call the planner:
 
-``roslaunch rosplan_tutorial02.launch``
+``cd PicknPlace/pnp_planner/launch``
+``roslaunch rosplan_tutorial10.launch``
 
 Generate the problem and the plan with the script:
 
-`` ./tutorial.bash``
+`` ./tutorial04.bash``
 
 
 ## Dependencies
 
 - Fast-Forward solver [1]
+    - https://fai.cs.uni-saarland.de/hoffmann/metric-ff.html (Download version 2.1)
 - ROSPlan [2]
-
-## References
-
-[1] https://fai.cs.uni-saarland.de/hoffmann/metric-ff.html (Download version 2.1)
-[2] https://kcl-planning.github.io/ROSPlan/
-https://planning.wiki/ref/pddl/requirements
+    - https://kcl-planning.github.io/ROSPlan/
+    - https://planning.wiki/ref/pddl/requirements
 

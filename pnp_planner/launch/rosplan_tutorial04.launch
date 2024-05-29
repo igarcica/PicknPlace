@@ -25,6 +25,10 @@
 		<arg name="action_duration" value="1" />
 	</include>
 	<include file="$(find rosplan_planning_system)/launch/includes/simulated_action.launch" >
+		<arg name="pddl_action_name" value="drag" />
+		<arg name="action_duration" value="1" />
+	</include>
+	<include file="$(find rosplan_planning_system)/launch/includes/simulated_action.launch" >
 		<arg name="pddl_action_name" value="approach" />
 		<arg name="action_duration" value="1" />
 	</include>

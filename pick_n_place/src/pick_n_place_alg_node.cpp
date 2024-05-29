@@ -3,17 +3,20 @@
 PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
   algorithm_base::IriBaseAlgorithm<PicknPlaceAlgorithm>(),
   kinova_linear_move_client_(private_node_handle_,"kinova_linear_move", true),
-  as_(private_node_handle_, "activatesm", boost::bind(&PicknPlaceAlgNode::executeCB, this, _1), false)
+  //as_(private_node_handle_, "activatesm", boost::bind(&PicknPlaceAlgNode::executeCB, this, _1), false)
+  as_(private_node_handle_, "activatesm", false)
   //,
   //action_name_("activatesm")
 {
 
-  this->state=IDLE;
+  this->state=TEST;
   this->start_demo=false;
   this->start_experiments=false;
   this->stop=false;
   double open_gripper = 0.35;
   double close_gripper = 0.97; //0.81;
+
+  this->action_done=false;
 
   // Garment pose subscriber
   this->garment_pose_subscriber = this->public_node_handle_.subscribe("/segment_table/grasp_point",1,&PicknPlaceAlgNode::garment_pose_callback,this);
@@ -81,7 +84,10 @@ PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
   //  action_name_(name)
   //as_(nh_, name, boost::bind(&activateSMAction::executeCB, this, _1), false);
   ROS_INFO("PicknPlaceAlgNode:: Activating action server grasp");
+  as_.registerGoalCallback(boost::bind(&PicknPlaceAlgNode::goalCB, this));
+  as_.registerPreemptCallback(boost::bind(&PicknPlaceAlgNode::preemptCB, this));
   as_.start();
+  this->start_test=false;
 
   // [init action clients]
 
@@ -119,18 +125,6 @@ void PicknPlaceAlgNode::mainNodeThread(void)
   //lock access to algorithm if necessary
   this->alg_.lock();
   ROS_DEBUG("PicknPlaceAlgNode::mainNodeThread");
-  // [fill msg structures]
-  // Initialize the topic message structure
-  //this->cartesian_velocity_TwistCommand_msg_.data = my_var;
-
-  // Initialize the topic message structure
-  //this->my_gen3_action_topic_ActionNotification_msg_.data = my_var;
-
-
-  // [fill srv structure and make request to the server]
-
-
-  //activate_publishing_srv_.request.data = my_var;
 
   //Manage PDDL actions
   if(this->action_done)
@@ -151,6 +145,23 @@ void PicknPlaceAlgNode::mainNodeThread(void)
   {
     switch(this->state)
     {
+      case TEST: ROS_DEBUG("PicknPlaceAlgNode: state TEST");
+                 if(this->start_test)
+                 {
+                   ROS_DEBUG("Opening the gripper");
+                   this->success &= send_gripper_command(this->close_gripper);
+                   if (this->success)
+                   {
+                     this->state=TEST;
+                     ros::Duration(0.5).sleep();
+                     this->action_done=true; //End PDDL action
+                     this->start_test=false;
+                   }
+                 }
+                 else
+                   this->state=TEST;
+      break;
+
       case IDLE: ROS_DEBUG("PicknPlaceAlgNode: state IDLE");
                  if(this->start_demo)
                  {
@@ -1026,15 +1037,27 @@ void PicknPlaceAlgNode::node_config_update(Config &config, uint32_t level)
   this->alg_.unlock();
 }
 
-//PDDL action callback manager
-void PicknPlaceAlgNode::executeCB(const pick_n_place::activateSMGoalConstPtr &goal)
+void PicknPlaceAlgNode::preemptCB()
 {
-  // helper variables
+  ROS_INFO("%s: Preempted");
+  // set the action state to preempted
+  as_.setPreempted();
+}
+
+//PDDL action callback manager
+//void PicknPlaceAlgNode::executeCB(const pick_n_place::activateSMGoalConstPtr &goal
+void PicknPlaceAlgNode::goalCB()
+{
   ros::Rate r(1);
   bool success = true;
   std::string action_name_ = "activatesm";
+  pick_n_place::activateSMGoalConstPtr goal;
   pick_n_place::activateSMFeedback feedback_;
   pick_n_place::activateSMResult result_;
+
+  //std::string goal_;
+  //goal = as_.acceptNewGoal()->action_name;
+  goal = as_.acceptNewGoal();
 
   // // Check if an action is already being executed
   // if (m_server_state != ActionServerState::IDLE)
@@ -1050,7 +1073,7 @@ void PicknPlaceAlgNode::executeCB(const pick_n_place::activateSMGoalConstPtr &go
   // feedback_.sequence.push_back(1);
 
   // publish info to the console for the user
-  ROS_WARN("Executing GRASP section of the finite state machine");
+  
   //ROS_INFO("%s: Executing, creating fibonacci sequence of order %i with seeds %i, %i", action_name_.c_str(), goal->order, feedback_.sequence[0], feedback_.sequence[1]);
 
   ROS_INFO("Action %s ", goal->action_name.c_str());
@@ -1058,36 +1081,33 @@ void PicknPlaceAlgNode::executeCB(const pick_n_place::activateSMGoalConstPtr &go
   // start executing the action
   if(0==goal->action_name.compare("grasp")) 
   {
-    ROS_WARN("PicknPlace: grasp action");
+    ROS_WARN("PicknPlace: Executing GRASP section of the finite state machine");
     //ROS_INFO("Activated action %s ", goal->action_name.c_str());
-    this->do_grasp = true;
+    //this->do_grasp = true;
+    this->action_done=true;
   }
-      // start executing the action
-    if(0==goal->action_name.compare("grasp")) 
-    {
-      ROS_WARN("PicknPlace: GRASP action");
-    }
-    else if(0==goal->action_name.compare("drag")) 
-    {
-      ROS_WARN("PicknPlace: DRAG action");
-    }
-    else if(0==goal->action_name.compare("rotate")) 
-    {
+  else if(0==goal->action_name.compare("drag")) 
+  {
+    ROS_WARN("PicknPlace: DRAG action");
+    this->start_test=true;
+  }
+  else if(0==goal->action_name.compare("rotate")) 
+  {
       ROS_WARN("PicknPlace: ROTATE action");
-    }
-    else if(0==goal->action_name.compare("lift")) 
-    {
-      ROS_WARN("PicknPlace: LIFT action");
-    }
-    else if(0==goal->action_name.compare("placevert")) 
-    {
-      ROS_WARN("PicknPlace: PLACE VERT action");
-    }
-    else
-    {
-      ROS_WARN("PicknPlace: No action received");
-      success = false;
-    }
+  }
+  else if(0==goal->action_name.compare("lift")) 
+  {
+    ROS_WARN("PicknPlace: LIFT action");
+  }
+  else if(0==goal->action_name.compare("placevert")) 
+  {
+    ROS_WARN("PicknPlace: PLACE VERT action");
+  }
+  else
+  {
+    ROS_WARN("PicknPlace: No action received");
+    success = false;
+  }
   
   // for(int i=1; i<=goal->order; i++)
   // {
@@ -1116,8 +1136,8 @@ void PicknPlaceAlgNode::executeCB(const pick_n_place::activateSMGoalConstPtr &go
   // else 
   //   success=false;
 
-  // ROS_WARN("Action name: (%s)", goal->action_name.c_str());
-  // ROS_WARN("Activate grasp bool: (%d)", goal->activate_grasp);
+  // // ROS_WARN("Action name: (%s)", goal->action_name.c_str());
+  // // ROS_WARN("Activate grasp bool: (%d)", goal->activate_grasp);
 
   // if(success)
   // {
@@ -1127,8 +1147,8 @@ void PicknPlaceAlgNode::executeCB(const pick_n_place::activateSMGoalConstPtr &go
   //   // set the action state to succeeded
   //   as_.setSucceeded(result_);
   // }
-  if(!success)
-    as_.setAborted();
+  // if(!success)
+  //   as_.setAborted();
 }
 
 void PicknPlaceAlgNode::managePDDLactions(void)
@@ -1143,6 +1163,7 @@ void PicknPlaceAlgNode::managePDDLactions(void)
   
   ROS_WARN("PicknPlace: Action ended with state...");
   as_.setSucceeded(result_); // set the action state to succeeded
+  this->action_done=false;
 }
 
 // Set and publish handeye transform
