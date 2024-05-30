@@ -1,0 +1,5 @@
+0: (approach towel multedges grws grrotws)  [0.001]
+1: (rotate towel multedges singledge rotws)  [0.001]
+2: (grasp towel grrotws singledge)  [0.001]
+3: (lift multedges)  [0.001]
+4: (placediag towel multedges)  [0.001]

@@ -1,0 +1,14 @@
+NOTAS
+
+
+- si pongo ? en vez de los objetos especificos, me sale que el "goal achieved" es true
+
+
+DOUBTS
+- How to use metric ff with durative-actions?
+- Does popf consider minimization of time? (it does not accepth two function with same costs/times
+ 
+To Do:
+- Nodes for my actions that activate sections of the SM
+- Create action servers for the different sections of the SM (linked to the pddl actions).
+- Create rosplan nodes (that will be action clients) to call this actions for each pddl action

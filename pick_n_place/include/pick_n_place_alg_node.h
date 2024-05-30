@@ -60,7 +60,12 @@
 #include <visualization_msgs/MarkerArray.h>
 #include <std_msgs/Float64.h>
 
-typedef enum {IDLE,
+#include <ros/ros.h>
+#include <actionlib/server/simple_action_server.h>
+#include <pick_n_place/activateSMAction.h>
+
+typedef enum {TEST,
+              IDLE,
               HOME,
               PRE_GRASP,
               GRASP,
@@ -98,7 +103,6 @@ typedef enum {IDLE,
 	            PILING2,
               END_POSITION,
               WAIT_END_POSITION,
-
               END} pick_place_states_t;
 
 /**
@@ -211,6 +215,13 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
 
 
     // [action server attributes]
+    actionlib::SimpleActionServer<pick_n_place::activateSMAction> as_; 
+    void goalCB();
+    void preemptCB();
+    void managePDDLactions(void);
+    bool action_done;
+    bool do_grasp;
+    bool start_test;
 
     // [action client attributes]
     actionlib::SimpleActionClient<iri_kinova_linear_movement::kinova_linear_movementAction> kinova_linear_move_client_;

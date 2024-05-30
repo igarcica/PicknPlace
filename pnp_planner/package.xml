@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<package>
+  <name>pnp_planner</name>
+  <version>1.0.0</version>
+  <description>
+    Package for executing Pick and place demo with planning
+  </description>
+  <maintainer email="igarcia@iri.upc.edu">Irene Garcia-Camacho</maintainer>
+  <license>TODO</license>
+  <author email="igarcia@iri.upc.edu">Irene Garcia-Camacho</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+</package>
