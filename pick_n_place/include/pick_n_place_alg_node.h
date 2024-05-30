@@ -219,7 +219,10 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     void goalCB();
     void preemptCB();
     void managePDDLactions(void);
-    bool action_done;
+
+    // PDDL variables
+    bool pddl_action_done;
+    bool pddl_go_home;
     bool do_grasp;
     bool start_test;
 

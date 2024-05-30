@@ -7,7 +7,7 @@ PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
   //action_name_("activatesm")
 {
 
-  this->state=TEST;
+  this->state=IDLE;
   this->start_demo=false;
   this->start_experiments=false;
   this->stop=false;
@@ -79,8 +79,11 @@ PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
   as_.registerGoalCallback(boost::bind(&PicknPlaceAlgNode::goalCB, this));
   as_.registerPreemptCallback(boost::bind(&PicknPlaceAlgNode::preemptCB, this));
   as_.start();
+
+  // PDDL variables
   this->start_test=false;
-  this->action_done=false;
+  this->pddl_action_done=false;
+  this->pddl_go_home=false;
 
   // [init action clients]
 
@@ -120,7 +123,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
   ROS_DEBUG("PicknPlaceAlgNode::mainNodeThread");
 
   //Manage PDDL actions
-  if(this->action_done)
+  if(this->pddl_action_done)
   {
     //Manage errors (finished state of action: succeeded, aborted, failure, etc)
     this->managePDDLactions(); //Notify PDDL action end
@@ -147,7 +150,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                    {
                      this->state=TEST;
                      ros::Duration(0.5).sleep();
-                     this->action_done=true; //End PDDL action
+                     this->pddl_action_done=true; //End PDDL action
                      this->start_test=false;
                    }
                  }
@@ -156,7 +159,8 @@ void PicknPlaceAlgNode::mainNodeThread(void)
       break;
 
       case IDLE: ROS_DEBUG("PicknPlaceAlgNode: state IDLE");
-                 if(this->start_demo)
+                 //if(this->start_demo)
+                 if(pddl_go_home)
                  {
                    ROS_DEBUG("Opening the gripper");
 		               this->get_pile_height = false;
@@ -166,13 +170,14 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                      this->state=HOME;
                      ros::Duration(0.5).sleep();
                      this->start_demo=false;
+                     this->pddl_go_home=false;
                    }
                  }
-                 else if(this->start_experiments)
-		             {
-		               this->state=CHOOSE_PLACING;
-		               this->start_experiments=false;
-		             }
+                 //else if(this->start_experiments)
+		             //{
+		             //  this->state=CHOOSE_PLACING;
+		             //  this->start_experiments=false;
+		             //}
 		             else
                    this->state=IDLE;
       break;
@@ -184,8 +189,9 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                  this->success &= home_the_robot();
                  if (this->success)
                  {
-  		             //this->state=EXPERIMENTS1;
-                   this->state=PRE_GRASP;
+  		             //this->state=PRE_GRASP;
+                   this->pddl_action_done=true;
+                   this->state=IDLE;
                    ros::Duration(0.5).sleep();
                  }
       break;
@@ -312,8 +318,9 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                               else if(kinova_linear_move_state==actionlib::SimpleClientGoalState::SUCCEEDED)
                               {
                                 this->success = true;
-                                //this->state=ROTATE_POST_GRASP;
-                                this->state=EXPERIMENTS1;
+                                //this->state=EXPERIMENTS1;
+                                this->pddl_action_done=true;
+                                this->state=IDLE;
                                 ros::Duration(0.5).sleep();
                               }
                             }
@@ -368,7 +375,9 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                                 else if(kinova_linear_move_state==actionlib::SimpleClientGoalState::SUCCEEDED)
                                 {
                                   this->success = true;
-                                  this->state=CLOSE_GRIPPER2;
+                                  //this->state=CLOSE_GRIPPER2;
+                                  this->pddl_action_done=true; // End PDDL action
+                                  this->state=IDLE;
                                   ros::Duration(0.5).sleep();
                                 }
                               }
@@ -456,7 +465,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
 			                       std::cout << this->placing_strategy << std::endl;
                              this->success = true;
                              if(this->placing_strategy==1)
-                               this->state=PRE_PLACE_DIAGONAL; //PRE_PLACE_DIAGONAL;
+                               this->state=PRE_PLACE_DIAGONAL;
                              else if(this->placing_strategy==2)
 			                         this->state=PRE_PLACE_RECTO;
 			                       else if(this->placing_strategy==3)
@@ -932,6 +941,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
 
       case END: ROS_INFO("PicknPlaceAlgNode: state END");
 		            this->stop=true;
+                this->pddl_action_done=true;
       break;
 
     }
@@ -1158,20 +1168,37 @@ void PicknPlaceAlgNode::goalCB()
   // feedback_.sequence.clear();
   // feedback_.sequence.push_back(0);
   // feedback_.sequence.push_back(1);
-
-  // publish info to the console for the user
   
-  //ROS_INFO("%s: Executing, creating fibonacci sequence of order %i with seeds %i, %i", action_name_.c_str(), goal->order, feedback_.sequence[0], feedback_.sequence[1]);
-
-  ROS_INFO("Action %s ", goal->action_name.c_str());
 
   // start executing the action
-  if(0==goal->action_name.compare("grasp")) 
+  if(0==goal->action_name.compare("check_corners")) 
   {
-    ROS_WARN("PicknPlace: Executing GRASP section of the finite state machine");
-    //ROS_INFO("Activated action %s ", goal->action_name.c_str());
-    //this->do_grasp = true;
-    this->action_done=true;
+    ROS_INFO("PicknPlace: PDDL Action %s received", goal->action_name.c_str());
+    ROS_WARN("PicknPlace: Executing CHECK CORNERS section of the finite state machine");
+    this->get_garment_position=true;
+  }
+  else if(0==goal->action_name.compare("home")) 
+  {
+    ROS_WARN("PicknPlace: Executing HOME section of the FSM");
+    this->pddl_go_home=true;
+  }
+  else if(0==goal->action_name.compare("grasp")) 
+  {
+    ROS_WARN("PicknPlace: Executing GRASP section of the FSM");
+    //this->pddl_action_done=true;
+    this->close_gripper=0.81; //This will depend on PDDL parameter of cloth objects
+    this->state=PRE_GRASP;
+  }
+  else if(0==goal->action_name.compare("check_deformation")) 
+  {
+    ROS_WARN("PicknPlace: CHECK DEFORMATION action");
+    this->state=EXPERIMENTS1;
+  }
+  else if(0==goal->action_name.compare("placevert")) 
+  {
+    ROS_WARN("PicknPlace: PLACE VERT action");
+    this->placing_strategy=2; //Will be given by the action of PDDL
+    this->state=CHOOSE_PLACING;
   }
   else if(0==goal->action_name.compare("drag")) 
   {
@@ -1181,14 +1208,6 @@ void PicknPlaceAlgNode::goalCB()
   else if(0==goal->action_name.compare("rotate")) 
   {
       ROS_WARN("PicknPlace: ROTATE action");
-  }
-  else if(0==goal->action_name.compare("lift")) 
-  {
-    ROS_WARN("PicknPlace: LIFT action");
-  }
-  else if(0==goal->action_name.compare("placevert")) 
-  {
-    ROS_WARN("PicknPlace: PLACE VERT action");
   }
   else
   {
@@ -1217,7 +1236,7 @@ void PicknPlaceAlgNode::goalCB()
 
   // Put a while, how? el while bloquea, que otra forma hay? 
   //Usar funciones? Para que el result lo reciba la funcion correspondiente y no tenga que bloquear en medio de esta funcion?
-  // if(this->action_done)
+  // if(this->pddl_action_done)
   //   //Manage also error if actions in FSM failed!
   //   success=true; 
   // else 
@@ -1248,9 +1267,9 @@ void PicknPlaceAlgNode::managePDDLactions(void)
 
   result_.done_action = true;
   
-  ROS_WARN("PicknPlace: Action ended with state...");
+  ROS_WARN("PicknPlace: Action ended");
   as_.setSucceeded(result_); // set the action state to succeeded
-  this->action_done=false;
+  this->pddl_action_done=false;
 }
 
 // Set and publish handeye transform
@@ -1448,7 +1467,11 @@ void PicknPlaceAlgNode::corners_callback(const visualization_msgs::MarkerArray::
     this->get_pile_height = true;
     //this->garment_edge_size = garment_edge.data;
     std::cout << "\033[1;36m Non grasped edge size-> \033[1;36m " <<  this->garment_edge_size << std::endl;
-    this->get_garment_position=false;
+    if(config_.ok)
+    {
+      this->get_garment_position=false;
+      this->pddl_action_done=true; //End PDDL action
+    }
   }
 
 }
