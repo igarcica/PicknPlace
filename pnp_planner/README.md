@@ -8,8 +8,12 @@ This repository includes the PDDL model (rosplan_domain.pddl and rosplan_problem
 Having a domain and problem file, a plan can be generated using a solver, in out example we used the Fast-Forward solver [1].
 
 ``export PATH=$PATH:~/Metric-FF-v2.1``
-
 ``ff -o domain_FOLDING.pddl -f problem_FOLDING.pddl -s 4 -w 1``
+
+or 
+
+``export PATH=$PATH:~/iri-lab/iri_ws/src/PicknPlace/ROSPlan/rosplan_planning_system/common/bin``
+``Metric-FF -o rosplan_domain.pddl -f rosplan_problem.pddl -s 3 -w 1``
 
 ## Demo execution with ROSPlan
 

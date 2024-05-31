@@ -68,7 +68,7 @@
 						))
 
 
-;; PLACE ACTIONS  - depends first on specified costs (and later on perceived deformation
+;; PLACE ACTIONS  - depends first on specified costs (and later on perceived deformation)
 
 	(:action PlaceVert
 		:parameters (?cloth - garment ?edge - grasp)
@@ -94,4 +94,4 @@
 					(increase (place-qual) (place-succ ?cloth ?edge placerot))
 					))
 
-
+)
