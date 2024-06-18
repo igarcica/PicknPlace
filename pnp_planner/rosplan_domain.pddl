@@ -1,6 +1,11 @@
+;;Takes into account functions. Used with Metric-ff.
+;;Problem: Does not include in the plan rotate and drag, probably because it prioritizes less number of actions.
+;;Solution: Seems that it works with Metric-FF -o rosplan_domain.pddl -f rosplan_problem.pddl -s 3 -w 1. However, it also adds drag although it is not necessary
+
 (define (domain PICKNPLACEtest)
 
-(:requirements :strips :typing :fluents :disjunctive-preconditions :durative-actions)
+;;(:requirements :strips :typing :disjunctive-preconditions :negative-preconditions :durative-actions :numeric-fluents)
+(:requirements :fluents)
 
 (:types
 	garment 
@@ -8,6 +13,8 @@
     placing
     workspace
 	state
+	corners
+	position
 )
 
 (:predicates
@@ -15,88 +22,124 @@
 	(garment_at ?wp - workspace)
 	(at_pose ?edge - grasp)
 	(garment_state ?state - state)
+	(corners_pos ?corner - corners)
+	(robot_at ?pos - position)
 )
 
 (:functions
     (time_cost)
+	(place_qual)
+	(place_succ ?cloth - garment ?edge - grasp ?place - placing)
 )
 
 ;; Move to any waypoint, avoiding terrain
-(:durative-action grasp
-	:parameters (?cloth - garment ?ws - workspace ?gr - grasp)
-	:duration ( = ?duration 60)
-	:condition (and
-				(over all (garment_obj ?cloth))
-				(at start (garment_at ?ws))
-				(at start (at_pose ?gr))
-				(at start (garment_state notgrasped)))
+(:action check_corners
+	:parameters (?cloth - garment)
+	:precondition (and
+				(garment_obj ?cloth)
+				(garment_state notgrasped)
+				(corners_pos unknown))
 	:effect (and
-			(at start (not (garment_state notgrasped)))
-			(at end (garment_state grasped))  
-			(at end (increase (time_cost) 1)))
+			(not (corners_pos unknown))
+			(corners_pos known)
+			(increase (time_cost) 1)
+			(increase (place_qual) 0))
 )
 
-(:durative-action drag
-	:parameters (?cloth - garment ?initws ?endws - workspace)
-	:duration ( = ?duration 1)
-	:condition (and 
-				(over all (garment_obj ?cloth))
-				(at start (garment_at ?initws))
-				(at start (garment_state notgrasped)))
+(:action home
+	:parameters (?cloth - garment)
+	:precondition (and
+				(garment_obj ?cloth)
+				(corners_pos known)
+				(robot_at postgrasp))
+	:effect (and
+			(not (robot_at postgrasp))
+			(robot_at home)
+			(increase (time_cost) 1)
+			(increase (place_qual) 0))
+)
+
+(:action grasp
+;;	:parameters (?cloth - garment ?ws - workspace ?gr - grasp)
+	:parameters (?cloth - garment ?gr - grasp)
+	:precondition (and
+				(garment_obj ?cloth)
+				(robot_at home)
+;;				(garment_at ?ws)
+				(at_pose ?gr)
+				(garment_state notgrasped))
+	:effect (and
+			(not (garment_state notgrasped))
+			(not (robot_at home))
+			(garment_state grasped)
+			(increase (time_cost) 1)
+			(increase (place_qual) 0))
+)
+
+(:action drag
+;;	:parameters (?cloth - garment ?initws ?endws - workspace)
+	:parameters (?cloth - garment)
+	:precondition (and 
+				(garment_obj ?cloth)
+				(garment_at grws)
+				(garment_state notgrasped))
 	:effect (and 
-			(at end (garment_at ?endws))
-			(at start (not (garment_at ?initws)))
-			(at end (increase (time_cost) 1)))
+			(not (garment_at grws))
+			(garment_at grrotws)
+			(increase (time_cost) 1)
+			(increase (place_qual) 0))
 )
 
-(:durative-action rotate
+(:action rotate
 	:parameters (?cloth - garment ?initedge ?endedge - grasp)
-	:duration ( = ?duration 1)
-	:condition (and 
-				(over all (garment_obj ?cloth))
-				(at start (garment_at grrotws))
-				(at start (at_pose ?initedge))
-				(at start (garment_state notgrasped)))
+	:precondition (and 
+				(garment_obj ?cloth)
+				(garment_at grrotws)
+				(at_pose ?initedge)
+				(garment_state notgrasped))
 	:effect (and 
-			(at end (at_pose ?endedge))
-			(at start (not (at_pose ?initedge)))
-			(at end (increase (time_cost) 1)))
+			(not (at_pose ?initedge))
+			(at_pose ?endedge)
+			(increase (time_cost) 1)
+			(increase (place_qual) 0))
 )
 
-(:durative-action lift
+(:action check_deformation
 	:parameters (?cloth - garment)
-	:duration ( = ?duration 1)
-	:condition (and 
-				(over all (garment_obj ?cloth))
-				(at start (garment_state grasped)))
+	:precondition (and 
+				(garment_obj ?cloth)
+				(garment_state grasped))
 	:effect (and 
-			(at end (garment_state lifted))
-			(at start (not (garment_state grasped)))
-			(at end (increase (time_cost) 1)))
+			(garment_state lifted)
+			(not (garment_state grasped))
+			(increase (time_cost) 1)
+			(increase (place_qual) 0))
 )
 
-(:durative-action placevert
-	:parameters (?cloth - garment)
-	:duration ( = ?duration 1)
-	:condition (and 
-				(over all (garment_obj ?cloth))
-				(at start (garment_state lifted)))
+(:action placevert
+	:parameters (?cloth - garment ?edge - grasp)
+	:precondition (and 
+				(garment_obj ?cloth)
+				(at_pose ?edge)
+				(garment_state lifted))
 	:effect (and 
-			(at end (garment_state placed))
-			(at start (not (garment_state lifted)))
-			(at end (increase (time_cost) 1)))
+			(garment_state placed)
+			(not (garment_state lifted))
+			(increase (time_cost) 1)
+			(increase (place_qual) (place_succ ?cloth ?edge placevert)))
 )
 
-;;(:durative-action placediag
-;;	:parameters (?cloth - garment)
-;;	:duration ( = ?duration 2)
-;;	:condition (and 
-;;				(over all (garment_obj ?cloth))
-;;				(at start (garment_state lifted)))
-;;	:effect (and 
-;;			(at end (garment_state placed))
-;;			(at start (not (garment_state lifted)))
-;;			(at end (increase (time_cost) 2)))
-;;)
+(:action placediag
+	:parameters (?cloth - garment ?edge - grasp)
+	:precondition (and
+				(garment_obj ?cloth)
+				(at_pose ?edge)
+				(garment_state lifted))
+	:effect (and 
+			(garment_state placed)
+			(not (garment_state lifted))
+			(increase (time_cost) 1)
+			(increase (place_qual) (place_succ ?cloth ?edge placediag)))
+)
 
 )
