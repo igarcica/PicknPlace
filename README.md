@@ -15,14 +15,25 @@ The package has the following structure:
 - vision_pick_place: Contains all the necessary code related to perception (Segmentation, corner detection, grasp point selection, pile height, etc)
 - iri_kinova_linear_movement: For execution cartesian movements with Kinova.
 - data: Scripts to save data from pick and place executions and compute deformation metric.
-    . /save_data: Scripts to save data form pick and place executions (Color and depth images, depth topis in rosbag and pointcloud data as pcd file).
+    - /save_data: Scripts to save data form pick and place executions (Color and depth images, depth topis in rosbag and pointcloud data as pcd file).
     - /save_metric: 
-        -/c: Contains the code (in C++) to compute and write csv files with the deformation data (using the pcd files with full view and vision node)
-            -execution.py: Publishes the content of PCD files as point cloud during 8seg one at a time.
-            -/node: ROS node that subscribes to topic with deformation data (computed and published by thhe vision_pick_place node) and writes CSV files.
-        -/ptyhon: Contains the code (in python) to compute and write the csv files with the deformation data (using pcd files with segmented garment).
-            -def_metric.py: Computes the deformation metric and saves it in CSV files.
-            -clustering.py: Computes the centroid and inter/intra distances of the deformation data from csv files.
+        - /c: Contains the code (in C++) to compute and write csv files with the deformation data (using the pcd files with full view and vision node)
+            - execution.py: Publishes the content of PCD files as point cloud during 8seg one at a time.
+            - /node: ROS node that subscribes to topic with deformation data (computed and published by the vision_pick_place node) and writes CSV files.
+        - /ptyhon: Contains the code (in python) to compute and write the csv files with the deformation data (using pcd files with segmented garment).
+            - def_metric.py: Computes the deformation metric and saves it in CSV files.
+            - clustering.py: Computes the centroid and inter/intra distances of the deformation data from csv files.
+            - kmeans.py: Clusterises pick files based on deformation metrics and computes success rate comparing it to the ground truth.
+            - plot_results.py: Prints the deformation metrics in the corresponding files for visual information.
+
+<!--## Dependencies
+
+For hierarchhical.py
+
+sudp apt get insttal python3-pip
+pip3 install -U scikit-learn
+pip3 install numpy, pandas, matplotlib
+-->
 
 <!--## How to execute PnP demo
 
@@ -112,8 +123,8 @@ To visualize the computed metrics publish the point cloud of the pcd file and ru
 ```
 roscore
 rosrun pcl_ros pcd_to_pointcloud pointcloud_file.pcd 0.1
-rostopic echo /segment_table/corners
 roslaunch vision_pick_place picknplace.launch
+rosrun pcl_ros pointcloud_to_pcd input:=/segment_table/garment _prefix:=o3-03_gr_e06_
 ```
 
 To run all the pcd files one by one and write the results in a csv file:
@@ -128,5 +139,48 @@ python execution.py
 
 This will
 
+### How to prepare the dataset
+
+Save the clean segmented data of the deformed cloth, run the pcd of the entire view and save it:
+
+```
+roscore
+rosrun pcl_ros pcd_to_pointcloud pointcloud_file.pcd 0.1
+roslaunch vision_pick_place picknplace.launch
+rosrun pcl_ros pointcloud_to_pcd input:=/segment_table/garment _prefix:=o3-03_gr_e06
+```
+
+To prepare the color images cutting them:
+
+1. Set the RGB folder path in plot_results.py
+2. Set crop_imgs to True and save_img to False
+3. Go to the path containing the script plot_results.py. Here is where the cropped images will be saved
+4. Run the script: ``python plot_results.py``
+
+
+
+### How to compute the deformation metric and clusterise
+
+Go to the /data folder, to compute the deformation metric, set the path with the PCD files of the experiments and the path where you want to save the results in the "def_metrics.py" script. Also select the number of desired buckets.
+
+``python def_metric.py``
+
+Running the script will output a CSV file on the introduce path with a list of the experiments file names and the corresponding deformation metric given the number of buckets.
+
+
+To visualise these metrics on top of the images for visual information, run the following script indicating the paths with the RGB images of the experiments and the folder where to save the resulting images.
+
+``python plot_results.py``
+
+
+To clusterise and compute the success rate based on a given ground truth, run the following script:
+
+``python kmeans.py``
+
+This script will return a CSV file with the predicted cluster of each file, the label given telating to the ground truth and the success of each class and total.
+
+To execute other clustering algorithms such as Hierarchical agglomerative clustering run:
+
+``python3 hierarchical.py``
 
 

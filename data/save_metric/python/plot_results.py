@@ -2,25 +2,36 @@ import cv2
 import pandas as pd
 import os
 
-n_div = 5 #2, 3, 4, 5...
-n_grids = n_div*n_div #4, 9, 16, 25...
-metrics_name = ["M1","M2","M3","M4", "M5","M6","M7","M8","M9","M10","M11","M12","M13","M14","M15","M16","M17","M18","M19","M20","M21","M22","M23","M24","M25"]
+##################################################################################################
+## INPUT PARAMETERS
 
-data_directory="/home/pal/Desktop/all/dataset/Picks/RGB/cropped/"
-write_directory = "./results/" + str(n_div) + "x" + str(n_div) + "/"
+max_n_div = 10
+# n_grids = n_div*n_div #4, 9, 16, 25...
+#metrics_name = ["M1","M2","M3","M4", "M5","M6","M7","M8","M9","M10","M11","M12","M13","M14","M15","M16","M17","M18","M19","M20","M21","M22","M23","M24","M25"]
 
-metrics_csv_file = "o2_" + str(n_div) + "x" + str(n_div) + ".csv" ##o1_2x2.csv
-metrics_csv_dir = write_directory+metrics_csv_file
+#data_directory="/home/pal/Desktop/all/dataset/Picks/RGB/cropped/"
+#data_directory="/home/pal/Desktop/more_data/dataset/RGB/"
+#data_directory="/home/pal/Desktop/more_folds/dataset/RGB/"
+data_directory="/home/pal/Desktop/all/RGB/"
+# write_directory = "./metrics_D/not_filling/" + str(n_div) + "x" + str(n_div) + "/"
+metrics_directory = "./metrics_D/not_filling/"
+
+# metrics_csv_file = str(n_div) + "x" + str(n_div) + ".csv" ##o1_2x2.csv
+# metrics_csv_dir = write_directory+metrics_csv_file
 
 all_files = True
-image_file = "o1_gr_e02.png"
+image_file = "o1_gr_e01.png"
 image_dir = data_directory+image_file
 
 save_img = True
 show_img = False
 
+crop_imgs=False
+print_metrics=False
+
 
 ##################################################################################################
+## FUNCTIONS
 
 def crop_image(img_file):
 
@@ -29,43 +40,53 @@ def crop_image(img_file):
     ##Crop image
     print("Original img size: ", img.shape)
     cv2.imshow("Original",img)
-    crop_img = img[0:510, 390:850]
+    crop_img = img[0:510, 370:840]
     print("Cropped image size: ", img.shape)
     cv2.imshow("Cropped",img)
 
     ###Save croped images
-    image_file = image_file.replace("./RGB/","")
-    write_filename = "./labelled/"+image_file
+    image_file = img_file.replace(data_directory,"")
+    write_filename = "./"+image_file
     print(write_filename)
     cv2.imwrite(write_filename, crop_img)
 
     return crop_img
 
-def print_metric_img(img, image_file, metrics_df):
-    print("Printing metrics in images...")
+def print_metric_img(img, image_file, metrics_df, n_div, write_directory):
+    print("Printing metrics in image ", image_file)
+
+    ## Get deformation metrics for the given experiment based on the file name
     image_name = image_file.replace(".png","")
     file_metrics = metrics_df.loc[(metrics_df["File"]==image_name)]
-    #metric_value = float(file_metrics[metrics_name[0]])
-    # for i in range(0,n_grids):
-    #     metric_value = file_metrics[metrics_name[i]]
 
     ##Print metrics in images
     size = 1
     divs = n_div*2
     locs_x = []
     locs_y = []
-    k=0
+    k=1
+    ## Get locations where to put text based on number of buckets
     for i in range(0,divs,2):
         locs_x.append((img.shape[0]/divs*(i+1))-20)
         locs_y.append((img.shape[1]/divs*(i+1))-20)
-        #print(img.shape[0]/divs*(i+1))
-        #print(img.shape[1]/divs*(i+1))
-    for n in range(0,n_div):
-        for m in range(0,n_div):
-            metric_value = float(file_metrics[metrics_name[k]])
+
+    ## Print the each metric value in the corresponding bucket of the grid
+    for n in range(0,n_div): # y coordinates
+        for m in range(0,n_div): # x coordinates
+            metric_name = "M"+str(k)
+            metric_value = file_metrics[metric_name].values
+            #metric_value = float(file_metrics[metric_name]) # Search next metric (M1, M2, M3,...)
             text = str(round(metric_value,3))
-            cv2.putText(img, text, (locs_y[n], locs_x[m]), cv2.FONT_HERSHEY_SIMPLEX, size, (221, 82, 196), 2)
+            if(print_metrics):
+                cv2.putText(img, text, (locs_y[n], locs_x[m]), cv2.FONT_HERSHEY_SIMPLEX, size, (221, 82, 196), 2)
             k+=1
+
+    ## Print file name
+    cv2.putText(img, image_name, (295,505), cv2.FONT_HERSHEY_SIMPLEX, size, (0,0,0), 2)
+
+    ## Print ground truth class
+    GT_class = str(file_metrics["Class_GT"].values[0])
+    cv2.putText(img, GT_class, (100,500), cv2.FONT_HERSHEY_SIMPLEX, size, (0,0,0), 2)
 
     if(save_img):
         result_image_dir = write_directory+image_file
@@ -78,86 +99,40 @@ def print_metric_img(img, image_file, metrics_df):
 
 ##################################################################################################
 
-##Read CSV --> Metrics
-metrics_df = pd.read_csv(metrics_csv_dir)
-
-###Crop images and save images
-#crop_img = crop_image(img)
+## MAIN
 
 
+# metrics_df = pd.read_csv(metrics_csv_dir) ##Read CSV --> Metrics
+#print(metrics_df)
+
+
+## Print metrics or crop the given image
 if not(all_files):
     img = cv2.imread(image_dir)
-    print_metric_img(img, image_file, metrics_df) ## Print metrics in image
+    #print(img.shape)
+    if crop_imgs :
+        crop_image(image_dir)
+    else:
+        metrics_df = pd.read_csv(metrics_csv_dir) ##Read CSV --> Metrics
+        print_metric_img(img, image_file, metrics_df) ## Print metrics in image
 
+
+## Print metrics or crop for each PNG file in the given folder
 if(all_files):
-    for filename in sorted(os.listdir(data_directory)):
-        f = os.path.join(data_directory, filename)
-        if os.path.isfile(f) and filename.endswith('.png'):
-            img = cv2.imread(f)
-            print_metric_img(img, filename, metrics_df)
+    for i in range(6,max_n_div+1): ## Use all the def metric files with different n_buckets
+        print("\033[92m ----- Clustering for N Buckets: \033[96m "+str(i)+"x"+str(i)+"\033[92m ----- \033[0m")
 
+        write_directory = metrics_directory + str(i) + "x" + str(i) + "/"
 
-# img = cv2.imread(image_dir)
-# cv2.imshow("test",img)
-# cv2.waitKey(0)
-# cv2.destroyAllWindows()
-#
-# ###Crop images and save images
-# #crop_img = crop_image(img)
-#
-#
-# ##Read CSV --> Metrics
-# metrics_df = pd.read_csv(metrics_csv_dir)
-# image_name = image_file.replace(".png","")
-# file_metrics = metrics_df.loc[(metrics_df["File"]==image_name)]
-# metric_value = float(file_metrics[metrics_name[0]])
-# # for i in range(0,n_grids):
-# #     metric_value = file_metrics[metrics_name[i]]
-#
-#
-# ##Print metrics in images
-# text = str(metric_value)
-# size = 1
-#
-# divs = n_div*2
-# locs_x = []
-# locs_y = []
-# k=0
-# for i in range(0,divs,2):
-#     locs_x.append((img.shape[0]/divs*(i+1))-20)
-#     locs_y.append((img.shape[1]/divs*(i+1))-20)
-#     #print(img.shape[0]/divs*(i+1))
-#     #print(img.shape[1]/divs*(i+1))
-# for n in range(0,n_div):
-#     for m in range(0,n_div):
-#         metric_value = float(file_metrics[metrics_name[k]])
-#         text = str(metric_value)
-#         cv2.putText(img, text, (locs_y[n], locs_x[m]), cv2.FONT_HERSHEY_SIMPLEX, size, (221, 82, 196), 2)
-#         k+=1
-#
-# result_image_dir = write_directory+image_file
-# cv2.imwrite(result_image_dir, img)
-# cv2.imshow("Result",img)
-# cv2.waitKey(0)
-# cv2.destroyAllWindows()
+        metrics_csv_file = str(i) + "x" + str(i) + "/" + str(i) + "x" + str(i) + ".csv"
+        metrics_csv_dir = metrics_directory+metrics_csv_file
+        metrics_df = pd.read_csv(metrics_csv_dir) ##Read CSV --> Metrics
 
-
-
-
-#for filename in sorted(os.listdir(read_directory)):
-#    f = os.path.join(read_directory, filename)
-#    if os.path.isfile(f) and filename.endswith('.png'):
-#        print(f)
-#        img = cv2.imread(f)
-##        h,w,c = img.shape
-##        print(w)
-##        cv2.putText(img, text, loc, cv2.FONT_HERSHEY_TRIPLEX, size, (221, 82, 196), 10)
-#        cv2.imshow("test",img)
-#        cv2.waitKey(0)
-#        cv2.destroyAllWindows()
-##        #cv2.imwrite(image_file, img)
-
-
-
-
-#Read CSV --> Sizes
+        for filename in sorted(os.listdir(data_directory)):
+            f = os.path.join(data_directory, filename)
+            if os.path.isfile(f) and filename.endswith('.png'):
+                img = cv2.imread(f)
+                if crop_imgs:
+                    crop_image(f)
+                else:
+                    print_metric_img(img, filename, metrics_df, i, write_directory)
