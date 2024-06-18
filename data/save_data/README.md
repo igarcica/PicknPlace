@@ -11,8 +11,8 @@ Version used for getting data (color png images, depth topics rosbags and pointl
 
 This folder contains the following files:
 
-- /data:
-	- save_data/:
+- data/:
+	- **save_data/**:
 		- commands.sh: Saves 1 rgb image from each of the 3 cameras, saves depth topic rosbags and 1 pcd files for each camera.
 		- create_folders.sh: Creates folder for saving data of the cloth grasped, placed while grasping and placed.
 		- visualize.rviz: RVIZ configure file for visualizing the data saved in the pcd files.

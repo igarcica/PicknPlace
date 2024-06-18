@@ -76,8 +76,8 @@ PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
   // [init action servers]
   //as_(nh_, name, boost::bind(&activateSMAction::executeCB, this, _1), false);
   ROS_INFO("PicknPlaceAlgNode:: Activating action server grasp");
-  as_.registerGoalCallback(boost::bind(&PicknPlaceAlgNode::goalCB, this));
-  as_.registerPreemptCallback(boost::bind(&PicknPlaceAlgNode::preemptCB, this));
+  as_.registerGoalCallback(boost::bind(&PicknPlaceAlgNode::PDDLgoalCB, this));
+  as_.registerPreemptCallback(boost::bind(&PicknPlaceAlgNode::PDDLpreemptCB, this));
   as_.start();
 
   // PDDL variables
@@ -1134,7 +1134,8 @@ void PicknPlaceAlgNode::node_config_update(Config &config, uint32_t level)
   this->alg_.unlock();
 }
 
-void PicknPlaceAlgNode::preemptCB()
+/* PDDL FUNCTIONS */
+void PicknPlaceAlgNode::PDDLpreemptCB()
 {
   ROS_INFO("PicknPlace: Action Preempted");
   // set the action state to preempted
@@ -1143,7 +1144,7 @@ void PicknPlaceAlgNode::preemptCB()
 
 //PDDL action callback manager
 //void PicknPlaceAlgNode::executeCB(const pick_n_place::activateSMGoalConstPtr &goal
-void PicknPlaceAlgNode::goalCB()
+void PicknPlaceAlgNode::PDDLgoalCB()
 {
   ros::Rate r(1);
   bool success = true;
@@ -1272,6 +1273,7 @@ void PicknPlaceAlgNode::managePDDLactions(void)
   this->pddl_action_done=false;
 }
 
+/* PERCEPTION FUNCTIONS */
 // Set and publish handeye transform
 void PicknPlaceAlgNode::handeye_frame_pub(const ros::TimerEvent& event)
 {
@@ -1608,6 +1610,7 @@ void PicknPlaceAlgNode::pile_height_callback(const std_msgs::Float64::ConstPtr& 
   }
 }
 
+//------------------------------------------------------------------------------------
 /*  [subscriber callbacks] */
 void PicknPlaceAlgNode::base_feedback_callback(const kortex_driver::BaseCyclic_Feedback::ConstPtr& msg)
 {
@@ -1662,7 +1665,6 @@ void PicknPlaceAlgNode::action_topic_mutex_exit(void)
 {
   pthread_mutex_unlock(&this->action_topic_mutex_);
 }
-
 
 /*  [service callbacks] */
 

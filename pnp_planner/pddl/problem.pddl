@@ -27,13 +27,13 @@
     (= (place_qual) 0)
 
     (= (place_succ towel singledge placevert) 10)
-    (= (place_succ towel multedges placevert) 100)
-    (= (place_succ towel singledge placediag) 50)
+    (= (place_succ towel multedges placevert) 2000)
+    (= (place_succ towel singledge placediag) 3)
     (= (place_succ towel multedges placediag) 1)
 
 )
 (:goal (and
     (garment_state placed)
 ))
-(:metric minimize (place_qual))
+(:metric minimize (time_cost))
 )

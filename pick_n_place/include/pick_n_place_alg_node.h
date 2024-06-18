@@ -216,8 +216,8 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
 
     // [action server attributes]
     actionlib::SimpleActionServer<pick_n_place::activateSMAction> as_; 
-    void goalCB();
-    void preemptCB();
+    void PDDLgoalCB();
+    void PDDLpreemptCB();
     void managePDDLactions(void);
 
     // PDDL variables

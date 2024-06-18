@@ -66,6 +66,7 @@
 				(garment_obj ?cloth)
 				(robot_at home)
 ;;				(garment_at ?ws)
+				(garment_at grws)
 				(at_pose ?gr)
 				(garment_state notgrasped))
 	:effect (and
