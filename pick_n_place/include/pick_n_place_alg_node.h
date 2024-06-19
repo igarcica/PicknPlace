@@ -221,10 +221,8 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     void managePDDLactions(void);
 
     // PDDL variables
+    bool pddl_demo;
     bool pddl_action_done;
-    bool pddl_go_home;
-    bool do_grasp;
-    bool start_test;
 
     // [action client attributes]
     actionlib::SimpleActionClient<iri_kinova_linear_movement::kinova_linear_movementAction> kinova_linear_move_client_;

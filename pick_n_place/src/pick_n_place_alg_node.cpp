@@ -81,9 +81,8 @@ PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
   as_.start();
 
   // PDDL variables
-  this->start_test=false;
+  this->pddl_demo=false;
   this->pddl_action_done=false;
-  this->pddl_go_home=false;
 
   // [init action clients]
 
@@ -141,26 +140,8 @@ void PicknPlaceAlgNode::mainNodeThread(void)
   {
     switch(this->state)
     {
-      case TEST: ROS_DEBUG("PicknPlaceAlgNode: state TEST");
-                 if(this->start_test)
-                 {
-                   ROS_DEBUG("Opening the gripper");
-                   this->success &= send_gripper_command(this->close_gripper);
-                   if (this->success)
-                   {
-                     this->state=TEST;
-                     ros::Duration(0.5).sleep();
-                     this->pddl_action_done=true; //End PDDL action
-                     this->start_test=false;
-                   }
-                 }
-                 else
-                   this->state=TEST;
-      break;
-
       case IDLE: ROS_DEBUG("PicknPlaceAlgNode: state IDLE");
-                 //if(this->start_demo)
-                 if(pddl_go_home)
+                 if(this->start_demo)
                  {
                    ROS_DEBUG("Opening the gripper");
 		               this->get_pile_height = false;
@@ -170,7 +151,6 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                      this->state=HOME;
                      ros::Duration(0.5).sleep();
                      this->start_demo=false;
-                     this->pddl_go_home=false;
                    }
                  }
                  //else if(this->start_experiments)
@@ -189,9 +169,13 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                  this->success &= home_the_robot();
                  if (this->success)
                  {
-  		             //this->state=PRE_GRASP;
-                   this->pddl_action_done=true;
-                   this->state=IDLE;
+                    if(this->pddl_demo)
+                    {
+                      this->pddl_action_done=true; // End PDDL action
+                      this->state=IDLE;
+                    }
+                    else // Continue SM
+                      this->state=PRE_GRASP;
                    ros::Duration(0.5).sleep();
                  }
       break;
@@ -254,7 +238,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                          this->alg_.lock();
 
                          ROS_DEBUG("PicknPlaceAlgNode::mainNodeThread: kinova_linear_move_client_ action state = %s", kinova_linear_move_state.toString().c_str());;
-			                  // falta un timeout (state LOST)
+			                   // falta un timeout (state LOST)
                          if(kinova_linear_move_state==actionlib::SimpleClientGoalState::ABORTED or kinova_linear_move_state==actionlib::SimpleClientGoalState::LOST)
                          {
                            ROS_INFO("Action aborted!");
@@ -318,9 +302,13 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                               else if(kinova_linear_move_state==actionlib::SimpleClientGoalState::SUCCEEDED)
                               {
                                 this->success = true;
-                                //this->state=EXPERIMENTS1;
-                                this->pddl_action_done=true;
-                                this->state=IDLE;
+                                if(this->pddl_demo)
+                                {
+                                  this->pddl_action_done=true; // End PDDL action
+                                  this->state=IDLE;
+                                }
+                                else // Continue SM
+                                  this->state=EXPERIMENTS1;
                                 ros::Duration(0.5).sleep();
                               }
                             }
@@ -375,9 +363,13 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                                 else if(kinova_linear_move_state==actionlib::SimpleClientGoalState::SUCCEEDED)
                                 {
                                   this->success = true;
-                                  //this->state=CLOSE_GRIPPER2;
-                                  this->pddl_action_done=true; // End PDDL action
-                                  this->state=IDLE;
+                                  if(this->pddl_demo)
+                                  {
+                                    this->pddl_action_done=true; // End PDDL action
+                                    this->state=IDLE;
+                                  }
+                                  else // Continue SM
+                                    this->state=CLOSE_GRIPPER2;
                                   ros::Duration(0.5).sleep();
                                 }
                               }
@@ -815,7 +807,6 @@ void PicknPlaceAlgNode::mainNodeThread(void)
 			                    {
                             ROS_INFO("Opening the gripper.");
                             this->success &= send_gripper_command(this->open_gripper);
-			                      std::cout << "Gripper? " << success << std::endl;
                             if (this->success)
                             {
                               this->state=POST_PLACE;
@@ -1028,10 +1019,16 @@ void PicknPlaceAlgNode::node_config_update(Config &config, uint32_t level)
     config.get_grasp_point=false;
     this->garment_edge_size=config.garment_edge_size;
   }
-
-  //Start SM for demo (use 'towel' bool to change strategy for grasping and placing towel (less gripper closure + vertical place) or napkin (more gripper closure + place2)
-  if(config.start_demo)
+  // Execute sections of SM according to received PDDL actions
+  if(config.pddl_demo)
   {
+    this->pddl_demo=true;
+  }
+  
+  //Start SM for demo (use 'towel' bool to change strategy for grasping and placing towel (less gripper closure + vertical place) or napkin (more gripper closure + place2)
+  if(config.start_demo && !config.pddl_demo)
+  {
+    this->pddl_demo=false;
     this->start_demo=true;
     if(config.towel)
     {
@@ -1153,8 +1150,6 @@ void PicknPlaceAlgNode::PDDLgoalCB()
   pick_n_place::activateSMFeedback feedback_;
   pick_n_place::activateSMResult result_;
 
-  //std::string goal_;
-  //goal = as_.acceptNewGoal()->action_name;
   goal = as_.acceptNewGoal();
 
   // // Check if an action is already being executed
@@ -1181,7 +1176,7 @@ void PicknPlaceAlgNode::PDDLgoalCB()
   else if(0==goal->action_name.compare("home")) 
   {
     ROS_WARN("PicknPlace: Executing HOME section of the FSM");
-    this->pddl_go_home=true;
+    this->start_demo=true;
   }
   else if(0==goal->action_name.compare("grasp")) 
   {
@@ -1204,11 +1199,10 @@ void PicknPlaceAlgNode::PDDLgoalCB()
   else if(0==goal->action_name.compare("drag")) 
   {
     ROS_WARN("PicknPlace: DRAG action");
-    this->start_test=true;
   }
   else if(0==goal->action_name.compare("rotate")) 
   {
-      ROS_WARN("PicknPlace: ROTATE action");
+    ROS_WARN("PicknPlace: ROTATE action");
   }
   else
   {
@@ -1469,11 +1463,16 @@ void PicknPlaceAlgNode::corners_callback(const visualization_msgs::MarkerArray::
     this->get_pile_height = true;
     //this->garment_edge_size = garment_edge.data;
     std::cout << "\033[1;36m Non grasped edge size-> \033[1;36m " <<  this->garment_edge_size << std::endl;
-    if(config_.ok)
+    if(this->pddl_demo)
     {
-      this->get_garment_position=false;
-      this->pddl_action_done=true; //End PDDL action
+      if(config_.ok)
+      {
+        this->get_garment_position=false;
+        this->pddl_action_done=true; //End PDDL action
+      }
     }
+    else
+      this->get_garment_position=false;
   }
 
 }
