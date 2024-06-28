@@ -161,12 +161,12 @@ void KinovaLinearMovementAlgNode::base_feedback_mutex_exit(void)
 /*  [action callbacks] */
 void KinovaLinearMovementAlgNode::kinova_linear_moveStartCallback(const iri_kinova_linear_movement::kinova_linear_movementGoalConstPtr& goal)
 {
-  ROS_INFO_STREAM("I GOT A NEW GOAL!");
-  ROS_INFO_STREAM("X pose: " << goal->goal_position.position.x);
-  ROS_INFO_STREAM("Y pose: " << goal->goal_position.position.y);
-  ROS_INFO_STREAM("Z pose: " << goal->goal_position.position.z);
-  ROS_INFO_STREAM("reference frame: " << goal->reference_frame);
-  ROS_INFO_STREAM("maximum_velocity: " << goal->maximum_velocity);
+  ROS_DEBUG_STREAM("KinovaLinearMovementAlgNode: I GOT A NEW GOAL!");
+  ROS_DEBUG_STREAM("KinovaLinearMovementAlgNode: X pose: " << goal->goal_position.position.x);
+  ROS_DEBUG_STREAM("KinovaLinearMovementAlgNode: Y pose: " << goal->goal_position.position.y);
+  ROS_DEBUG_STREAM("KinovaLinearMovementAlgNode: Z pose: " << goal->goal_position.position.z);
+  ROS_DEBUG_STREAM("KinovaLinearMovementAlgNode: reference frame: " << goal->reference_frame);
+  ROS_DEBUG_STREAM("KinovaLinearMovementAlgNode: maximum_velocity: " << goal->maximum_velocity);
   //this->alg_.lock();
   //check goal
   this->kinova_linear_move_active=true;
@@ -189,7 +189,7 @@ void KinovaLinearMovementAlgNode::kinova_linear_moveStopCallback(void)
   //stop action
   this->kinova_linear_move_active=false;
   this->stop_robot = true;
-  ROS_INFO_STREAM("STOPPED ACTION!");
+  ROS_DEBUG_STREAM("KinovaLinearMovementAlgNode: STOPPED ACTION!");
   //this->alg_.unlock();
 }
 
@@ -213,7 +213,7 @@ bool KinovaLinearMovementAlgNode::kinova_linear_moveHasSucceededCallback(void)
   //if goal was accomplished
   ret = this->kinova_linear_move_succeeded;
   this->kinova_linear_move_active=false;
-  ROS_INFO_STREAM("SUCCEEDED ACTION!");
+  ROS_DEBUG_STREAM("KinovaLinearMovementAlgNode: SUCCEEDED ACTION!");
   //this->alg_.unlock();
 
   return ret;

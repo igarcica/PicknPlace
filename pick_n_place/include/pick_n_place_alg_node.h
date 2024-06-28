@@ -155,6 +155,7 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     //ros::Subscriber garment_angle_subscriber;
     ros::Subscriber garment_edge_subscriber;
     ros::Subscriber corners_subscriber;
+    ros::Subscriber place_corners_subscriber;
     ros::Subscriber pile_height_subscriber;
     void garment_pose_callback(const visualization_msgs::Marker::ConstPtr& msg);
     //void garment_angle_callback(const std_msgs::Float64::ConstPtr& msg);
@@ -162,6 +163,7 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     void garment_edge_callback(const std_msgs::Float64::ConstPtr& msg);
     //void select_grasp_point();
     void corners_callback(const visualization_msgs::MarkerArray::ConstPtr& msg);
+    void place_corners_callback(const visualization_msgs::MarkerArray::ConstPtr& msg);
     void pile_height_callback(const std_msgs::Float64::ConstPtr& msg);
 
     void get_params(void);
