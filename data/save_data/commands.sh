@@ -8,7 +8,7 @@ mv l_c_0001.png ./img
 mv z_c_0001.png ./img
 rm *.png *.ini
 
-rosbag record /ext_camera/depth/image_rect_raw /lateral_camera/depth/image_rect_raw /frontal_camera/depth/image_rect_raw --duration=0.1
+rosbag record /ext_camera/depth/image_rect_raw /lateral_camera/depth/image_rect_raw /frontal_camera/depth/image_rect_raw /ext_camera/depth/color/points /lateral_camera/depth/color/points /frontal_camera/depth/color/points --duration=0.1
 
 rosrun pcl_ros pointcloud_to_pcd input:=/ext_camera/depth/color/points _prefix:=z_
 rosrun pcl_ros pointcloud_to_pcd input:=/frontal_camera/depth/color/points _prefix:=f_

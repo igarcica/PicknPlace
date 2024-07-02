@@ -372,7 +372,7 @@ namespace pal {
     if ( !_processingFrame.empty() )
     {
       cloudInProcFrame.reset(new sensor_msgs::PointCloud2);
-      ROS_DEBUG_STREAM("Transforming point cloud from frame " << cloud->header.frame_id << " to frame " << _processingFrame);
+      ROS_INFO_STREAM("Transforming point cloud from frame " << cloud->header.frame_id << " to frame " << _processingFrame);
       pcl_ros::transformPointCloud(_processingFrame, *cloud, *cloudInProcFrame, _tfListener);
       cloudInProcFrame->header.frame_id = _processingFrame;
     }
@@ -838,9 +838,21 @@ namespace pal {
       return;
     }
 
+    // Transform the point cloud to the frame specified if any
+    sensor_msgs::PointCloud2Ptr newPlaceCloud;
+    if ( !_processingFrame.empty() )
+    {
+      newPlaceCloud.reset(new sensor_msgs::PointCloud2);
+      ROS_DEBUG_STREAM("Transforming Place point cloud from frame " << placeCloud->header.frame_id << " to frame " << _processingFrame);
+      pcl_ros::transformPointCloud(_processingFrame, *placeCloud, *newPlaceCloud, _tfListener);
+      newPlaceCloud->header.frame_id = _processingFrame;
+    }
+    else
+      *newPlaceCloud = *placeCloud;
+
     // Transform cloud to PCL format
     pcl::PointCloud<pcl::PointXYZ>::Ptr pclCloud(new pcl::PointCloud<pcl::PointXYZ>);
-    pcl::fromROSMsg(*placeCloud, *pclCloud);
+    pcl::fromROSMsg(*newPlaceCloud, *pclCloud);
 
     // GET PILE HEIGHT
     pcl::PointXYZ minPt, maxPt;
@@ -876,7 +888,7 @@ namespace pal {
     if ( !_processingFrame.empty() )
     {
       xyzcloudInProcFrame.reset(new sensor_msgs::PointCloud2);
-      ROS_DEBUG_STREAM("Transforming point cloud from frame " << pickCloud->header.frame_id << " to frame " << _processingFrame);
+      ROS_DEBUG_STREAM("Transforming Pick point cloud from frame " << pickCloud->header.frame_id << " to frame " << _processingFrame);
       pcl_ros::transformPointCloud(_processingFrame, *pickCloud, *xyzcloudInProcFrame, _tfListener);
       xyzcloudInProcFrame->header.frame_id = _processingFrame;
     }

@@ -8,10 +8,10 @@
   <arg name="segm_cloud"                    default="/segment_table/nonplane"   />
   <arg name="pick_cloud"                    default="/segment_table/pick"       />
   <arg name="place_cloud"                   default="/segment_table/place"      />
-  <arg name="frame"                         default="/ext_camera_link"          />
-  <!--<arg name="frame"                         default="/base_link"                /> -->
+  <arg name="frame"                         default="/ext_camera_link"          /> 
+  <!--<arg name="frame"                         default="/base_link"                />-->
   <arg name="garment_cloud"                 default="/segment_table/garment"    />
-  <arg name="passthrough_axis"              default="y"                         />
+  <arg name="passthrough_axis"              default="y"                         /> <!--wrt frame -->
   <arg name="passthrough_min"               default="-0.9"                      />
   <arg name="passthrough_max"               default="0.25"                       />
   <arg name="passthrough_axis_pick"         default="y"                         />
@@ -21,7 +21,7 @@
   <arg name="passthrough_z_min_pick"          default="-2"                      />
   <arg name="passthrough_z_max_pick"          default="0.3"                       />  
   <arg name="passthrough_axis_place"        default="y"                         />
-  <arg name="passthrough_min_place"         default="-0.24"                      /> <!-- usually same as passthrough_max_pick -->
+  <arg name="passthrough_min_place"         default="-0.23"                      /> <!-- usually same as passthrough_max_pick -->
   <arg name="passthrough_max_place"         default="0.25"                       /> <!-- usually same as passthrough_max -->
   <arg name="passthrough_axis_robotarm"     default="y"                         />
   <arg name="passthrough_min_robotarm"      default="-0.2"                     />
