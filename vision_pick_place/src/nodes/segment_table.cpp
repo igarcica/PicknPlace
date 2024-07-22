@@ -372,7 +372,7 @@ namespace pal {
     if ( !_processingFrame.empty() )
     {
       cloudInProcFrame.reset(new sensor_msgs::PointCloud2);
-      ROS_INFO_STREAM("Transforming point cloud from frame " << cloud->header.frame_id << " to frame " << _processingFrame);
+      ROS_DEBUG_STREAM("Transforming point cloud from frame " << cloud->header.frame_id << " to frame " << _processingFrame);
       pcl_ros::transformPointCloud(_processingFrame, *cloud, *cloudInProcFrame, _tfListener);
       cloudInProcFrame->header.frame_id = _processingFrame;
     }
