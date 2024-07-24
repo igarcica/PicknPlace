@@ -1,26 +1,24 @@
 ## (In process) THIS CODE MEASURES GRID of grasped data
 ## GOAL: 
 ## 1. Read PCD file of segmented placed cloth
-## 2. Measure placing quality (golab mean/median of depth, grid metric, finddd?)
-## 3. Do a table of the different plans cost
+## 2. Measure placing quality (global mean/median of depth, grid metric)
+## 3. Compute grid mean matrix distance to GT matrix (0 deformation) - Used to draw a plot of deformation for each object, fold case and grasp
 import numpy as np
 import os
 import csv
 import open3d as o3d
 import statistics as sts
-from sklearn.metrics.pairwise import euclidean_distances
-# from scipy.spatial.distance import cdist
 import plotly.express as px
 import plotly.graph_objs as go
 
 
-all_files = True
-data_directory ="/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/grasping_data/napkin_PCD/"
+all_files = False
+data_directory ="/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/grasping_data/PCD_grasping_folds/"
 pcd_file = "towel_62l_me.pcd"
 pcd_dir = data_directory+pcd_file
 write_dir = "/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/grasping_data/means/"
 
-save_csv = True
+save_csv = False
 activate_print = False
 
 n_divisions = 3
@@ -35,7 +33,7 @@ CLOTH_SIZE = {
     "towel_2l": (0.46,0.51),
     "towel_4l": (0.25,0.46),
     "towel_61l": (0.17,0.46),
-    "towel_62l": (0.32,0.27),
+    "towel_62l": (0.27,0.32),#0.32 0.27 or viceversa?
     "towel_8l": (0.23,0.26),
     "towel_12l": (0.16,0.26),
     "towel_16l": (0.12,0.23),
