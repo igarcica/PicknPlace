@@ -42,6 +42,7 @@
 
 // [service client headers]
 #include <kortex_driver/ExecuteWaypointTrajectory.h>
+#include <kortex_driver/ValidateWaypointList.h>
 #include <kortex_driver/ExecuteAction.h>
 #include <kortex_driver/ReadAction.h>
 #include <kortex_driver/SendGripperCommand.h>
@@ -59,6 +60,7 @@
 #include <tf/transform_broadcaster.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <std_msgs/Float64.h>
+#include <sensor_msgs/JointState.h>
 
 #include <ros/ros.h>
 #include <actionlib/server/simple_action_server.h>
@@ -67,6 +69,15 @@
 typedef enum {TEST,
               IDLE,
               HOME,
+              PRE_PRE_DRAG_ROTATE,
+              PRE_DRAG_ROTATE,
+              DRAG_ROTATE_POS,
+              DRAG,
+              ROTATE,
+              POST_DRAG_ROTATE,
+              POST_POST_DRAG_ROTATE,
+              CHECK_CORNERS_POSE,
+              WAIT_CHECK_CORNERS_POSE,
               PRE_GRASP,
               GRASP,
               WAIT_GRASP,
@@ -129,6 +140,8 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     kortex_driver::Pose home_pose;
     kortex_driver::Pose pre_grasp_center;
     kortex_driver::Pose grasping_point_garment;
+    kortex_driver::Pose pre_dragging_pose_garment;
+    kortex_driver::Pose dragging_pose_garment;
     float garment_width;
     float garment_edge_size;
     float pile_height;
@@ -138,9 +151,11 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     bool set_cartesian_reference_frame(const int &cartesian_rf);
     bool send_gripper_command(double value);
     bool home_the_robot(void);
+    bool validate_waypoint(kortex_driver::Waypoint waypoint);
     bool send_cartesian_pose(const kortex_driver::Pose &goal_pose);
     bool wait_for_action_end_or_abort(void);
     kortex_driver::Waypoint FillCartesianWaypoint(const kortex_driver::Pose &goal_pose, float blending_radius);
+    bool send_joint_angles(float rotation);
 
     tf::TransformListener listener;
     tf::TransformBroadcaster broadcaster;
@@ -197,6 +212,9 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     ros::ServiceClient exec_wp_trajectory_client_;
     kortex_driver::ExecuteWaypointTrajectory exec_wp_trajectory_srv_;
 
+    ros::ServiceClient validate_waypoint_list_client_;
+    kortex_driver::ValidateWaypointList validate_waypoint_list_srv_;
+
     ros::ServiceClient base_execute_action_client_;
     kortex_driver::ExecuteAction base_execute_action_srv_;
 
@@ -225,6 +243,9 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     // PDDL variables
     bool pddl_demo;
     bool pddl_action_done;
+    bool drag;
+    bool rotate;
+    double rotation;
 
     // [action client attributes]
     actionlib::SimpleActionClient<iri_kinova_linear_movement::kinova_linear_movementAction> kinova_linear_move_client_;

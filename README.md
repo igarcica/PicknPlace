@@ -27,6 +27,7 @@ The package has the following structure:
             - clustering.py: Computes the centroid and inter/intra distances of the deformation data from csv files.
             - kmeans.py: Clusterises pick files based on deformation metrics and computes success rate comparing it to the ground truth.
             - plot_results.py: Prints the deformation metrics in the corresponding files for visual information.
+    - */placing_metric*: Scripts to compute new/simplified grid deformation metric for grasping and placing data.
 
 <!--## Dependencies
 

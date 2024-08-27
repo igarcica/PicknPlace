@@ -47,6 +47,13 @@ PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
   this->pre_grasp_center.theta_y = this->pre_grasp_corner[4];
   this->pre_grasp_center.theta_z = this->pre_grasp_corner[5];
 
+  this->pre_dragging_pose_garment.x = 0.53;
+  this->pre_dragging_pose_garment.y = 0.05;
+  this->pre_dragging_pose_garment.z = 0.2;
+  this->pre_dragging_pose_garment.theta_x = 179;
+  this->pre_dragging_pose_garment.theta_y = 0;
+  this->pre_dragging_pose_garment.theta_z = 90;
+
   // [init publishers]
   this->cartesian_velocity_publisher_ = this->private_node_handle_.advertise<kortex_driver::TwistCommand>("/" + this->robot_name + "/in/cartesian_velocity", 1);
 
@@ -59,9 +66,12 @@ PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
 
   // [init services]
 
+
   // [init clients]
   exec_wp_trajectory_client_ = this->private_node_handle_.serviceClient<kortex_driver::ExecuteWaypointTrajectory>("/" + robot_name + "/base/execute_waypoint_trajectory");
 
+  validate_waypoint_list_client_ = this->private_node_handle_.serviceClient<kortex_driver::ValidateWaypointList>("/" + robot_name + "/base/validate_waypoint_list");
+  
   base_execute_action_client_ = this->private_node_handle_.serviceClient<kortex_driver::ExecuteAction>("/" + this->robot_name + "/base/execute_action");
 
   base_read_action_client_ = this->private_node_handle_.serviceClient<kortex_driver::ReadAction>("/" + this->robot_name + "/base/read_action");
@@ -84,6 +94,9 @@ PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
   // PDDL variables
   this->pddl_demo=false;
   this->pddl_action_done=false;
+  this->drag=false;
+  this->rotate=false;
+  this->rotation=90;
 
   // [init action clients]
 
@@ -144,6 +157,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
       case IDLE: ROS_DEBUG("PicknPlaceAlgNode: state IDLE");
                  if(this->start_demo)
                  {
+                   ROS_INFO("PicknPlaceAlgNode: IDLE - Opening gripper");
 		               this->get_pile_height = false;
                    this->success &= send_gripper_command(this->open_gripper);
                    if (this->success)
@@ -151,6 +165,9 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                      this->state=HOME;
                      ros::Duration(0.5).sleep();
                      this->start_demo=false;
+                   }else{
+                     this->start_demo=false;
+                     this->state=IDLE;
                    }
                  }
                  //else if(this->start_experiments)
@@ -164,9 +181,8 @@ void PicknPlaceAlgNode::mainNodeThread(void)
 
       // HOME POSITION
       case HOME: ROS_DEBUG("PicknPlaceAlgNode: state HOME");
-                 // Move the robot to the Home position with an Action
-                 ROS_DEBUG("PicknPlaceAlgNode: Moving to home position.");
-                 this->success &= home_the_robot();
+                ROS_INFO("PicknPlaceAlgNode: Moving to home position.");
+                 this->success &= home_the_robot(); // Move the robot to the Home position with an Action
                  if (this->success)
                  {
                     if(this->pddl_demo)
@@ -174,9 +190,14 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                       this->pddl_action_done=true; // End PDDL action
                       this->state=IDLE;
                     }
-                    else // Continue SM
-                      this->state=PRE_GRASP;
+                    else if(this->drag or this->rotate) // Continue SM with drag or rotate
+                      this->state=PRE_PRE_DRAG_ROTATE;
+                    else
+                      this->state=PRE_GRASP; //Continue SM with grasp
                    ros::Duration(0.5).sleep();
+                 }else{
+                  ROS_WARN("PicknPlaceAlgNode: Could not execute HOME action");
+                  this->state=IDLE;
                  }
       break;
 
@@ -200,6 +221,160 @@ void PicknPlaceAlgNode::mainNodeThread(void)
       //              ros::Duration(0.5).sleep();
       //            }
       // break;
+
+      case PRE_PRE_DRAG_ROTATE:  ROS_DEBUG("PicknPlaceAlgNode: state PRE_PRE_DRAG_ROTATE");
+                  ROS_INFO("PicknPlaceSM: Sending to PRE_PRE_DRAG_ROTATE position.");
+                  std::cout << "\033[1;36m PRE_PRE_DRAG_ROTATE: -> \033[1;36m  x: " << this->pre_dragging_pose_garment.x << ", y: " << this->pre_dragging_pose_garment.y << ", z: " << this->pre_dragging_pose_garment.z << std::endl;
+                  this->success &= send_cartesian_pose(this->pre_dragging_pose_garment);
+                  if (this->success)
+                  {
+                    ROS_INFO("Success PRE PRE DRAG ROTATE");
+                    this->state=PRE_DRAG_ROTATE;
+                    ros::Duration(0.5).sleep();
+                  }
+                  else
+                    this->state=IDLE;
+      break;
+
+      case PRE_DRAG_ROTATE:  ROS_DEBUG("PicknPlaceAlgNode: state PRE_DRAG_ROTATE");
+                  ROS_INFO("PicknPlaceSM: Sending to PRE_DRAG_ROTATE position.");
+                  std::cout << "\033[1;36m PRE_DRAG_ROTATE: -> \033[1;36m  x: " << this->dragging_pose_garment.x << ", y: " << this->dragging_pose_garment.y << ", z: " << this->dragging_pose_garment.z << std::endl;
+                  this->success &= send_cartesian_pose(this->dragging_pose_garment);
+                  if (this->success)
+                  {
+                    ROS_INFO("Success PRE DRAG ROTATE");
+                    this->state=DRAG_ROTATE_POS;
+                    ros::Duration(0.5).sleep();
+                  }
+                  else
+                    this->state=IDLE;
+      break;
+
+      case DRAG_ROTATE_POS:  ROS_DEBUG("PicknPlaceAlgNode: state DRAG_ROTATE_POS");
+                  ROS_INFO("PicknPlaceSM: Sending to DRAG_ROTATE position.");
+                  this->dragging_pose_garment.z = 0.08; //Lower arm to cloth
+                  std::cout << "\033[1;36m DRAG_ROTATE_POS: -> \033[1;36m  x: " << this->dragging_pose_garment.x << ", y: " << this->dragging_pose_garment.y << ", z: " << this->dragging_pose_garment.z << std::endl;
+                  this->success &= send_cartesian_pose(this->dragging_pose_garment);
+                  if (this->success)
+                  {
+                    ROS_INFO("Success DRAG ROTATE POS");
+                    if(this->drag)
+                      this->state=DRAG;
+                    else if(this->rotate)
+                      this->state=ROTATE;
+                    ros::Duration(0.5).sleep();
+                  }
+                  else
+                    this->state=IDLE;
+      break;
+
+      case DRAG:  ROS_INFO("PicknPlaceAlgNode: state DRAG");                  
+                  this->dragging_pose_garment.x = 0.4;
+                  this->dragging_pose_garment.y = 0.15;
+                  this->dragging_pose_garment.z = 0.08;
+                  std::cout << "\033[1;36m DRAG: -> \033[1;36m  x: " << this->dragging_pose_garment.x << ", y: " << this->dragging_pose_garment.y << ", z: " << this->dragging_pose_garment.z << std::endl;
+                  this->success &= send_cartesian_pose(this->dragging_pose_garment);
+                  if (this->success)
+                  {
+                    ROS_INFO("Success DRAG");
+                    if(this->pddl_demo)
+                    {
+                      this->pddl_action_done=true; // End PDDL action
+                      this->state=IDLE;
+                    }
+                    else //Continue SM obeying reconfig
+                    {
+                      if(this->rotate)
+                        this->state=ROTATE; //Continue with rotation
+                      else
+                        this->state=POST_DRAG_ROTATE; //Go to home and end
+                    }
+                    ros::Duration(0.5).sleep();
+                  }
+                  else
+                    this->state=IDLE;
+      break;
+
+      case ROTATE: ROS_INFO("PicknPlaceAlgNode: state ROTATE");
+                  this->success &= send_joint_angles(this->rotation);
+                  if (this->success)
+                  {
+                    ROS_INFO("Success ROTATE");
+                    this->rotate=false;
+                    if(this->pddl_demo)
+                    {
+                      this->pddl_action_done=true; // End PDDL action
+                      this->state=IDLE;
+                    }
+                    else //Continue SM - go to home pose and end
+                      this->state=POST_DRAG_ROTATE;
+                    ros::Duration(0.5).sleep();
+                  }else{
+                    ROS_WARN("PicknPlaceAlgNode: Could not rotate!");
+                    this->state=IDLE;
+                  }
+      break;
+
+      case POST_DRAG_ROTATE: ROS_INFO("PicknPlaceAlgNode: state POST_DRAG_ROTATE");
+                            this->success &= home_the_robot(); // Move the robot to the Home position with an Action
+                            if (this->success)
+                            {
+                              ROS_INFO("Success POST DRAG ROTATE");
+                              this->state=IDLE;
+                              ros::Duration(0.5).sleep();
+                            }else
+                              this->state=IDLE;
+      break;
+
+      case POST_POST_DRAG_ROTATE: ROS_INFO("PicknPlaceAlgNode: state POST_DRAG_ROTATE");
+                            this->success &= home_the_robot(); // Move the robot to the Home position with an Action
+                            if (this->success)
+                            {
+                              ROS_INFO("Success POST DRAG ROTATE");
+                              this->state=CHECK_CORNERS_POSE;
+                              ros::Duration(0.5).sleep();
+                            }else
+                              this->state=IDLE;
+      break;
+
+      // High position to see garment
+      case CHECK_CORNERS_POSE: ROS_INFO("PicknPlaceAlgNode: state CHECK CORNERS POSE");
+                          {
+                            //Higher angular positions: 4, 9, 177, 269, 9, 9, 80
+                            //Higher cartesian pose: 66.5, 0.7, 64, 90.7, 5.9, 91.5
+                            geometry_msgs::Pose desired_pose;
+                            desired_pose.position.x = tool_pose.x;
+                            desired_pose.position.y = tool_pose.y;
+                            desired_pose.position.z = 0.6;
+                            std::cout << "\033[1;36m Going to high pose: -> \033[1;36m  x: " << desired_pose.position.x << ", y: " <<  desired_pose.position.y << ", z: " << desired_pose.position.z << std::endl;
+                            kinova_linear_moveMakeActionRequest(desired_pose, kortex_driver::CartesianReferenceFrame::CARTESIAN_REFERENCE_FRAME_MIXED, 0.08);
+                            this->state=WAIT_CHECK_CORNERS_POSE;
+                          }
+      break;
+
+      case WAIT_CHECK_CORNERS_POSE: ROS_DEBUG("PicknPlaceAlgNode: state WAIT CHECK CORNERS POSE");
+                               {
+                                 actionlib::SimpleClientGoalState kinova_linear_move_state(actionlib::SimpleClientGoalState::PENDING);
+                                 // to get the state of the current goal
+                                 this->alg_.unlock();
+                                 kinova_linear_move_state=kinova_linear_move_client_.getState(); // Possible state values are: PENDING,ACTIVE,RECALLED,REJECTED,PREEMPTED,ABORTED,SUCCEEDED and LOST
+                                 this->alg_.lock();
+                                 ROS_DEBUG("PicknPlaceAlgNode::mainNodeThread: kinova_linear_move_client_ action state = %s", kinova_linear_move_state.toString().c_str());;
+                                 if(kinova_linear_move_state==actionlib::SimpleClientGoalState::ABORTED or kinova_linear_move_state==actionlib::SimpleClientGoalState::LOST)
+                                 {
+                                   ROS_INFO("Action aborted!");
+                                   this->state=IDLE;
+                                 }
+                                 else if(kinova_linear_move_state==actionlib::SimpleClientGoalState::SUCCEEDED)
+                                 {
+                                   this->state=IDLE;
+                                  //  this->success = true;
+                                   if(this->pddl_demo)
+                                     this->pddl_action_done=true; // End PDDL action
+                                   ros::Duration(0.5).sleep();
+                                 }
+                               }
+      break;
 
       // PRE-GRASP POSITION
       case PRE_GRASP: ROS_DEBUG("PicknPlaceAlgNode: state PRE GRASP");
@@ -1046,6 +1221,16 @@ void PicknPlaceAlgNode::node_config_update(Config &config, uint32_t level)
     ROS_WARN("PicknPlaceAlgNode: Activated PDDL SM management");
     this->pddl_demo=true;
   }
+  if(config.drag)
+  {
+    ROS_WARN("PicknPlaceAlgNode: Activated PDDL SM management");
+    this->drag=true;
+  }
+  if(config.rotate)
+  {
+    ROS_WARN("PicknPlaceAlgNode: Activated PDDL SM management");
+    this->rotate=true;
+  }
   
   //Start SM for demo (use 'towel' bool to change strategy for grasping and placing towel (less gripper closure + vertical place) or napkin (more gripper closure + place2)
   if(config.start_demo && !config.pddl_demo)
@@ -1165,6 +1350,7 @@ void PicknPlaceAlgNode::PDDLpreemptCB()
 //void PicknPlaceAlgNode::executeCB(const pick_n_place::activateSMGoalConstPtr &goal
 void PicknPlaceAlgNode::PDDLgoalCB()
 {
+  ROS_INFO("PicknPlace: PDDL goal received!");
   ros::Rate r(1);
   bool success = true;
   std::string action_name_ = "activatesm";
@@ -1218,13 +1404,34 @@ void PicknPlaceAlgNode::PDDLgoalCB()
     this->placing_strategy=2; //Will be given by the action of PDDL
     this->state=CHOOSE_PLACING;
   }
+  else if(0==goal->action_name.compare("placediag")) 
+  {
+    ROS_WARN("PicknPlace: PLACE DIAG action");
+    this->placing_strategy=1; //Will be given by the action of PDDL
+    this->state=CHOOSE_PLACING;
+  }
   else if(0==goal->action_name.compare("drag")) 
   {
     ROS_WARN("PicknPlace: DRAG action");
+    this->drag=true;
+    this->rotate=false;
+    this->state=PRE_PRE_DRAG_ROTATE;
   }
   else if(0==goal->action_name.compare("rotate")) 
   {
     ROS_WARN("PicknPlace: ROTATE action");
+    if(this->drag) //If it comes from drag position continue with rotation
+      this->state=ROTATE;
+    else
+      this->state=PRE_PRE_DRAG_ROTATE; //If drag action has not been planned, go to drag_rotate init pose
+    this->drag=false;
+    this->rotate=true;
+    this->rotation=90;
+  }
+  else if(0==goal->action_name.compare("go_high")) 
+  {
+    ROS_WARN("PicknPlace: GO HIGH action");
+    this->state=CHECK_CORNERS_POSE;
   }
   else
   {
@@ -1232,46 +1439,48 @@ void PicknPlaceAlgNode::PDDLgoalCB()
     success = false;
   }
   
-  // for(int i=1; i<=goal->order; i++)
-  // {
-  //   // check that preempt has not been requested by the client
-  //   if (as_.isPreemptRequested() || !ros::ok())
-  //   {
-  //     ROS_INFO("%s: Preempted", action_name_.c_str());
-  //     // set the action state to preempted
-  //     as_.setPreempted();
-  //     success = false;
-  //     break;
-  //   }
-  //   feedback_.sequence.push_back(feedback_.sequence[i] + feedback_.sequence[i-1]);
-  //   // publish the feedback
-  //   as_.publishFeedback(feedback_);
-  //   // this sleep is not necessary, the sequence is computed at 1 Hz for demonstration purposes
-  //   r.sleep();
-  // }
-  //if(goal->action_name)
+  /* 
+    for(int i=1; i<=goal->order; i++)
+    {
+      // check that preempt has not been requested by the client
+      if (as_.isPreemptRequested() || !ros::ok())
+      {
+        ROS_INFO("%s: Preempted", action_name_.c_str());
+        // set the action state to preempted
+        as_.setPreempted();
+        success = false;
+        break;
+      }
+      feedback_.sequence.push_back(feedback_.sequence[i] + feedback_.sequence[i-1]);
+      // publish the feedback
+      as_.publishFeedback(feedback_);
+      // this sleep is not necessary, the sequence is computed at 1 Hz for demonstration purposes
+      r.sleep();
+    }
+    if(goal->action_name)
 
-  // Put a while, how? el while bloquea, que otra forma hay? 
-  //Usar funciones? Para que el result lo reciba la funcion correspondiente y no tenga que bloquear en medio de esta funcion?
-  // if(this->pddl_action_done)
-  //   //Manage also error if actions in FSM failed!
-  //   success=true; 
-  // else 
-  //   success=false;
+    Put a while, how? el while bloquea, que otra forma hay? 
+    Usar funciones? Para que el result lo reciba la funcion correspondiente y no tenga que bloquear en medio de esta funcion?
+    if(this->pddl_action_done)
+      //Manage also error if actions in FSM failed!
+      success=true; 
+    else 
+      success=false;
 
-  // // ROS_WARN("Action name: (%s)", goal->action_name.c_str());
-  // // ROS_WARN("Activate grasp bool: (%d)", goal->activate_grasp);
+    // ROS_WARN("Action name: (%s)", goal->action_name.c_str());
+    // ROS_WARN("Activate grasp bool: (%d)", goal->activate_grasp);
 
-  // if(success)
-  // {
-  //   //result_.sequence = feedback_.sequence;
-  //   result_.done_action = true;
-  //   ROS_INFO("%s: Succeeded", action_name_.c_str());
-  //   // set the action state to succeeded
-  //   as_.setSucceeded(result_);
-  // }
-  // if(!success)
-  //   as_.setAborted();
+    if(success)
+    {
+      //result_.sequence = feedback_.sequence;
+      result_.done_action = true;
+      ROS_INFO("%s: Succeeded", action_name_.c_str());
+      // set the action state to succeeded
+      as_.setSucceeded(result_);
+    }
+    if(!success)
+      as_.setAborted();
+  */
 }
 
 void PicknPlaceAlgNode::managePDDLactions(void)
@@ -1310,9 +1519,9 @@ void PicknPlaceAlgNode::corners_callback(const visualization_msgs::MarkerArray::
   ROS_DEBUG("PicknPlaceAlgNode: Pick corners callback");
 
   //TO DO:
-  //Transform corners position wrt base_link
+  //Transform corners position wrt base_link -OK
   //Get distances to base_link and set corresponding names (down_left, up_right, etc)
-  //Compute grasp point (another function?)
+  //Compute grasp point (another function?) -OK
 
   //Get distances to base_link and set corresponding names (down_left, up_right, etc)
   geometry_msgs::PointStamped point_in;
@@ -1326,20 +1535,14 @@ void PicknPlaceAlgNode::corners_callback(const visualization_msgs::MarkerArray::
     point_in.point = msg->markers[i].pose.position;
 
     this->listener.transformPoint("base_link", point_in, point_out);
-    //std::cout << point_in.point.x << std::endl; //Debug
-    //std::cout << point_out.point.x << std::endl; //Debug
     corners.push_back(point_out);
   }
 
   //With point_outs check the two with min x (down) and the two with max x (up)
   //Then from each cluster check the min y (left) and max y (right)
 
-
-
   // COMPUTE EDGES
-  //geometry_msgs::Point corner_ul, corner_dl, corner_ur, corner_dr; //Better use, as we dont have orientation //points.x
-  //visualization_msgs::Marker corner_ul, corner_dl, corner_ur, corner_dr;
-  geometry_msgs::Point corner_ul, corner_dl, corner_ur, corner_dr;
+  geometry_msgs::Point corner_ul, corner_dl, corner_ur, corner_dr, center; //Better format, as we dont have orientation
   corner_dr = corners[0].point;
   corner_ul = corners[1].point;
   corner_ur = corners[2].point;
@@ -1370,7 +1573,7 @@ void PicknPlaceAlgNode::corners_callback(const visualization_msgs::MarkerArray::
   std_msgs::Float64 garment_edge;
 
   // Check if the object's shape is a square or a rectangle
-  if(abs(edge1-edge2)>0.05)
+  if(abs(edge1-edge2)>0.05) // Rectangle
   {
     // Get mid point of longest edge
     if(edge1 > edge2)
@@ -1446,7 +1649,17 @@ void PicknPlaceAlgNode::corners_callback(const visualization_msgs::MarkerArray::
 
   //std::cout << "\033[1;36m GRASP POINT -> \033[1;36m  x: " <<  grasp_point.x << " y: " << grasp_point.y << " z: " << grasp_point.z << std::endl;
 
-  //Publish grasp point marker
+  // CENTER POINT OF GARMENT - computed averaging the coordinates of the corners
+  for (const auto& corner : corners) { 
+      center.x += corner.point.x;
+      center.y += corner.point.y;
+      center.z += corner.point.z; // Its not necessary
+  }
+  center.x /= corners.size();
+  center.y /= corners.size();
+  center.z /= corners.size();
+
+  //Publish garment center marker
   visualization_msgs::Marker marker;
   marker.header.frame_id = "base_link";
   marker.id = 0;
@@ -1459,16 +1672,16 @@ void PicknPlaceAlgNode::corners_callback(const visualization_msgs::MarkerArray::
   marker.color.b = 1.0f;
   marker.color.a = 1.0;
   marker.lifetime = ros::Duration();
-
-  marker.pose.position.x=grasp_point.x;
-  marker.pose.position.y=grasp_point.y;
-  marker.pose.position.z=grasp_point.z;
-  garment_marker_publisher.publish(marker);
+  // marker.pose.position.x=center.x;
+  // marker.pose.position.y=center.y;
+  // marker.pose.position.z=center.z;
+  // garment_marker_publisher.publish(marker);
 
 
   if(this->get_garment_position)
   {
     std::cout << "------------------------------------------------" << std::endl;
+    // Get current grasp position
     this->compute_grasp_angle(grasp_angle);
     this->pre_grasp_center.x = grasp_point.x-this->pre_grasp_distance.x;
     this->pre_grasp_center.y = grasp_point.y-this->pre_grasp_distance.y;
@@ -1485,12 +1698,28 @@ void PicknPlaceAlgNode::corners_callback(const visualization_msgs::MarkerArray::
     this->get_pile_height = true;
     //this->garment_edge_size = garment_edge.data;
     std::cout << "\033[1;36m Non grasped edge size --> \033[1;0m " <<  this->garment_edge_size << std::endl;
+
+    // Get current center position
+    this->dragging_pose_garment.x = center.x;
+    this->dragging_pose_garment.y = center.y;
+    this->dragging_pose_garment.z = 0.20;
+    this->dragging_pose_garment.theta_x = 179; //-179.4
+    this->dragging_pose_garment.theta_y = 0; //1
+    this->dragging_pose_garment.theta_z = 90; //92.7
+
+    std::cout << "DRAGGING pose --> x: " << this->dragging_pose_garment.x << " y: " << this->dragging_pose_garment.y << " z: " << this->dragging_pose_garment.x << std::endl;
+    marker.pose.position.x=center.x;
+    marker.pose.position.y=center.y;
+    marker.pose.position.z=center.z;
+    garment_marker_publisher.publish(marker);
+
     if(this->pddl_demo)
     {
       if(config_.ok)
       {
         this->get_garment_position=false;
         this->pddl_action_done=true; //End PDDL action
+        config_.ok=false;
       }
     }
     else
@@ -1862,20 +2091,57 @@ bool PicknPlaceAlgNode::home_the_robot(void)
   return wait_for_action_end_or_abort();
 }
 
+bool PicknPlaceAlgNode::validate_waypoint(kortex_driver::Waypoint waypoint)
+{
+  ROS_INFO("PicknPlaceAlgNode: Validating goal pose");
+
+  kortex_driver::WaypointList trajectory;
+  trajectory.duration = 0;
+  trajectory.use_optimal_blending = false;
+  trajectory.waypoints.push_back(waypoint);
+
+  validate_waypoint_list_srv_.request.input = trajectory;
+  if (!validate_waypoint_list_client_.call(validate_waypoint_list_srv_))
+  {
+    std::string error_string = "Failed to call ValidateWaypointList";
+    ROS_ERROR("%s", error_string.c_str());
+    return false;
+  }
+  else
+    ROS_INFO("Point validated!");
+
+  int error_number = validate_waypoint_list_srv_.response.output.trajectory_error_report.trajectory_error_elements.size();
+  std::cout << error_number << std::endl;
+
+  return true;
+}
+
 bool PicknPlaceAlgNode::send_cartesian_pose(const kortex_driver::Pose &goal_pose)
 {
-  ROS_DEBUG("PicknPlaceAlgNode: send_cartesian_pose function");
+  ROS_INFO("PicknPlaceAlgNode: send_cartesian_pose function");
   this->last_action_notification_event = 0;
+
+  // Validate goal pose
   kortex_driver::Waypoint waypoint;
+  waypoint = FillCartesianWaypoint(goal_pose, 0);
+  bool valid = validate_waypoint(waypoint);
+  if(!valid)
+  {
+    std::string error_string = "PicknPlaceAlgNode: Failed to call validate goal pose";
+    ROS_ERROR("%s", error_string.c_str());
+    return false;
+  }
+
   exec_wp_trajectory_srv_.request.input.waypoints.clear();
   exec_wp_trajectory_srv_.request.input.waypoints.push_back(FillCartesianWaypoint(goal_pose, 0));
+  // exec_wp_trajectory_srv_.request.input.waypoints.push_back(waypoint);
   exec_wp_trajectory_srv_.request.input.duration = 0;
   exec_wp_trajectory_srv_.request.input.use_optimal_blending = false;
 
   ROS_DEBUG("PicknPlaceAlgNode: Calling service exec_wp_trajectory_client_!");
   if (exec_wp_trajectory_client_.call(exec_wp_trajectory_srv_))
   {
-    ROS_DEBUG("PicknPlaceAlgNode: The new cartesian pose was sent to the robot.");
+    ROS_INFO("PicknPlaceAlgNode: The new cartesian pose was sent to the robot.");
   }
   else
   {
@@ -1905,10 +2171,103 @@ kortex_driver::Waypoint PicknPlaceAlgNode::FillCartesianWaypoint(const kortex_dr
   return waypoint;
 }
 
+bool PicknPlaceAlgNode::send_joint_angles(float rotation)
+{
+  ROS_INFO("PicknPlaceAlgNode: Sending joint positions");
+
+  last_action_notification_event = 0;
+
+  // Get the actual joints position, you could create a subscriber to listen to the base_feedback but here we only need the latest message in the topic though
+  auto current_joint_pos = ros::topic::waitForMessage<kortex_driver::BaseCyclic_Feedback>("/" + robot_name + "/base_feedback");
+  // std::vector<float> joints_home_values = {0, 15, 180, 230, 0, 55, 90}; //HOME joint values
+
+  kortex_driver::WaypointList trajectory;
+  kortex_driver::Waypoint waypoint;
+  kortex_driver::AngularWaypoint angularWaypoint;
+
+   // Angles to send the arm to current position, except end-effector
+  for (unsigned int i = 0; i < 6; i++)
+  {
+    angularWaypoint.angles.push_back(current_joint_pos->actuators[i].position);
+  }
+
+  //Position of end-effector (joint7)
+  float endeffector_joint_pos = current_joint_pos->actuators[6].position + rotation;
+  if(endeffector_joint_pos > 359)
+  {
+    endeffector_joint_pos = endeffector_joint_pos - 359;
+  }
+  angularWaypoint.angles.push_back(endeffector_joint_pos);
+
+  // Each AngularWaypoint needs a duration and the global duration (from WaypointList) is disregarded. 
+  // If you put something too small (for either global duration or AngularWaypoint duration), the trajectory will be rejected.
+  int angular_duration = 0;
+  angularWaypoint.duration = angular_duration;
+
+  // Initialize Waypoint and WaypointList
+  waypoint.oneof_type_of_waypoint.angular_waypoint.push_back(angularWaypoint);
+  trajectory.duration = 0;
+  trajectory.use_optimal_blending = false;
+  trajectory.waypoints.push_back(waypoint);
+
+  validate_waypoint_list_srv_.request.input = trajectory;
+  if (!validate_waypoint_list_client_.call(validate_waypoint_list_srv_))
+  {
+    std::string error_string = "Failed to call ValidateWaypointList";
+    ROS_ERROR("%s", error_string.c_str());
+    return false;
+  }
+
+  int error_number = validate_waypoint_list_srv_.response.output.trajectory_error_report.trajectory_error_elements.size();
+  static const int MAX_ANGULAR_DURATION = 30;
+  std::cout << "error number: " << error_number << std::endl;
+
+  while (error_number >= 1 && angular_duration < MAX_ANGULAR_DURATION)
+  {
+    ROS_INFO("PicknPlaceAlgNode: Retrying sending joint position");
+    angular_duration++;
+    std::cout << "angular duration: " << angular_duration << std::endl;
+    trajectory.waypoints[0].oneof_type_of_waypoint.angular_waypoint[0].duration = angular_duration;
+
+    validate_waypoint_list_srv_.request.input = trajectory;
+    if (!validate_waypoint_list_client_.call(validate_waypoint_list_srv_))
+    {
+      std::string error_string = "Failed to call ValidateWaypointList";
+      ROS_ERROR("%s", error_string.c_str());
+      return false;
+    }
+    error_number = validate_waypoint_list_srv_.response.output.trajectory_error_report.trajectory_error_elements.size();
+  }
+  
+  if (angular_duration >= MAX_ANGULAR_DURATION)
+  {
+    // It should be possible to reach position within 30s
+    // WaypointList is invalid (other error than angularWaypoint duration)
+    std::string error_string = "WaypointList is invalid";
+    ROS_ERROR("%s", error_string.c_str());
+    return false;
+  }
+
+  // Send the angles
+  exec_wp_trajectory_srv_.request.input = trajectory;
+  if (exec_wp_trajectory_client_.call(exec_wp_trajectory_srv_))
+  {
+    ROS_DEBUG("The joint angles were sent to the robot.");
+  }
+  else
+  {
+    std::string error_string = "Failed to call ExecuteWaypointTrajectory";
+    ROS_ERROR("%s", error_string.c_str());
+    return false;
+  }
+
+  return wait_for_action_end_or_abort();
+}
+
 //REVISAR!! Quitar while, poner comprobacion dentro de sm, mirar gestion estado actions tiago modules
 bool PicknPlaceAlgNode::wait_for_action_end_or_abort(void)
 {
-  ROS_DEBUG("PicknPlaceAlgNode: wait_for_action_end_or_abort");
+  ROS_INFO("PicknPlaceAlgNode: wait_for_action_end_or_abort");
   while (ros::ok())
   {
     if (this->last_action_notification_event.load() == kortex_driver::ActionEvent::ACTION_END)

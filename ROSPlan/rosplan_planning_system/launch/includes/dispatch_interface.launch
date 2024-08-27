@@ -14,7 +14,7 @@
 
 
 	<!-- plan dispatching -->
-	<node name="$(arg node_name)" pkg="rosplan_planning_system" type="pddl_esterel_plan_dispatcher" respawn="false" output="screen">
+	<node name="$(arg node_name)" pkg="rosplan_planning_system" type="pddl_simple_plan_dispatcher" respawn="false" output="screen">
 		<param name="knowledge_base"        value="$(arg knowledge_base)" />
 		<param name="plan_topic"            value="$(arg plan_topic)" />
 		<param name="action_dispatch_topic" value="$(arg action_dispatch_topic)" />

@@ -1,6 +1,11 @@
 ;;Takes into account functions. Used with Metric-ff.
 ;;Problem: Does not include in the plan rotate and drag, probably because it prioritizes less number of actions.
 ;;Solution: Seems that it works with Metric-FF -o rosplan_domain.pddl -f rosplan_problem.pddl -s 3 -w 1. However, it also adds drag although it is not necessary
+;;Problem: Problems with workspace. It does not go to rotate if it has different worskpace as precondition (less number of actions?)
+;;Working domain with robot optimizing cost function
+;;To solve: 
+;;Grasp and Rotate actions are not completely correctly defined (
+;; Grasp after drag and rotate or rotate without drag do not 
 
 (define (domain PICKNPLACEtest)
 
@@ -19,7 +24,7 @@
 
 (:predicates
 	(garment_obj ?cloth - garment)
-	(garment_at ?wp - workspace)
+	(garment_at ?ws - workspace)
 	(at_pose ?edge - grasp)
 	(garment_state ?state - state)
 	(corners_pos ?corner - corners)
@@ -38,7 +43,8 @@
 	:precondition (and
 				(garment_obj ?cloth)
 				(garment_state notgrasped)
-				(corners_pos unknown))
+				(corners_pos unknown)
+				(robot_at high_pose))
 	:effect (and
 			(not (corners_pos unknown))
 			(corners_pos known)
@@ -50,43 +56,59 @@
 	:parameters (?cloth - garment)
 	:precondition (and
 				(garment_obj ?cloth)
-				(corners_pos known)
-				(robot_at postgrasp))
+				)
 	:effect (and
-			(not (robot_at postgrasp))
 			(robot_at home)
+			(not (robot_at high_pose))
+			(increase (time_cost) 1)
+			(increase (place_qual) 0))
+)
+
+(:action go_high
+	:parameters (?cloth - garment)
+	:precondition (and
+				(garment_obj ?cloth)
+				(corners_pos unknown)
+				(robot_at home)
+				)
+	:effect (and
+			(not (robot_at home))
+			(robot_at high_pose)
 			(increase (time_cost) 1)
 			(increase (place_qual) 0))
 )
 
 (:action grasp
-;;	:parameters (?cloth - garment ?ws - workspace ?gr - grasp)
-	:parameters (?cloth - garment ?gr - grasp)
+	:parameters (?cloth - garment ?ws - workspace ?gr - grasp)
 	:precondition (and
 				(garment_obj ?cloth)
 				(robot_at home)
-;;				(garment_at ?ws)
-				(garment_at grws)
+				;(garment_at ?ws)
 				(at_pose ?gr)
-				(garment_state notgrasped))
+				(garment_state notgrasped)
+				(corners_pos known))
 	:effect (and
 			(not (garment_state notgrasped))
 			(not (robot_at home))
+			;(robot_at grasp_pose)
 			(garment_state grasped)
 			(increase (time_cost) 1)
 			(increase (place_qual) 0))
 )
 
 (:action drag
-;;	:parameters (?cloth - garment ?initws ?endws - workspace)
 	:parameters (?cloth - garment)
 	:precondition (and 
 				(garment_obj ?cloth)
+				(robot_at home)
+				(corners_pos known)
 				(garment_at grws)
 				(garment_state notgrasped))
 	:effect (and 
 			(not (garment_at grws))
-			(garment_at grrotws)
+			(garment_at rotws)
+			;(not (robot_at home))
+			;(robot_at drag_pose)
 			(increase (time_cost) 1)
 			(increase (place_qual) 0))
 )
@@ -95,13 +117,21 @@
 	:parameters (?cloth - garment ?initedge ?endedge - grasp)
 	:precondition (and 
 				(garment_obj ?cloth)
-				(garment_at grrotws)
+				;(not (robot_at high_pose)) ;Should be better at home or at drag_pose
+				;(or (robot_at home) (robot_at drag_pose))
+				(robot_at home)
+				(corners_pos known)
+				(garment_at rotws)
 				(at_pose ?initedge)
 				(garment_state notgrasped))
 	:effect (and 
 			(not (at_pose ?initedge))
 			(at_pose ?endedge)
-			(increase (time_cost) 1)
+			(not (corners_pos known))
+			(corners_pos unknown)
+			(not (robot_at home))
+			;(robot_at drag_pose)
+			(increase (time_cost) 0)
 			(increase (place_qual) 0))
 )
 
