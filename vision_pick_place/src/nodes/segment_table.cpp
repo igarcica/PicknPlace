@@ -364,7 +364,10 @@ namespace pal {
   void SegmentPlane::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& cloud)
   {
     if ( (cloud->width * cloud->height) == 0)
+    {
+      ROS_INFO("SegmentPlace: Empty Cloud");
       return;
+    }
 
     sensor_msgs::PointCloud2Ptr cloudInProcFrame;
 
@@ -469,7 +472,7 @@ namespace pal {
 
     if ( (nonplaneCloud->width * nonplaneCloud->height) == 0)
     {
-      ROS_DEBUG("SegmentPlace: Empty nonplaneCloud");
+      ROS_INFO("SegmentPlace: Empty nonplaneCloud");
       return;
     }
 
@@ -834,7 +837,7 @@ namespace pal {
     ROS_DEBUG("SegmentPlace: placeCloud Callback");
     if ( (placeCloud->width * placeCloud->height) == 0)
     {
-      ROS_DEBUG("SegmentPlace: Empty placeCloud");
+      ROS_INFO("SegmentPlace: Empty placeCloud");
       return;
     }
 
@@ -878,7 +881,7 @@ namespace pal {
     // To get the segmented cloud in PCL XYZ format (instead of XYZRGB)
     if ( (pickCloud->width * pickCloud->height) == 0)
     {
-      ROS_DEBUG("SegmentPlace: Empty pickCloud");
+      ROS_INFO("SegmentPlace: Empty pickCloud");
       return;
     }
 
