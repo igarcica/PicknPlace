@@ -25,10 +25,15 @@ step    0: HOME TOWEL
         1: GO_HIGH TOWEL
         2: CHECK_CORNERS TOWEL
         3: HOME TOWEL
-        4: GRASP TOWEL GRWS SINGLEDGE
-        5: CHECK_DEFORMATION TOWEL
-        6: PLACEVERT TOWEL SINGLEDGE
-plan cost: 107.000000
+        4: ROTATE TOWEL SINGLEDGE MULTEDGES
+        5: HOME TOWEL
+        6: GO_HIGH TOWEL
+        7: CHECK_CORNERS TOWEL
+        8: HOME TOWEL
+        9: GRASP TOWEL GRWS MULTEDGES
+       10: CHECK_DEFORMATION TOWEL
+       11: PLACEDIAG TOWEL MULTEDGES
+plan cost: 311.000000
 
 time spent:    0.00 seconds instantiating 17 easy, 0 hard action templates
                0.00 seconds reachability analysis, yielding 11 facts and 16 actions

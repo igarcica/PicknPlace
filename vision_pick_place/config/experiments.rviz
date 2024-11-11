@@ -167,13 +167,13 @@ Visualization Manager:
       Use rainbow: true
       Value: false
     - Class: rviz/MarkerArray
-      Enabled: true
+      Enabled: false
       Marker Topic: /segment_table/pick_corners
       Name: MarkerArray
       Namespaces:
-        "": true
+        {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Class: rviz/MarkerArray
       Enabled: false
       Marker Topic: /segment_table/place_corners
@@ -199,21 +199,21 @@ Visualization Manager:
       Update Interval: 0
       Value: false
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /pick_n_place/garment_marker
       Name: Marker
       Namespaces:
         {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /pick_n_place/grasp_marker
       Name: Marker
       Namespaces:
         {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -245,7 +245,7 @@ Visualization Manager:
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: 0.10000000149011612
+        Max Value: 0.20000000298023224
         Min Value: -0.029999999329447746
         Value: false
       Axis: Z
@@ -274,7 +274,7 @@ Visualization Manager:
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
         Max Value: 0.41999998688697815
-        Min Value: 0.15000000596046448
+        Min Value: 0.10000000149011612
         Value: false
       Axis: Z
       Channel Name: intensity

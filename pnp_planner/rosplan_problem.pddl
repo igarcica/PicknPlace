@@ -14,7 +14,7 @@
 		(corners_pos unknown) (not (robot_at home))
 		(= (time_cost) 0)
 		(= (place_qual) 0)
-		(= (place_succ towel singledge placevert) 1)
+		(= (place_succ towel singledge placevert) 100)
 		(= (place_succ towel multedges placevert) 100)
 		(= (place_succ towel singledge placediag) 5000)
 		(= (place_succ towel multedges placediag) 3)
