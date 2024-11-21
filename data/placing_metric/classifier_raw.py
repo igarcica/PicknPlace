@@ -1,6 +1,4 @@
-### - Obtaines clusters using Kmeans. The model is obtained training over the pairwise distance matrix, 
-###    which computes the similarity distance with Frobenius norm between each metric image and the rest.
-### - Saves the metric images into folders of the assigned clusters
+### Same code as classifier.py but kmeans model (and the validation functions) is obtained with raw data instead of with the pairwise distance matrix
 
 import numpy as np
 import pandas as pd
@@ -11,6 +9,8 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import silhouette_score
 from sklearn.metrics import davies_bouldin_score
 # from scipy.spatial.distance import pdist, squareform
+from scipy.spatial.distance import cdist
+import plotly.express as px
 
 directory="/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/complete_grasp_data_metric/"
 # csv_directory ="/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/complete_grasp_data_metric/3x3/means_data.csv"
@@ -23,7 +23,7 @@ print("GRID: ", n_div, " / Clusters: ", n_clusters)
 save_imgs = False
 
 csv_directory = directory + str(n_div) + "x" + str(n_div) + "/means_data.csv"
-write_directory = directory + str(n_div) + "x" + str(n_div) + "/clusters/"
+write_directory = directory + str(n_div) + "x" + str(n_div) + "/clusters_raw/"
 
 ##################################################################################################
 ## CLASSIFICATION
@@ -32,10 +32,38 @@ write_directory = directory + str(n_div) + "x" + str(n_div) + "/clusters/"
 def frobenius_norm(mat1, mat2):
     return np.linalg.norm(mat1 - mat2, 'fro')
 
+def create_semantic_classes():
+    # Class A
+    A_matrix = np.zeros(n_div*n_div)
+    A_matrix = A_matrix.reshape(-3, 3)
+    # print(A_matrix)
+    plot_metrics(A_matrix)
+
+    # Class B
+    B_matrix = np.array([[-1, -1, -1], [-1, -1, -1], [0, 0, 0]])
+    # print(B_matrix)
+    plot_metrics(B_matrix)
+
+    # Class C
+    C_matrix = np.array([[-1, 0, -1], [-1, 0, -1], [-1, 0, -1]])
+    # print(C_matrix)
+    plot_metrics(C_matrix)
+
+## Plot metrics in colored grid
+def plot_metrics(metrics):
+    fig = px.imshow(metrics, text_auto=True, labels=dict(x='x', y='y'))
+    fig.update_coloraxes(cmin=-1, cmax=0)
+    fig.show()
+    # if not all_files:
+    #     fig.show()
+    # if save_csv:
+    #     filename = write_dir + filename + ".jpg"
+    #     fig.write_image(filename)
+
 ##################################################################################################
 ## VALIDATION
 
-def validation_metrics(dist_matrix, kmeans):
+def validation_metrics(X, kmeans):
     # # Calculate silhouette score (you need to compute the distance matrix)
     # silhouette_avg = silhouette_score(distance_matrix, kmeans.labels_, metric='precomputed')
     # print(f"Silhouette Score: {silhouette_avg}")
@@ -44,39 +72,39 @@ def validation_metrics(dist_matrix, kmeans):
     # print(f"Davies-Bouldin Index: {db_index}")
 
     # Calculate silhouette score (you need to compute the distance matrix)
-    silhouette_avg = silhouette_score(dist_matrix, kmeans.labels_, metric='precomputed')
+    silhouette_avg = silhouette_score(X, kmeans.labels_)
     print(f"Silhouette Score: {silhouette_avg}")
 
-    db_index = davies_bouldin_score(dist_matrix, kmeans.labels_)
+    db_index = davies_bouldin_score(X, kmeans.labels_)
     print(f"Davies-Bouldin Index: {db_index}")
 
 
-# def calculate_wcss(X, kmeans):
-#     """
-#     Calculate the Within-cluster sum of squares (WCSS) for k-means clustering.
+def calculate_wcss(X, kmeans):
+    """
+    Calculate the Within-cluster sum of squares (WCSS) for k-means clustering.
 
-#     Parameters:
-#     - X: array-like, shape (n_samples, n_features)
-#       The data points used in clustering.
-#     - kmeans: KMeans object
-#       A trained KMeans model.
+    Parameters:
+    - X: array-like, shape (n_samples, n_features)
+      The data points used in clustering.
+    - kmeans: KMeans object
+      A trained KMeans model.
 
-#     Returns:
-#     - wcss: The Within-cluster sum of squares (WCSS) value (float).
-#     """
+    Returns:
+    - wcss: The Within-cluster sum of squares (WCSS) value (float).
+    """
     
-#     centroids = kmeans.cluster_centers_ # Get the cluster centers (centroids)
+    centroids = kmeans.cluster_centers_ # Get the cluster centers (centroids)
 
-#     wcss = 0
+    wcss = 0
 
-#     # Iterate over each cluster
-#     for i in range(kmeans.n_clusters):
+    # Iterate over each cluster
+    for i in range(kmeans.n_clusters):
         
-#         cluster_points = X[kmeans.labels_ == i] # Get the points assigned to cluster i
-#         distances = np.linalg.norm(cluster_points - centroids[i], axis=1) # Calculate the squared distances to the centroid of cluster i
-#         wcss += np.sum(distances ** 2) # Sum of squared distances for this cluster
+        cluster_points = X[kmeans.labels_ == i] # Get the points assigned to cluster i
+        distances = np.linalg.norm(cluster_points - centroids[i], axis=1) # Calculate the squared distances to the centroid of cluster i
+        wcss += np.sum(distances ** 2) # Sum of squared distances for this cluster
 
-#     return wcss
+    return wcss
 
 
 def calculate_wcss_with_distances(D, labels, n_clusters):
@@ -167,7 +195,24 @@ def compute_dunn_index(distance_matrix, cluster_labels):
     dunn_index = min_inter_cluster_distance / max_intra_cluster_distance
     return dunn_index
 
+# Function to compute Dunn Index
+def dunn_index(X, labels):
+    unique_labels = np.unique(labels)
+    n_clusters = len(unique_labels)
+    intra_distances = []
+    inter_distances = []
 
+    # Compute the minimum inter-cluster distance
+    for i in range(n_clusters):
+        for j in range(i+1, n_clusters):
+            inter_distances.append(np.min(cdist(X[labels == unique_labels[i]], X[labels == unique_labels[j]])))
+    
+    # Compute the maximum intra-cluster distance
+    for i in range(n_clusters):
+        intra_distances.append(np.max(cdist(X[labels == unique_labels[i]], [X[labels == unique_labels[i]].mean(axis=0)])))
+    
+    # Dunn Index: min inter-cluster distance / max intra-cluster distance
+    return np.min(inter_distances) / np.max(intra_distances)
 
 ##################################################################################################
 ## MAIN
@@ -180,6 +225,8 @@ matrix_data = df.iloc[:, 1:].values
 original_shape = (n_div, n_div)  # Update this to match the shape of your matrices
 matrices = [matrix_data[i].reshape(original_shape) for i in range(matrix_data.shape[0])] # Reshape the rows (flattened matrices) back into matrices
 
+print(matrices[0])
+
 # Compute pairwise distance matrix using Frobenius norm - Measures the similarity between each data
 num_matrices = len(matrices)
 distance_matrix = np.zeros((num_matrices, num_matrices))
@@ -189,7 +236,7 @@ for i in range(num_matrices):
         dist = frobenius_norm(matrices[i], matrices[j])
         distance_matrix[i, j] = dist
         distance_matrix[j, i] = dist
-# Visualizing the distance matrix as a heatmap
+# # Visualizing the distance matrix as a heatmap
 # plt.figure(figsize=(8, 6))
 # plt.imshow(distance_matrix, cmap="YlGnBu")
 # # sns.heatmap(distance_matrix, annot=True, cmap="YlGnBu", fmt=".2f", cbar=True)
@@ -198,16 +245,18 @@ for i in range(num_matrices):
 
 # K-Means clustering on the distance matrix
 kmeans = KMeans(n_clusters=n_clusters, random_state=42)
-kmeans.fit(distance_matrix)
+# kmeans.fit(distance_matrix)
+kmeans.fit(matrix_data)
 # Output the cluster labels
 cluster_labels = kmeans.labels_
-print("Cluster labels:", kmeans.labels_)
+# print("Cluster labels:", kmeans.labels_)
 # Access the centroids
 centroids = kmeans.cluster_centers_
-# print("Cluster centroids: ", centroids)
+print("Cluster centroids: ", centroids)
+create_semantic_classes()
 
 # Validation
-validation_metrics(distance_matrix, kmeans)
+validation_metrics(matrix_data, kmeans)
 
 
 
@@ -256,13 +305,14 @@ if save_imgs:
 
 
 # wcss = calculate_wcss(matrix_data, kmeans)
-wcss = calculate_wcss_with_distances(distance_matrix, kmeans.labels_, n_clusters)
+# wcss = calculate_wcss_with_distances(matrix_data, kmeans.labels_, n_clusters)
+wcss = calculate_wcss(matrix_data, kmeans)
 print("WCSS: ", wcss)
         
-dunn_index = compute_dunn_index(distance_matrix, kmeans.labels_)
+# dunn_index = compute_dunn_index(matrix_data, kmeans.labels_)
+dunn_index = dunn_index(matrix_data, kmeans.labels_)
 print("Dunn Index:", dunn_index)
 
 ### TO DO
 
-## Create "perfect" class cases matrices -> Use as centroids?
 

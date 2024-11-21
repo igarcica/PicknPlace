@@ -1,62 +1,114 @@
-## Code to compute placing metric. Old version of grasping_grid_metric.py, update it using the plot scale and transl_ used here.
+## This code measures grid metric of placed data
+
+## 1. Read PCD file of segmented placed cloth
+## 2. Translates data to have the points near the table to 0 and the rest positive depth values
+## 3. Computes grid metric
+## 4. Substracts the object's thickness to the resulting grid metric tso it is agnostic to the object dimensions (otherwise towel will have larger values with less deformation)
+## In process- Measure placing quality (global mean/median of depth, grid metric)
+## In process- Compute grid mean matrix distance to GT matrix (0 deformation) - Used to draw a plot of deformation for each object, fold case and grasp
+
+## How to compute alignment of pile??
+## What value put when there are no points?
+
 import numpy as np
 import os
 import csv
 import open3d as o3d
 import statistics as sts
-from sklearn.metrics.pairwise import euclidean_distances
-# from scipy.spatial.distance import cdist
 import plotly.express as px
 import plotly.graph_objs as go
 
 
 all_files = False
-data_directory ="/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/placing_data/PCD_placing/"
-pcd_file = "towel_me_r_1.pcd" #towel_me_d_1.pcd" #towel_se_v_2.pcd" #p_se_v_1.pcd" #t_se_v_1.pcd"
-# data_directory ="/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/PCD_grasping_folds/"
-# pcd_file = "towel_8l_me.pcd"
+data_directory ="/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/PCD_placing/"
+pcd_file = "towel_me_r_1.pcd" #pillowc_se_v_1.pcd" #towel_me_r_1.pcd"
 pcd_dir = data_directory+pcd_file
-write_dir = "/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/def/3x3_range/"
+write_dir = "/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/placing_metric/3x3/metric/"
 
 save_csv = False
 activate_print = False
 
-cam_to_table = 0.8
-# min_def = cam_to_table-obj_thickness # Minimum deformation (0 deformation)
-objects = ["towel", "checkered", "pillowc"]
-n_divisions = 3
+n_divisions = 10
+cam_to_table = 0.8 ## Used in 
+gripper_position = [0.32, -0.025] ## Used to compute grid divisions
+piling = False
 
-plot_scale = dict(zaxis=dict(range=[0, 0.2]), xaxis=dict(range=[0.4, 0.05]), yaxis=dict(range=[0.2, -0.2]), aspectratio=dict(x=1, y=1, z=1) ) #placing
-# plot_scale = dict(zaxis=dict(range=[0.8, 0.5]), xaxis=dict(range=[0.3, 0]), yaxis=dict(range=[0.2, -0.2]) )
+raw_sample_filter_box = [[0.3, 0.7], [-0.2, 0.2], [-0.3, 0.3]] #box to filter sample removing noise points
+plot_scale = dict(xaxis=dict(range=[0, 0.4]), yaxis=dict(range=[0.2, -0.2]), zaxis=dict(range=[0, 0.3]), aspectratio=dict(x=1, y=1, z=1) ) #plot scale for grasped samples
+plot_scale_color = [0.0, 0.1] # plot depth color scale for grasped samples
+
+## In the case of the placing metric, the thickness of the objects plays a role
+CLOTH_SIZE = {
+    "towel": (0.23,0.25, 0.03),
+    "pillowc": (0.23,0.28, 0.01),
+    "towel_2l": (0.45,0.5),
+    "towel_4l": (0.25,0.45),
+    "towel_6l": (0.25, 0.3),
+    "towel_8l": (0.23,0.25, 0.05),
+    "towel_12l": (0.15,0.25),
+    "pillowc_2l": (0.44,0.54),
+    "pillowc_4l": (0.28,0.45),
+    "pillowc_6l": (0.23,0.37),
+    "pillowc_8l": (0.23,0.28),
+    "pillowc_12l": (0.15,0.28),
+    "pillowc_16l": (0.14,0.23),
+    "cotnap_2l": (0.25,0.5),
+    "cotnap_4l": (0.25,0.25),
+    "cotnap_6l": (0.17,0.25),
+    "cotnap_8l": (0.13,0.25),
+    "cotnap_12l": (0.09,0.25),
+    "cotnap_16l": (0.13,0.13),
+    "linenap_2l": (0.25,0.5),
+    "linenap_4l": (0.25,0.25),
+    "linenap_6l": (0.17,0.25),
+    "linenap_8l": (0.13,0.25),
+    "linenap_12l": (0.09,0.25),
+    "linenap_16l": (0.13,0.13),
+    "check_4l": (0.25,0.35),
+    "check_6l": (0.24,0.25),
+    "check_8l": (0.18,0.25),
+    "check_12l": (0.12,0.25),
+    "check_16l": (0.13,0.18),
+    "waffle_4l": (0.25,0.35),
+    "waffle_6l": (0.24,0.25),
+    "waffle_8l": (0.18,0.25),
+    "waffle_12l": (0.12,0.25),
+    "waffle_16l": (0.13,0.18)
+    }
+
+#default grasped and non-grasped value positions from CLOTH_SIZE
+non_grasped_edge = 0 
+grasped_edge = 1 #longest edge is grasped
 
 ##################################################################################################
 ## UTIL FUNCTIONS
 
-def print_info(activate, arg1, arg2="", arg3="", arg4="", arg5="", arg6=""):
+def print_info(activate, arg1, arg2="", arg3="", arg4="", arg5="", arg6="", arg7=""):
     if(activate):
-        print(str(arg1) + str(arg2) + str(arg3) + str(arg4) + str(arg5) + str(arg6))
+        print(str(arg1) + str(arg2) + str(arg3) + str(arg4) + str(arg5) + str(arg6) + str(arg7))
 
-
-def plot(data, file_name, scale):
+def plot(data, file_name, scale, scale_color):
     data = np.array(data)
     fig = px.scatter_3d(x=data[:,0], y=data[:,1], z=data[:,2], color=data[:,2])
     ##plotly.offline.plot({"data": [fig1], "layout": mylayout}, auto_open=True)
     ##fig.update_layout(scene=dict(zaxis=dict(range=[0.8, 0.5]), xaxis=dict(range=[0.3, 0]), yaxis=dict(range=[0.2, -0.2]) ))
+    # fig.update_coloraxes(cmax=0.0, cmin=-0.2)
     fig.update_layout(scene=scale)
-    fig.update_coloraxes(cmax=0.12, cmin=0.0)
+    fig.update_coloraxes(cmin=scale_color[0], cmax=scale_color[1])
+
     if not all_files:
         fig.show()
-    else:
+    if save_csv:
         filename = write_dir + file_name + ".jpg"
         fig.write_image(filename)
 
 ## Saves RGB images with the corresponding filename, GT class and metrics
-def plot_with_info(can, data, x_grid_divs, y_grid_divs, filename):
+def plot_with_info(data, x_grid_divs, y_grid_divs, can_edges, filename, scale, scale_color):
     print("\033[94m Plotting with info... \033[0m")
-    can = np.array(can)
     data = np.array(data)
     planes_x = []
     planes_y = []
+    canonic_plane = []
     x_data=data[:,0]
     y_data=data[:,1]
     z_data=data[:,2]
@@ -67,45 +119,58 @@ def plot_with_info(can, data, x_grid_divs, y_grid_divs, filename):
     fig = px.scatter_3d(x=data[:,0], y=data[:,1], z=data[:,2], color=data[:,2])
 
     # Plot X axis divisions
-    for n in range(1,len(y_grid_divs)-1):
+    for n in range(1,len(x_grid_divs)-1):
         x=x_grid_divs[n]*np.ones(len(x_data))
         y=np.linspace(min(y_data),max(y_data),100)
         z=np.linspace(min(z_data)-0.01,max(z_data)+0.01,50)
-        plane = go.Surface(x=x, y=y, z=np.array([z]*len(x)), colorscale=bright_blue, opacity=0.6)
+        plane = go.Surface(x=x, y=y, z=np.array([z]*len(x)), colorscale=bright_blue, opacity=0.4)
         planes_x.append(plane)
     # Plot Y axis divisions
     for n in range(1,len(y_grid_divs)-1):
         x=np.linspace(min(x_data),max(x_data),100)
         y=y_grid_divs[n]*np.ones(len(y_data))
         z=np.linspace(min(z_data)-0.01,max(z_data)+0.01,50)
-        plane = go.Surface(x=x, y=y, z=np.array([z]*len(x)).T, colorscale=bright_blue, opacity=0.6)
+        plane = go.Surface(x=x, y=y, z=np.array([z]*len(x)).T, colorscale=bright_blue, opacity=0.4)
         planes_y.append(plane)
 
-    # can = go.Scatter3d(x=can[:,0], y=can[:,1], z=can[:,2])
+    # Plot Canonical plane
+    x=np.linspace(can_edges[0],can_edges[1],100)
+    y=np.linspace(can_edges[2],can_edges[3],50)
+    z=0.05*np.ones(len(y_data))
+    canonic = go.Surface(x=x, y=y, z=np.array([z]*len(x)).T, colorscale=bright_pink, opacity=0.4)
+    canonic_plane.append(canonic)
+
     # fig.add_traces(data)
     fig.add_traces(planes_x)
     fig.add_traces(planes_y)
-    fig.update_layout(scene=dict(zaxis=dict(range=[0, 0.2]), xaxis=dict(range=[0.4, 0.05]), yaxis=dict(range=[0.2, -0.2]), aspectratio=dict(x=1, y=1, z=1) ))
-    fig.update_coloraxes(cmax=0.12, cmin=0.0)
+    fig.add_traces(canonic_plane)
+    # fig.update_layout(scene=dict(zaxis=dict(range=[0, 0.2]), xaxis=dict(range=[0.4, 0.05]), yaxis=dict(range=[0.2, -0.2]), aspectratio=dict(x=1, y=1, z=1) ))
+    # fig.update_coloraxes(cmax=0.12, cmin=0.0)
+    fig.update_layout(scene=scale)
+    fig.update_coloraxes(cmin=scale_color[0], cmax=scale_color[1])
+
     if not all_files:
         fig.show()
-    else:
+    if save_csv:
         filename = write_dir + filename + ".jpg"
         fig.write_image(filename)
 
-def plot_metrics(filename, metrics):
+## Plot metrics in colored grid
+def plot_metrics(filename, metrics, scale_color):
     metrics = np.array(metrics)
     div=int(np.sqrt(len(metrics)))
     metrics = metrics.reshape(div,div)
+    print(metrics)
     fig = px.imshow(metrics, text_auto=True, labels=dict(x='x', y='y'))
-    fig.update_coloraxes(cmax=0.08, cmin=0.0)
+    fig.update_coloraxes(cmin=scale_color[0], cmax=scale_color[1])#cmax=0.08, cmin=0.0)
 
     if not all_files:
         fig.show()
-    else:
+    if save_csv:
         filename = write_dir + filename + ".jpg"
         fig.write_image(filename)
 
+## Plot raw point cloud
 def plot_raw_data(data):
     x_min = min(data[:,0])
     x_max = max(data[:,0])
@@ -113,13 +178,16 @@ def plot_raw_data(data):
     y_max = max(data[:,1])
     z_min = min(data[:,2])
     z_max = max(data[:,2])
-    print("xmin: ", x_min, "xmax: ", x_max)
-    print("ymin: ", y_min, "ymax: ", y_max)
-    print("zmin: ", z_min, "zmax: ", z_max)
+    
     scale = dict(zaxis=dict(range=[z_min, z_max]), xaxis=dict(range=[x_min, x_max]), yaxis=dict(range=[y_min, y_max]), aspectratio=dict(x=1, y=1, z=1) )
-    plot(data, "raw", scale)
+    scale_color = [z_min, z_max]
+    plot(data, "raw", scale, scale_color)
 
-def save_data_values(exp_name, data_values):
+    print_info(activate_print, "xmin: ", x_min, "xmax: ", x_max)
+    print_info(activate_print, "ymin: ", y_min, "ymax: ", y_max)
+    print_info(activate_print, "zmin: ", z_min, "zmax: ", z_max)
+
+def save_data_values(exp_name, data_values, data_values2):
     print("\033[94m Writing deformation metric values... \033[0m")
     data = []
     data.append(exp_name)
@@ -128,88 +196,106 @@ def save_data_values(exp_name, data_values):
     # data.append(data_values)
     means_data_wr.writerow(data)
 
+    data2 = []
+    data2.append(exp_name)
+    for i in range(len(data_values2)):
+        data2.append(data_values2[i])
+    dist_data_wr.writerow(data2)
 
+def save_data(csv_file_wr, exp_name, data_values):
+    print("\033[94m Writing csv data... \033[0m")
+    data = []
+    data.append(exp_name)
+    for i in range(len(data_values)):
+        data.append(data_values[i])
+    csv_file_wr.writerow(data)
+
+
+##################################################################################################
 ## DATA PROCESS FUNCTIONS
-## Moves pointcloud data from cam_to_table to 0-...
-def translate_data(obj_data, obj_thickness):
-    ## Traslate depth (0-object height)
+
+##Removes noise points based on a box threshold (removes table points)
+def filter_sample(data, filter_box):
+    
+    x_thrs = np.array(filter_box[0])
+    filtered_sample = data[data[:,0]<x_thrs[1]] ##Filter table points (depth axis)
+
+    return filtered_sample
+
+## Moves pointcloud to have gripper points to 0
+def translate_data(obj_data):
+    ## Traslate depth (0(gripper)-deformation)
     depth = obj_data[:,0]
     transl_data = []
     not_pile_data = []
     suma = 0
     for i in range(len(depth)):
         #point = (depth[i]-can_min_depth)/(1-can_min_depth)
-        point = cam_to_table - depth[i]
+        point = cam_to_table - depth[i] # new points should positive from 0 to deformation
         suma += point
-        new_point=[obj_data[i,2], obj_data[i,1], point]
+        new_point=[obj_data[i,2], obj_data[i,1], point] #changed axis to have z as depth
         transl_data.append(new_point)
-
-        if piling:
-            if point > obj_thickness:
-                not_pile_data.append(new_point)
-    
-    not_pile_data = np.array(not_pile_data)
 
     transl_data = np.array(transl_data)
     transl_depth = transl_data[:,2]
     # transl_depth = np.array(transl_data)[:,2]
     mean = sts.mean(transl_depth)
     median = sts.median(transl_depth)
-    print("Mean: ", mean)
-    print("Median: ", median)
-    # print("Deformation: ", mean-obj_thickness)
+    print("Global Mean: ", mean)
+    print("Global Median: ", median)
     metrics = [mean, median]
 
+    activate_print=True
     print_info(activate_print, "Y min: ", min(obj_data[:,1]))
     print_info(activate_print, "Y max: ", max(obj_data[:,1]))
     print_info(activate_print, "Edge Y: ", max(obj_data[:,1])-min(obj_data[:,1]))
     print_info(activate_print, "X min: ", min(obj_data[:,2]))
     print_info(activate_print, "X max: ", max(obj_data[:,2]))
     print_info(activate_print, "Edge X: ", max(obj_data[:,2])-min(obj_data[:,2]))
+    activate_print=False
 
-    return transl_data, metrics, not_pile_data
+    return transl_data, metrics
 
-def create_canonical(obj_name, n_div):
+## Normalizes pointcloud, where 0 is the table position + the object/pile thickness and 1 is largest size (?) - what can we assign as the max deformation?
+def normalize_transl_data(transl_data):
+    obj_edge_size = CLOTH_SIZE.get(obj_name, None) #Get object dimensions
+    max_depth = obj_edge_size[non_grasped_edge]
+    depth = transl_data[:,2]
+    norm_transl_data = []
+    for i in range(len(depth)):
+        point = depth[i]/max_depth
+        new_point=[obj_data[i,2], obj_data[i,1], point]
+        norm_transl_data.append(new_point)
 
-    syn_can_matrix = []
-    syn_can_x = []
-    syn_can_y = []
-    syn_can_depth = []
-    print_info(activate_print, obj_name)
+    norm_transl_data = np.array(norm_transl_data)
+    norm_transl_depth = norm_transl_data[:,2]
+    mean = sts.mean(norm_transl_depth)
+    median = sts.median(norm_transl_depth)
+    print("Global Mean: ", mean)
+    print("Global Median: ", median)
+    norm_metrics = [mean, median]
+
+    return norm_transl_data, norm_metrics
+
+## Obtain canoncial parameters to compute grid threshold
+def create_canonical(obj_name, n_div, gripper_position):
+    print("\033[96m Creating canonical for ", obj_name, " \033[0m")
+
     xmin = xmax = ymin = ymax = 0
     x_thrs = []
     y_thrs = []
 
-    if(obj_name == "towel"): #towel
-        print("\033[96m Creating canonical for towel... \033[0m")
-        xsteps = 0.009
-        xmin = 0.09
-        xmax = xmin+0.25 #grasped towel edge
-        ysteps = 0.01
-        ymin = -0.15
-        ymax = ymin+0.25
-        obj_thickness = 0.04
-    if(obj_name == "pillowc"): #pillowc
-        print("\033[96m Creating canonical for pillowcase... \033[0m")
-        xsteps = 0.009
-        xmin = 0.09
-        xmax = xmin+0.28 #grasped towel edge
-        ysteps = 0.01
-        ymin = -0.15
-        ymax = ymin+0.23
-        obj_thickness = 0.013
-    if(obj_name == "checkered"): #checkerec
-        print("\033[96m Creating canonical for checkered rag... \033[0m")
-        xsteps = 0.009
-        xmin = 0.09
-        xmax = xmin+0.26 #grasped towel edge
-        ysteps = 0.01
-        ymin = -0.15
-        ymax = ymin+0.2
-        obj_thickness= 0.02
+    obj_edge_size = CLOTH_SIZE.get(obj_name, None)
+    
+    ymin = gripper_position[1]-(obj_edge_size[grasped_edge]/2)
+    ymax = gripper_position[1]+(obj_edge_size[grasped_edge]/2)
+    xmax = gripper_position[0] 
+    xmin = gripper_position[0]-obj_edge_size[non_grasped_edge]
 
     x_thr = (xmax - xmin)/n_div
     y_thr = (ymax - ymin)/n_div
+    
+    canonical_edges = [xmin, xmax, ymin, ymax]
 
     ## Grids
     ## Get XY thresholds based on given number divisions
@@ -223,7 +309,11 @@ def create_canonical(obj_name, n_div):
     x_thrs.append(xmax+1)
     y_thrs.append(ymax+1)
 
-    return x_thrs, y_thrs, obj_thickness
+    print("OBJ DIMS: ", obj_edge_size)
+    print_info(activate_print, xmin, " / ", xmax, " / ", ymin, " / ", ymax)
+    print_info(activate_print, x_thrs, " / ", y_thrs)
+
+    return x_thrs, y_thrs, canonical_edges, obj_edge_size
 
 ## Obtains grid point clouds of data
 def grid_division(data, x_thrs, y_thrs, n_div):
@@ -251,32 +341,93 @@ def grid_division(data, x_thrs, y_thrs, n_div):
 
     return grids
 
-def def_metric(grids, obj_thickness):
+## TO DELETE- Computes grid divisions
+def divide_points_into_grid(data, x_min, x_max, y_min, y_max):
+    # Define the boundaries for the 3x3x3 grid
+    x_edges = np.linspace(x_min, x_max, 4)
+    y_edges = np.linspace(y_min, y_max, 4)
+    print("linspace: ", x_edges, " / ", y_edges)
 
+    # Initialize the clusters
+    clusters = [[] for _ in range(9)]
+
+    # Assign each point to the appropriate cluster
+    for point in data:
+        x, y, z = point
+
+        # Determine the x cluster index
+        if x < x_edges[1]:
+            x_idx = 0
+        elif x < x_edges[2]:
+            x_idx = 1
+        else:
+            x_idx = 2
+
+        # Determine the y cluster index
+        if y < y_edges[1]:
+            y_idx = 0
+        elif y < y_edges[2]:
+            y_idx = 1
+        else:
+            y_idx = 2
+        
+        # Calculate the cluster index
+        cluster_idx = x_idx * 3 + y_idx
+
+        # Add the point to the appropriate cluster
+        clusters[cluster_idx].append(point)
+
+    # Convert the clusters to numpy arrays
+    clusters = [np.array(cluster) for cluster in clusters]
+
+    print(len(clusters[4]))
+
+    plot(clusters[4], "hola", plot_scale, plot_scale_color)
+
+    return clusters
+
+## Computes mean of each grid section
+def def_metric(grids, obj_dims):
+
+    obj_thickness = obj_dims[2] #obtained from CLOTH_SIZE
     means = []
-    def_metrics = []
+    norm_means = []
     ## For each section of the grid
     for l in range (len(grids)):
         length = len(grids[l])
         print_info(activate_print, "\033[94m Grid length \033[0m", length)
-        depth = grids[l][:,2]
-        new_grid = grids[l]
-        grid_mean = sts.mean(depth)
-        print_info(activate_print, "Grid mean: ", grid_mean)
-        means.append(grid_mean)
-
-        if piling:
-            grid_def = grid_mean-(obj_thickness*2)
+        ## If there are no points in the grid, then the mean is max deformation
+        if(length == 0):
+            # means.append(-obj_dims[non_grasped_edge]+0.05/2) #Max depth (should be 1 when normalized). +5cm to give margin
+            means.append(-1)
+            norm_means.append(-1) 
+        ## If the grid is not empty, compute mean of depth
         else:
-            grid_def = grid_mean-obj_thickness
-        def_metrics.append(grid_def) 
+            depth = grids[l][:,2]
+            new_grid = grids[l]
+            grid_mean = sts.mean(depth)
+            print_info(activate_print, "Grid mean: ", grid_mean)
+            means.append(grid_mean)
     
+            #Instead of normalizing the data with the thickness (what will bias the data), we substract the thickness to the resulting metric
+            if piling:
+                grid_def = grid_mean-(obj_thickness*2)
+            else:
+                grid_def = grid_mean-obj_thickness
+            norm_means.append(grid_def) 
+            #What if grid_def is negative?
+            
     print("Means: ", means)
-    print("Def metrics: ", def_metrics)
+    print("Norm means: ", norm_means)
 
-    return means, def_metrics
+    print("length: ", len(means))
+    print("length: ", len(norm_means))
+    
+    return means, norm_means
 
 def distan(metrics, n_div):
+    distances = []
+
     metrics = np.array(metrics)
     metrics = metrics.reshape(-1, 1)
     # hola = listofzeros = [0] * n_div*n_div
@@ -287,9 +438,24 @@ def distan(metrics, n_div):
     # print(type(hola))
     # print(gt_matrix)
     # print(metrics)
-    dist2 = euclidean_distances(gt_matrix, metrics)
-    print("DIST: ", dist2)
+    # dist2 = euclidean_distances(gt_matrix, metrics)
+    # print("DIST: ", dist2)
     # dis = pairwise_distances(pts, metric='manhattan'
+
+    # Calculate the Frobenius norm of the difference
+    dist_eucl = np.linalg.norm(metrics - gt_matrix, 'fro') #'fro' #Frobenius norm  #1 #1-norm #np.inf #infinity-norm
+    print("DIST: ", dist_eucl)
+    distances.append(dist_eucl)
+    dist_1 = np.linalg.norm(metrics - gt_matrix, 1) #'fro' #Frobenius norm  #1 #1-norm #np.inf #infinity-norm
+    print("DIST: ", dist_1)
+    distances.append(dist_1)
+    dist_inf = np.linalg.norm(metrics - gt_matrix, np.inf) #'fro' #Frobenius norm  #1 #1-norm #np.inf #infinity-norm
+    print("DIST: ", dist_inf)
+    distances.append(dist_inf)
+
+    print(distances)
+
+    return distances
 
 
 ##################################################################################################
@@ -297,34 +463,38 @@ def distan(metrics, n_div):
 ## For one unique sample
 if not all_files:
     print("\033[94m Getting experiment file: \033[0m" + pcd_file)
-    ## Get object name
-    for n in range(len(objects)):
-        if objects[n] in pcd_file:
-            obj_name = objects[n]
-            if "2" in pcd_file:
-                piling = True
-            else:
-                piling = False
-    # print()
-    ## Get sample point cloud
+    ## ---Get object name---
+    for o_name in CLOTH_SIZE:
+        if o_name in pcd_file: #Get object name for canonical dimensions
+            obj_name = o_name 
+            print(pcd_file)
+            ## if piling
+
+    ## ---Process data---
     obj_pcd = o3d.io.read_point_cloud(pcd_dir)
     obj_data = np.asarray(obj_pcd.points)
-    plot_raw_data(obj_data)
-    can_x_grid_divs, can_y_grid_divs, obj_thick = create_canonical(obj_name, n_divisions)
-    transl_data, depth_mean, not_pile_data = translate_data(obj_data, obj_thick)
-    plot(transl_data, "TRANSL", plot_scale) ## Plot translated point cloud
-    if piling:
-        print("plot pile")
-        # plot(not_pile_data, "Not pile", plot_scale) ## Plot sample of pile without bottom cloth
-        transl_data = not_pile_data ## For piling samples use pointcloud with removed piling points
-
-    ## Process point cloud
+    # filtered_sample = filter_sample(obj_data, raw_sample_filter_box) ##Remove noise points - necessary in placing?
+    transl_data, depth_mean = translate_data(obj_data) ##Move points to 0 (from table)
+    # norm_transl_data, norm_depth_mean = normalize_transl_data(transl_data)
+    # plot_raw_data(obj_data)
+    # plot_raw_data(filtered_sample)
+    plot_raw_data(transl_data)
+    # plot_raw_data(norm_transl_data)
+    plot(transl_data, "TRANSL", plot_scale, plot_scale_color) ## Plot translated point cloud
+    
+    ## ---Divide in grids---
+    can_x_grid_divs, can_y_grid_divs, can_edges, obj_dimensions  = create_canonical(obj_name, n_divisions, gripper_position) #get grid divisions
     grids = grid_division(transl_data, can_x_grid_divs, can_y_grid_divs, n_divisions)
-    mean_metrics, def_metrics = def_metric(grids, obj_thick)
-    plot_with_info(transl_data, transl_data, can_x_grid_divs, can_y_grid_divs, pcd_file)
-    plot_metrics(pcd_file.replace(".pcd", ""), def_metrics)
+    # plot(grids[0], "grid", plot_scale, plot_scale_color)
 
-    distan(def_metrics, n_divisions)
+    ## ---Compute metric---
+    mean_metrics, norm_mean_metrics = def_metric(grids, obj_dimensions)
+    plot_with_info(transl_data, can_x_grid_divs, can_y_grid_divs, can_edges, pcd_file, plot_scale, plot_scale_color)
+    plot_metrics(pcd_file.replace(".pcd", ""), mean_metrics, plot_scale_color)
+    plot_metrics(pcd_file.replace(".pcd", ""), norm_mean_metrics, plot_scale_color)
+
+    ## Compute placing quality computing the distance of the grid metric to the gt metric (0 deformation)
+    distan(mean_metrics, n_divisions)
 
     
 
@@ -336,52 +506,58 @@ if all_files:
         my_file = open(means_data_file, "w")
         means_data_wr = csv.writer(my_file, delimiter=",")
         ##Write CSV headers
-        headers = ["File","Depth mean", "Depth Median"]
-        means_data_wr.writerow(headers)
+        # headers = ["File","Depth mean", "Depth Median"]
+        # headers = ["File"]
+        # means_data_wr.writerow(headers)
+
+        # ## Create CSV file to save distances to GT
+        # dist_data_file = write_dir + "dist_data.csv" ## CSV file to save dist metrics
+        # my_file2 = open(dist_data_file, "w")
+        # dist_data_wr = csv.writer(my_file2, delimiter=",")
+        # ##Write CSV headers
+        # headers = ["File","Eucl dist", "1 norm", "inf norm"]
+        # dist_data_wr.writerow(headers)
 
     ## Loop files in directory
     for filename in sorted(os.listdir(data_directory)):
         f = os.path.join(data_directory, filename)
         if os.path.isfile(f) and filename.endswith('.pcd'):
             print("-------------------------------------------------------------------------------")
-            ## Get object name
-            for n in range(len(objects)):
-                if objects[n] in filename:
-                    obj_name = objects[n]
+            ## ---Get object name---
+            for o_name in CLOTH_SIZE:
+                if o_name in filename:
+                    obj_name = o_name
                     print(filename)
-                    if "2" in filename:
-                        piling = True
-                        print("Remove pile points!")
-                    else:
-                        piling = False
-
+                    # if piling
+                    
+                    ## ---Process data---
                     obj_pcd = o3d.io.read_point_cloud(f)
                     obj_data = np.asarray(obj_pcd.points)
-                    can_x_grid_divs, can_y_grid_divs, obj_thick = create_canonical(obj_name, n_divisions)
-                    transl_data, depth_mean, not_pile_data = translate_data(obj_data, obj_thick)
-                    # plot(transl_data, filename) ## Plot translated point cloud
-                    # plot(not_pile_data, filename)
-                    if piling:
-                        print("plot pile")
-                        # plot(not_pile_data, "Not pile") ## Plot sample of pile without bottom cloth
-                        transl_data = not_pile_data ## For piling samples use pointcloud with removed piling points
+                    filtered_sample = filter_sample(obj_data, raw_sample_filter_box) ##Remove table points
+                    transl_data, depth_mean = translate_data(filtered_sample) ##Move points to 0 (from gripper)
+                    norm_transl_data, norm_depth_mean = normalize_transl_data(transl_data)
+                    # plot(transl_data, "TRANSL", plot_scale, plot_scale_color) ## Plot translated point cloud
 
-                    ## Process point cloud
+                    ## ---Divide in grids---
+                    can_x_grid_divs, can_y_grid_divs, can_edges, obj_dimensions = create_canonical(obj_name, n_divisions, gripper_position) #get grid divisions
+                    grids = grid_division(norm_transl_data, can_x_grid_divs, can_y_grid_divs, n_divisions)
                     
-                    grids = grid_division(transl_data, can_x_grid_divs, can_y_grid_divs, n_divisions)
-                    mean_metrics, def_metrics = def_metric(grids, obj_thick)
-                    # plot_with_info(transl_data, transl_data, can_x_grid_divs, can_y_grid_divs, pcd_file)
+                    ## ---Compute metric---
+                    mean_metrics, norm_mean_metrics = def_metric(grids, obj_dimensions)
+                    # plot_metrics(filename.replace(".pcd", ""), mean_metrics, plot_scale_color)
+
+                    ## ---Compute distance between mean matrix (grid) and GT (0 deformation)
+                    dist_values = distan(mean_metrics, n_divisions)
 
                     ##Save data
                     if(save_csv): ##Save means in csv
-                        save_data_values(filename.replace(".pcd", ""), def_metrics)
-                        plot_with_info(transl_data, transl_data, can_x_grid_divs, can_y_grid_divs, filename.replace(".pcd", ""))
-                        plot_metrics(filename.replace(".pcd", ""), def_metrics)
+                        # save_data_values(filename.replace(".pcd", ""), mean_metrics, dist_values)
+                        save_data(means_data_wr, filename.replace(".pcd", ""), mean_metrics) #Save mean metrics in csv
+                        # plot(norm_transl_data, filename.replace(".pcd", ""), plot_scale, plot_scale_color) ## In /plots
+                        # plot_with_info(norm_transl_data, can_x_grid_divs, can_y_grid_divs, can_edges, filename.replace(".pcd", ""), plot_scale, plot_scale_color)
+                        # plot_metrics(filename.replace(".pcd", ""), mean_metrics, plot_scale_color) ## In means/
 
     
-## OK- "Normalize/Translate" depth data: Put points at the table level as 0 and heigher points >0
-## OK (on notion) - Then, "normalize" deformation: Points underneath object thickness are OK (def=0), 
-## points over object thickness correspond to deformation (def>0). What do we consider def=1?
 
 ## REFS
 # Colormap scale in 3D scatter plots: https://plotly.com/python-api-reference/generated/plotly.express.scatter_3d

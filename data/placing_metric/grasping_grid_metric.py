@@ -1,8 +1,12 @@
-## (In process) THIS CODE MEASURES GRID of grasped data
-## GOAL: 
+## This code measures grid metric of grasped data
+
 ## 1. Read PCD file of segmented placed cloth
-## 2. Measure placing quality (global mean/median of depth, grid metric)
-## 3. Compute grid mean matrix distance to GT matrix (0 deformation) - Used to draw a plot of deformation for each object, fold case and grasp
+## 2. Filters pointcloud with a given box to remove outliers
+## 3. Translates pointcloud data to move the gripper position points to 0 and the rest to depth negative values
+## 4. Normalizes data so the metric is agnostic to the object's size: gripper points correspond to 0 and -1 to half of non-grasped edge size
+## 5. Computes grid metric
+## In process. Compute grid mean matrix distance to GT matrix (0 deformation) - Used to draw a plot of deformation for each object, fold case and grasp
+
 import numpy as np
 import os
 import csv
@@ -12,15 +16,15 @@ import plotly.express as px
 import plotly.graph_objs as go
 
 
-all_files = True
+all_files = False
 # data_directory ="/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/grasping_data/PCD_grasping_folds/"
 data_directory ="/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/complete_grasp_data_PCD/"
-pcd_file = "cotnap_6l_long_me.pcd" #"towel_12l_short_se.pcd" #waffle_12l_long_me.pcd"
+pcd_file = "towel_12l_short_se.pcd" #cotnap_6l_long_me.pcd" #"towel_12l_short_se.pcd" #waffle_12l_long_me.pcd"
 # pcd_file = "towel_62l_se.pcd"
 pcd_dir = data_directory+pcd_file
 write_dir = "/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/complete_grasp_data_metric/3x3/metric/"
 
-save_csv = True
+save_csv = False
 activate_print = False
 
 n_divisions = 3
