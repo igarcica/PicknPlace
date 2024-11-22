@@ -1,13 +1,9 @@
-;;Takes into account functions. Used with Metric-ff.
-;;Problem: Does not include in the plan rotate and drag, probably because it prioritizes less number of actions.
-;;Solution: Seems that it works with Metric-FF -o rosplan_domain.pddl -f rosplan_problem.pddl -s 3 -w 1. However, it also adds drag although it is not necessary
-;;Problem: Problems with workspace. It does not go to rotate if it has different worskpace as precondition (less number of actions?)
-;;Working domain with robot optimizing cost function
-;;To solve: 
-;;Grasp and Rotate actions are not completely correctly defined (
-;; Grasp after drag and rotate or rotate without drag do not 
+;; copied from pile2.pddl and tried to apply changes from class.pddl (place succ with defclass)
+;; place success depends on class, class depends on object and grasp
+;; Considered piling with second objects pose unknown
+;; TO DO: test update of new_object parameters, modify planner to plan considering worst case of second object, add time costs to actions, compute best weigth for minimization function
 
-(define (domain PICKNPLACEtest)
+(define (domain PICKNPLACEpileclass)
 
 ;;(:requirements :strips :typing :disjunctive-preconditions :negative-preconditions :durative-actions :numeric-fluents)
 (:requirements :fluents)
@@ -18,8 +14,8 @@
     placing
     workspace
 	state
-	corners
 	position
+	defclass
 )
 
 (:predicates
@@ -29,12 +25,33 @@
 	(corners_pos_known ?cloth - garment)
 	(robot_at ?pos - position)
 	(robot_empty)
+	(known_obj ?cloth - garment)
+	(defstate ?cloth - garment ?class - defclass) 		;;the object has deformation class ?class
+	(obj_grasp_class ?cloth - garment ?edge - grasp ?class - defclass) ;; ?cloth grasped by ?edge will produce deformation class ?class
 )
 
 (:functions
     (time_cost)
 	(place_qual)
-	(place_succ ?cloth - garment ?edge - grasp ?place - placing)
+	(place_succ ?class - defclass ?place - placing)
+)
+
+;; It should consider ?edge and ?ws such that place_succ is the worst (just in case) - HOW??
+;; Later, once the first object is placed the ?edge and ?ws should be updated with real data - POSSIBLE?
+(:action new_object
+	:parameters (?edge - grasp ?ws - workspace)
+	:precondition (and
+				(garment_state towel placed)
+				(not (known_obj hola)))
+	:effect (and
+			(known_obj hola)
+			(garment_at hola ?ws) 
+			(at_pose hola ?edge) 
+			(garment_state hola notgrasped)
+			(not (corners_pos_known hola))
+			(defstate hola flat)
+			(increase (time_cost) 0)
+			(increase (place_qual) 0))
 )
 
 ;; Move to any waypoint, avoiding terrain
@@ -51,10 +68,9 @@
 )
 
 (:action home
-	:precondition (or
-				(robot_at else)
-				(robot_at high_pose)
-				(robot_empty))
+	:precondition (and 
+				(robot_empty)
+				(or (robot_at else) (robot_at high_pose)))
 	:effect (and
 			(robot_at home)
 			(not (robot_at high_pose))
@@ -65,8 +81,7 @@
 
 (:action go_high
 	:precondition (and
-				(robot_at home)
-				)
+				(robot_at home))
 	:effect (and
 			(not (robot_at home))
 			(robot_at high_pose)
@@ -75,14 +90,15 @@
 )
 
 (:action grasp
-	:parameters (?cloth - garment ?ws - workspace ?gr - grasp)
+	:parameters (?cloth - garment ?ws - workspace ?gr - grasp ?class - defclass)
 	:precondition (and
 				(robot_at home)
 				(robot_empty)
-				;(garment_at ?ws)
 				(at_pose ?cloth ?gr)
 				(garment_state ?cloth notgrasped)
-				(corners_pos_known ?cloth))
+				(corners_pos_known ?cloth)
+				(obj_grasp_class ?cloth ?gr ?class)
+				(defstate ?cloth flat))
 	:effect (and
 			(not (garment_state ?cloth notgrasped))
 			(not (robot_at home))
@@ -90,6 +106,7 @@
 			;(robot_at grasp_pose)
 			(not (robot_empty))
 			(garment_state ?cloth grasped)
+			(defstate ?cloth ?class)
 			(increase (time_cost) 1)
 			(increase (place_qual) 0))
 )
@@ -121,9 +138,9 @@
 				(at_pose ?cloth ?initedge)
 				(garment_state ?cloth notgrasped))
 	:effect (and 
-			(not (at_pose ?cloth ?initedge))
+			(not (at_pose ?cloth ?initedge)) ;;Change cloth pose
 			(at_pose ?cloth ?endedge)
-			(not (corners_pos_known ?cloth))
+			(not (corners_pos_known ?cloth)) ;;As pose has changed, corners have to be detected again
 			(robot_at else)
 			(not (robot_at home))
 			(not (robot_at drag_pose))
@@ -145,29 +162,31 @@
 )
 
 (:action placevert
-	:parameters (?cloth - garment ?edge - grasp)
+	:parameters (?cloth - garment ?edge - grasp ?class - defclass)
 	:precondition (and 
 				(at_pose ?cloth ?edge)
-				(garment_state ?cloth lifted))
+				(garment_state ?cloth lifted)
+				(defstate ?cloth ?class))
 	:effect (and 
 			(robot_empty)
 			(garment_state ?cloth placed)
 			(not (garment_state ?cloth lifted))
 			(increase (time_cost) 1)
-			(increase (place_qual) (place_succ ?cloth ?edge placevert)))
+			(increase (place_qual) (place_succ ?class placevert)))
 )
 
 (:action placediag
-	:parameters (?cloth - garment ?edge - grasp)
+	:parameters (?cloth - garment ?edge - grasp  ?class - defclass)
 	:precondition (and
 				(at_pose ?cloth ?edge)
-				(garment_state ?cloth lifted))
+				(garment_state ?cloth lifted)
+				(defstate ?cloth ?class))
 	:effect (and 
 			(robot_empty)
 			(garment_state ?cloth placed)
 			(not (garment_state ?cloth lifted))
 			(increase (time_cost) 1)
-			(increase (place_qual) (place_succ ?cloth ?edge placediag)))
+			(increase (place_qual) (place_succ ?class placediag)))
 )
 
 )
