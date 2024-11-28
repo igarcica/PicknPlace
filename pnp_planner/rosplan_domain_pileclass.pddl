@@ -1,7 +1,10 @@
 ;; copied from pile2.pddl and tried to apply changes from class.pddl (place succ with defclass)
 ;; place success depends on class, class depends on object and grasp
 ;; Considered piling with second objects pose unknown
+;; Consider pile orientation to grasp second object (limits possible grasped edge)
+;; place rot + class C
 ;; TO DO: test update of new_object parameters, modify planner to plan considering worst case of second object, add time costs to actions, compute best weigth for minimization function
+
 
 (define (domain PICKNPLACEpileclass)
 
@@ -28,6 +31,7 @@
 	(known_obj ?cloth - garment)
 	(defstate ?cloth - garment ?class - defclass) 		;;the object has deformation class ?class
 	(obj_grasp_class ?cloth - garment ?edge - grasp ?class - defclass) ;; ?cloth grasped by ?edge will produce deformation class ?class
+	(on ?piledcloth ?placedcloth - garment)
 )
 
 (:functions
@@ -45,8 +49,8 @@
 				(not (known_obj hola)))
 	:effect (and
 			(known_obj hola)
-			(garment_at hola ?ws) 
-			(at_pose hola ?edge) 
+			(garment_at hola grws) 
+			(at_pose hola short) 
 			(garment_state hola notgrasped)
 			(not (corners_pos_known hola))
 			(defstate hola flat)
@@ -90,7 +94,7 @@
 )
 
 (:action grasp
-	:parameters (?cloth - garment ?ws - workspace ?gr - grasp ?class - defclass)
+	:parameters (?cloth - garment ?gr - grasp ?class - defclass)
 	:precondition (and
 				(robot_at home)
 				(robot_empty)
@@ -103,7 +107,6 @@
 			(not (garment_state ?cloth notgrasped))
 			(not (robot_at home))
 			(robot_at else)
-			;(robot_at grasp_pose)
 			(not (robot_empty))
 			(garment_state ?cloth grasped)
 			(defstate ?cloth ?class)
@@ -162,13 +165,15 @@
 )
 
 (:action placevert
-	:parameters (?cloth - garment ?edge - grasp ?class - defclass)
+	:parameters (?cloth ?tablecloth - garment ?edge - grasp ?class - defclass)
 	:precondition (and 
+				(at_pose ?tablecloth ?edge) ;;piledcloth is on placedcloth is in placed with edge
 				(at_pose ?cloth ?edge)
 				(garment_state ?cloth lifted)
 				(defstate ?cloth ?class))
 	:effect (and 
 			(robot_empty)
+			(on ?cloth ?tablecloth)
 			(garment_state ?cloth placed)
 			(not (garment_state ?cloth lifted))
 			(increase (time_cost) 1)
@@ -176,17 +181,35 @@
 )
 
 (:action placediag
-	:parameters (?cloth - garment ?edge - grasp  ?class - defclass)
+	:parameters (?cloth ?tablecloth - garment ?edge - grasp  ?class - defclass)
 	:precondition (and
+				(at_pose ?tablecloth ?edge) ;;piledcloth is on placedcloth is in placed with edge
 				(at_pose ?cloth ?edge)
 				(garment_state ?cloth lifted)
 				(defstate ?cloth ?class))
 	:effect (and 
 			(robot_empty)
+			(on ?cloth ?tablecloth)
 			(garment_state ?cloth placed)
 			(not (garment_state ?cloth lifted))
 			(increase (time_cost) 1)
 			(increase (place_qual) (place_succ ?class placediag)))
+)
+
+(:action placerot
+	:parameters (?cloth ?tablecloth - garment ?edge - grasp  ?class - defclass)
+	:precondition (and
+				(at_pose ?tablecloth ?edge) ;;piledcloth is on placedcloth is in placed with edge
+				(at_pose ?cloth ?edge)
+				(garment_state ?cloth lifted)
+				(defstate ?cloth ?class))
+	:effect (and 
+			(robot_empty)
+			(on ?cloth ?tablecloth)
+			(garment_state ?cloth placed)
+			(not (garment_state ?cloth lifted))
+			(increase (time_cost) 1)
+			(increase (place_qual) (place_succ ?class placerot)))
 )
 
 )

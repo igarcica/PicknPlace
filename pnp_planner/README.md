@@ -3,6 +3,9 @@
 
 This repository includes the PDDL model (rosplan_domain.pddl and rosplan_problem.pddl), the launch files and the necessary ROSPlan packages.
 
+- rosplan_domain/problem.pddl: Latest working domain
+- rosplan_domain/problem_pileclass.pddl: Domain/problem with test modifications
+
 ## Execution PDDL domain
 
 Having a domain and problem file, a plan can be generated using a solver, in our example we used the Fast-Forward solver [1] with cost minimization A* (s=3) and without heuristic search (w=0).
