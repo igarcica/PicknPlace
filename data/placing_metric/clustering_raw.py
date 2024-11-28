@@ -12,17 +12,19 @@ from sklearn.metrics import davies_bouldin_score
 from scipy.spatial.distance import cdist
 import plotly.express as px
 
-directory="/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/complete_grasp_data_metric/"
+directory="/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/complete_grasp_data_metric/train_test/"
 # csv_directory ="/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/complete_grasp_data_metric/3x3/means_data.csv"
 # write_directory="/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/complete_grasp_data_metric/3x3/clusters/"
 
 n_div = 3
 n_clusters = 3  # Number of clusters
+activate_print = False
 print("GRID: ", n_div, " / Clusters: ", n_clusters)
+
 
 save_imgs = False
 
-csv_directory = directory + str(n_div) + "x" + str(n_div) + "/means_data.csv"
+csv_directory = directory + str(n_div) + "x" + str(n_div) + "/metric/all_metrics.csv"
 write_directory = directory + str(n_div) + "x" + str(n_div) + "/clusters_raw/"
 
 ##################################################################################################
@@ -59,6 +61,11 @@ def plot_metrics(metrics):
     # if save_csv:
     #     filename = write_dir + filename + ".jpg"
     #     fig.write_image(filename)
+
+def print_info(activate, arg1, arg2="", arg3="", arg4="", arg5="", arg6="", arg7=""):
+    if(activate):
+        print(str(arg1) + str(arg2) + str(arg3) + str(arg4) + str(arg5) + str(arg6) + str(arg7))
+
 
 ##################################################################################################
 ## VALIDATION
@@ -225,7 +232,7 @@ matrix_data = df.iloc[:, 1:].values
 original_shape = (n_div, n_div)  # Update this to match the shape of your matrices
 matrices = [matrix_data[i].reshape(original_shape) for i in range(matrix_data.shape[0])] # Reshape the rows (flattened matrices) back into matrices
 
-print(matrices[0])
+# print(matrices[0])
 
 # Compute pairwise distance matrix using Frobenius norm - Measures the similarity between each data
 num_matrices = len(matrices)
@@ -249,11 +256,19 @@ kmeans = KMeans(n_clusters=n_clusters, random_state=42)
 kmeans.fit(matrix_data)
 # Output the cluster labels
 cluster_labels = kmeans.labels_
-# print("Cluster labels:", kmeans.labels_)
+print_info(activate_print, "Cluster labels:", kmeans.labels_)
 # Access the centroids
 centroids = kmeans.cluster_centers_
-print("Cluster centroids: ", centroids)
-create_semantic_classes()
+print_info(activate_print, "Cluster centroids: ", centroids)
+## Save cluster labels of all data in CSV
+cluster_labels_df = pd.DataFrame({
+    'SampleName': filenames,
+    'ClusterLabel': cluster_labels
+})
+cluster_labels_dir = write_directory + "all_cluster_labels.csv"
+cluster_labels_df.to_csv(cluster_labels_dir, index=False)
+
+# create_semantic_classes()
 
 # Validation
 validation_metrics(matrix_data, kmeans)

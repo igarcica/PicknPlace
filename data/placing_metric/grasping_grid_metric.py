@@ -16,15 +16,15 @@ import plotly.express as px
 import plotly.graph_objs as go
 
 
-all_files = False
+all_files = True
 # data_directory ="/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/grasping_data/PCD_grasping_folds/"
 data_directory ="/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/complete_grasp_data_PCD/"
 pcd_file = "towel_12l_short_se.pcd" #cotnap_6l_long_me.pcd" #"towel_12l_short_se.pcd" #waffle_12l_long_me.pcd"
 # pcd_file = "towel_62l_se.pcd"
 pcd_dir = data_directory+pcd_file
-write_dir = "/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/complete_grasp_data_metric/3x3/metric/"
+write_dir = "/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/complete_grasp_data_metric/train_test/3x3/metric/"
 
-save_csv = False
+save_csv = True
 activate_print = False
 
 n_divisions = 3
@@ -488,9 +488,15 @@ if not all_files:
 if all_files:
     if(save_csv):
         ## Create CSV file to save metrics
-        means_data_file = write_dir + "means_data.csv" ## CSV file to save def metric
+        means_data_file = write_dir + "all_metrics.csv" ## CSV file to save def metric
         my_file = open(means_data_file, "w")
         means_data_wr = csv.writer(my_file, delimiter=",")
+        ## Write Headers
+        headers = ["Filename"]
+        for i in range(0, n_divisions*n_divisions):
+                text = "M"+str(i+1)
+                headers.append(text)
+        means_data_wr.writerow(headers)
         ##Write CSV headers
         # headers = ["File","Depth mean", "Depth Median"]
         # headers = ["File"]

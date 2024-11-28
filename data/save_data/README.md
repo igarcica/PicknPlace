@@ -16,6 +16,13 @@ This folder contains the following files:
 		- commands.sh: Saves 1 rgb image from each of the 3 cameras, saves depth topic rosbags and 1 pcd files for each camera.
 		- create_folders.sh: Creates folder for saving data of the cloth grasped, placed while grasping and placed.
 		- visualize.rviz: RVIZ configure file for visualizing the data saved in the pcd files.
+		- complete_grasp_data/: Data (PCD, RGB, RVIZ, rosbag) for 6 objects (towel, pillowcase, checkered, waffle, cotton nap, linen nap), 5 folds (4l, 6l, 8l, 12l, 16l) and 4 grasps (long me, long se, short me, short se)
+		- complete_grasp_data_PCD/: Only PCD files of complete_grasp_data
+		- complete_grasp_data_metric/: Results from executing '/placing_metric/grasping_grid_metric.py' and with complete_grasp_data. Metric color images and csv with metric for different grid divisions
+			- AxA/metric: Metric color images and CSV with metrics
+			- AxA/clusters: Metric images separated by clusters
+		- traintest_complete_grasp_data/: PCD files separated into train (towel, pillowcase, waffle and cotton napkin) and test (checkered and linen napkin)
+		- def/, PCD_placing/, placing_metric/: (to delete) previous data
 
 
 ## How to save PnP executions
@@ -91,4 +98,27 @@ cd data_folder
 python execution.py
 ```
 
-This will
+### Deformation metrics
+
+To save the metric color images and the CSV with the metrics into /complete_grasp_data_metric/AxA/metric, modify the grid division (n_divisions) and execute:
+
+```
+cd data/placing_metric
+python3 grasping_grid_metric.py
+```
+
+To clusterize all the data (without separating into train/test), execute:
+
+```
+python3 clustering_raw.py
+```
+
+This will save the metric color images into separated folders for each cluster in /complete_grasp_data_metric/AxA/clusters.
+
+To clusterize separating into train/test data (obtain kmeans model with train and predict cluster of test data), change directory in grasping_grid_metric.py to /traintest_complete_grasp_data/train or test and execute:
+
+```
+python3 clustering_raw_traintest.py
+```
+
+

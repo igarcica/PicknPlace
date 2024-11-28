@@ -1,0 +1,15 @@
+SampleName,GTLabel,ClusterLabel
+cotnap_16l_short_me,0,1
+cotnap_16l_short_se,0,1
+cotnap_4l_long_me,2,1
+cotnap_4l_short_se,2,1
+cotnap_6l_long_me,2,1
+linenap_16l_short_me,0,1
+linenap_16l_short_se,0,1
+linenap_4l_long_se,2,1
+linenap_4l_short_me,2,1
+linenap_4l_short_se,2,1
+pillowc_16l_long_me,0,1
+pillowc_4l_short_me,2,1
+pillowc_8l_long_me,2,1
+pillowc_8l_short_me,2,1

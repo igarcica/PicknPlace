@@ -1,6 +1,7 @@
 ### - Obtaines clusters using Kmeans. The model is obtained training over the pairwise distance matrix, 
 ###    which computes the similarity distance with Frobenius norm between each metric image and the rest.
 ### - Saves the metric images into folders of the assigned clusters
+### - Print evaluation metrics: silhouette, WCSS, DBI, Dunn
 
 import numpy as np
 import pandas as pd
@@ -49,34 +50,6 @@ def validation_metrics(dist_matrix, kmeans):
 
     db_index = davies_bouldin_score(dist_matrix, kmeans.labels_)
     print(f"Davies-Bouldin Index: {db_index}")
-
-
-# def calculate_wcss(X, kmeans):
-#     """
-#     Calculate the Within-cluster sum of squares (WCSS) for k-means clustering.
-
-#     Parameters:
-#     - X: array-like, shape (n_samples, n_features)
-#       The data points used in clustering.
-#     - kmeans: KMeans object
-#       A trained KMeans model.
-
-#     Returns:
-#     - wcss: The Within-cluster sum of squares (WCSS) value (float).
-#     """
-    
-#     centroids = kmeans.cluster_centers_ # Get the cluster centers (centroids)
-
-#     wcss = 0
-
-#     # Iterate over each cluster
-#     for i in range(kmeans.n_clusters):
-        
-#         cluster_points = X[kmeans.labels_ == i] # Get the points assigned to cluster i
-#         distances = np.linalg.norm(cluster_points - centroids[i], axis=1) # Calculate the squared distances to the centroid of cluster i
-#         wcss += np.sum(distances ** 2) # Sum of squared distances for this cluster
-
-#     return wcss
 
 
 def calculate_wcss_with_distances(D, labels, n_clusters):
