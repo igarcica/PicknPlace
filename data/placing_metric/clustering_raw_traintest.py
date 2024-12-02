@@ -20,7 +20,7 @@ directory="/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/complete_g
 # csv_directory ="/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/complete_grasp_data_metric/3x3/means_data.csv"
 # write_directory="/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/complete_grasp_data_metric/3x3/clusters/"
 
-n_div = 3
+n_div = 7
 n_clusters = 3  # Number of clusters
 print("GRID: ", n_div, " / Clusters: ", n_clusters)
 
@@ -257,8 +257,8 @@ def align_clusters_to_labels(cluster_labels, gt_labels, sample_names, name):
         'GTLabel': gt_labels[mismatched_mask],
         'ClusterLabel': aligned_labels[mismatched_mask]
     })
-    mismatched_samples_dir = write_directory + name + "_mismatched.csv"
-    mismatched_samples.to_csv(mismatched_samples_dir, index=False)
+    # mismatched_samples_dir = write_directory + name + "_mismatched.csv"
+    # mismatched_samples.to_csv(mismatched_samples_dir, index=False)
     
     return aligned_labels, mapping, mismatched_samples
 
@@ -287,7 +287,7 @@ def evaluate_clustering(cluster_labels, gt_labels, sample_names, name):
     # sns.heatmap(confusion, annot=True, cmap="YlGnBu", fmt=".2f", cbar=True)
     plt.title("Confusion Matrix")
     confusion_matrix_filename = write_directory + name + "_confusion_matrix.png"
-    plt.savefig(confusion_matrix_filename)
+    # plt.savefig(confusion_matrix_filename)
     plt.show()
 
     return accuracy, confusion, aligned_labels, mapping, mismatched_samples
@@ -393,44 +393,46 @@ pred_test_labels = pd.DataFrame({
     'SampleName': test_filenames,
     'ClusterLabel': test_labels
 })
-cluster_labels_dir = write_directory + "pred_test_labels.csv"
-pred_test_labels.to_csv(cluster_labels_dir, index=False)
+# cluster_labels_dir = write_directory + "pred_test_labels.csv"
+# pred_test_labels.to_csv(cluster_labels_dir, index=False)
 
 
-#### EVALUATE CLUSTERING 
-## Get TEST GT labels
-test_gt_df = pd.read_csv(test_gt_directory)
-test_gt_filenames = test_gt_df.iloc[:, 0]
-test_gt_labels = test_gt_df.iloc[:, 1:].values
-test_gt_labels = test_gt_labels.flatten() # Transform to a flat array
-## Get HUMAN TEST GT labels
-human_test_gt_df = pd.read_csv(human_test_gt_directory)
-human_test_gt_filenames = human_test_gt_df.iloc[:, 0]
-human_test_gt_labels = human_test_gt_df.iloc[:, 1:].values
-human_test_gt_labels = human_test_gt_labels.flatten() # Transform to a flat array
-print("------------------------------------------------")
-print("PREDICTED TEST LABELS: ", test_labels)
-print("TEST GT LABELS: ", test_gt_labels)
-print("HUMAN GT LABELS: ", human_test_gt_labels)
+
+
+# #### EVALUATE CLUSTERING 
+# ## Get TEST GT labels
+# test_gt_df = pd.read_csv(test_gt_directory)
+# test_gt_filenames = test_gt_df.iloc[:, 0]
+# test_gt_labels = test_gt_df.iloc[:, 1:].values
+# test_gt_labels = test_gt_labels.flatten() # Transform to a flat array
+# ## Get HUMAN TEST GT labels
+# human_test_gt_df = pd.read_csv(human_test_gt_directory)
+# human_test_gt_filenames = human_test_gt_df.iloc[:, 0]
+# human_test_gt_labels = human_test_gt_df.iloc[:, 1:].values
+# human_test_gt_labels = human_test_gt_labels.flatten() # Transform to a flat array
 # print("------------------------------------------------")
-# print("PREDICTED TEST LABELS: ", test_filenames)
-# print("TEST GT LABELS: ", test_gt_filenames)
-# print("HUMAN GT LABELS: ", human_gt_filenames)
+# print("PREDICTED TEST LABELS: ", test_labels)
+# print("TEST GT LABELS: ", test_gt_labels)
+# print("HUMAN GT LABELS: ", human_test_gt_labels)
+# # print("------------------------------------------------")
+# # print("PREDICTED TEST LABELS: ", test_filenames)
+# # print("TEST GT LABELS: ", test_gt_filenames)
+# # print("HUMAN GT LABELS: ", human_gt_filenames)
 
-## Alignment of cluster labels to TEST GT + accuracy evaluation
-print("------------------------------------------------")
-print("\033[94m ALL DATA MODEL CLUSTER GT ACCURACY \033[0m")
-# img_dir = write_directory + "all_data_GT.png"
-name = "all_data_GT"
-accuracy, confusion, aligned_labels, mapping, mismatched_samples = evaluate_clustering(test_labels, test_gt_labels, test_gt_filenames, name)
-print(aligned_labels)
+# ## Alignment of cluster labels to TEST GT + accuracy evaluation
+# print("------------------------------------------------")
+# print("\033[94m ALL DATA MODEL CLUSTER GT ACCURACY \033[0m")
+# # img_dir = write_directory + "all_data_GT.png"
+# name = "all_data_GT"
+# accuracy, confusion, aligned_labels, mapping, mismatched_samples = evaluate_clustering(test_labels, test_gt_labels, test_gt_filenames, name)
+# print(aligned_labels)
 
-## Alignment of cluster labels to HUMAN GT + accuracy evaluation
-print("------------------------------------------------")
-print("\033[94m HUMAN GT ACCURACY \033[0m")
-# img_dir = write_directory + "confusion_matrix_human_GT.png"
-name = "human_GT"
-accuracy, confusion, aligned_labels, mapping, mismatched_samples = evaluate_clustering(test_labels, human_test_gt_labels, human_test_gt_filenames, name)
+# ## Alignment of cluster labels to HUMAN GT + accuracy evaluation
+# print("------------------------------------------------")
+# print("\033[94m HUMAN GT ACCURACY \033[0m")
+# # img_dir = write_directory + "confusion_matrix_human_GT.png"
+# name = "human_GT"
+# accuracy, confusion, aligned_labels, mapping, mismatched_samples = evaluate_clustering(test_labels, human_test_gt_labels, human_test_gt_filenames, name)
 
 ## 
 print("------------------------------------------------")
@@ -448,6 +450,29 @@ human_gt_labels = human_gt_labels.flatten() # Transform to a flat array
 name = "all_labels_human_GT"
 accuracy, confusion, aligned_labels, mapping, mismatched_samples = evaluate_clustering(all_labels, human_gt_labels, human_gt_filenames, name)
 
+
+print("------------------------------------------------")
+print("\033[94m ALL DATA PREDICTIONS WITH TRAIN DATA MODEL with HUMAN GT ACCURACY \033[0m")
+## Save cluster labels of all data with model trained only with train data in CSV
+all_pred_filenames = np.concatenate((train_filenames, test_filenames))
+all_pred_labels = np.concatenate((cluster_labels, test_labels))
+print("hola ", all_pred_filenames)
+print("hola2 ", all_pred_labels)
+pred_all_labels = pd.DataFrame({
+    'SampleName': all_pred_filenames,
+    'ClusterLabel': all_pred_labels
+})
+## The files will be saved in a different order
+all_predict_labels_dir = "/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/statistical_analysis/pred_all_labels.csv"
+pred_all_labels.to_csv(all_predict_labels_dir, index=False)
+## Upload the previous file but with the files ordered (ordered manually)
+all_pred_labels_directory = directory + str(n_div) + "x" + str(n_div) + "/clusters_raw/pred_all_labels.csv"
+all_pred_labels_df = pd.read_csv(all_pred_labels_directory)
+all_pred_labels_filenames = all_pred_labels_df.iloc[:, 0]
+all_pred_labels = all_pred_labels_df.iloc[:, 1:].values
+all_pred_labels = all_pred_labels.flatten() # Transform to a flat array
+name = "pred_all_data2"
+accuracy, confusion, aligned_labels, mapping, mismatched_samples = evaluate_clustering(all_pred_labels, human_gt_labels, human_gt_filenames, name)
 
 
 ### TO DO

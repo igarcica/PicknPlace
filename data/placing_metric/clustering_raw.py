@@ -16,7 +16,7 @@ directory="/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/complete_g
 # csv_directory ="/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/complete_grasp_data_metric/3x3/means_data.csv"
 # write_directory="/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/complete_grasp_data_metric/3x3/clusters/"
 
-n_div = 3
+n_div = 7
 n_clusters = 3  # Number of clusters
 activate_print = False
 print("GRID: ", n_div, " / Clusters: ", n_clusters)
