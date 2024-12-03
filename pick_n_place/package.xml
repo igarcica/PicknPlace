@@ -52,6 +52,8 @@
   <build_depend>actionlib_msgs</build_depend>
   <build_depend>tf</build_depend>
   <build_depend>actionlib</build_depend>
+  <build_depend>rospy</build_depend>
+  <build_depend>ros-numpy</build_depend>
   <build_export_depend>iri_base_algorithm</build_export_depend>
   <exec_depend>iri_base_algorithm</exec_depend>
   <depend>iri_kinova_linear_movement</depend>
@@ -64,6 +66,8 @@
   <exec_depend>tf</exec_depend>
   <exec_depend>actionlib</exec_depend>
   <exec_depend>message_generation</exec_depend>
+  <exec_depend>rospy</exec_depend>
+  <exec_depend>ros-numpy</exec_depend>
 
 
 

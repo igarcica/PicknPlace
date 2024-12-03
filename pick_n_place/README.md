@@ -82,3 +82,17 @@ Generate the problem and the plan with the script:
 
 `` `` -->
 
+## Execution of python script to compute deformation cluster with ROS
+
+To compute the deformation cluster of a grasped object in real time (through ROS topic), execute:
+
+``rosrun pick_n_place main.py ``
+
+When a point cloud message is published in the topic /segment_table/place, the node will process the point cloud to compute the grid metric and clusterize it.
+It can be run without the robot with:
+
+```
+roscore
+rosbag play grasped_object_sample.bag
+```
+

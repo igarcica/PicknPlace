@@ -6,7 +6,7 @@ find_package(catkin REQUIRED)
 # ********************************************************************
 #                 Add catkin additional components here
 # ********************************************************************
-find_package(catkin REQUIRED COMPONENTS iri_base_algorithm iri_kinova_linear_movement kortex_driver vision_pick_place iri_action_server message_generation std_msgs actionlib actionlib_msgs tf)
+find_package(catkin REQUIRED COMPONENTS rospy iri_base_algorithm iri_kinova_linear_movement kortex_driver vision_pick_place iri_action_server message_generation std_msgs actionlib actionlib_msgs tf)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -58,7 +58,7 @@ catkin_package(
 # ********************************************************************
 #            Add ROS and IRI ROS run time dependencies
 # ********************************************************************
- CATKIN_DEPENDS iri_base_algorithm iri_kinova_linear_movement vision_pick_place iri_action_server kortex_driver tf
+ CATKIN_DEPENDS rospy iri_base_algorithm iri_kinova_linear_movement vision_pick_place iri_action_server kortex_driver tf
 # ********************************************************************
 #      Add system and labrobotica run time dependencies here
 # ********************************************************************
@@ -81,6 +81,11 @@ include_directories(${catkin_INCLUDE_DIRS})
 
 ## Declare a cpp executable
 add_executable(${PROJECT_NAME} src/pick_n_place_alg.cpp src/pick_n_place_alg_node.cpp)
+
+catkin_install_python(PROGRAMS
+    scripts/main.py
+    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
 # ********************************************************************
 #                   Add the libraries

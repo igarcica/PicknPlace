@@ -1,4 +1,4 @@
-### Same code as classifier.py but kmeans model (and the validation functions) is obtained with raw data instead of with the pairwise distance matrix
+## custering_raw_traintest.py to be used as package in ros node (import functions)
 
 import numpy as np
 import pandas as pd
@@ -8,33 +8,11 @@ from sklearn.metrics.pairwise import pairwise_distances
 import matplotlib.pyplot as plt
 from sklearn.metrics import silhouette_score
 from sklearn.metrics import davies_bouldin_score
-# from scipy.spatial.distance import pdist, squareform
 from scipy.spatial.distance import cdist
 import plotly.express as px
 
 from sklearn.metrics import confusion_matrix, accuracy_score
 import seaborn as sns #To plot confusion matrix with values
-
-
-directory="/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/complete_grasp_data_metric/train_test/"
-# csv_directory ="/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/complete_grasp_data_metric/3x3/means_data.csv"
-# write_directory="/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/complete_grasp_data_metric/3x3/clusters/"
-
-n_div = 7
-n_clusters = 3  # Number of clusters
-print("GRID: ", n_div, " / Clusters: ", n_clusters)
-
-save_imgs = False
-activate_print = False
-
-write_directory = directory + str(n_div) + "x" + str(n_div) + "/clusters_raw/"
-train_directory = directory + str(n_div) + "x" + str(n_div) + "/metric/train_metrics.csv"
-test_directory = directory + str(n_div) + "x" + str(n_div) + "/metric/test_metrics.csv"
-human_gt_directory = directory + "human_GT_labels.csv"
-human_test_gt_directory = directory + "human_test_GT_labels.csv"
-all_labels_directory = directory + str(n_div) + "x" + str(n_div) + "/clusters_raw/all_cluster_labels.csv"
-test_gt_directory = directory + str(n_div) + "x" + str(n_div) + "/clusters_raw/test_GT_labels.csv"
-
 
 
 ##################################################################################################
@@ -292,189 +270,28 @@ def evaluate_clustering(cluster_labels, gt_labels, sample_names, name):
 
     return accuracy, confusion, aligned_labels, mapping, mismatched_samples
 
+def train_kmeans(train_data_dir, n_clusters, n_div):
+    # Load the CSV file into a DataFrame (Assuming each row is a flattened matrix)
+    train_df = pd.read_csv(train_data_dir)
+    train_filenames = train_df.iloc[:, 0]
+    # matrix_data = df.values  # Extract the matrix data (skipping the first row and first column)
+    train_matrix_data = train_df.iloc[:, 1:].values
+    original_shape = (n_div, n_div)  # Update this to match the shape of your matrices
+    train_matrices = [train_matrix_data[i].reshape(original_shape) for i in range(train_matrix_data.shape[0])] # Reshape the rows (flattened matrices) back into matrices
+
+    # print(train_matrix_data)
+    # print(train_matrices[0])
 
 
-##################################################################################################
-## MAIN
+    # K-Means clustering model with train data
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+    kmeans.fit(train_matrix_data)
+    
+    activate_print = True
+    cluster_labels = kmeans.labels_ # Output the cluster labels
+    print_info(activate_print, "Cluster labels:", kmeans.labels_)
+    # print("FIT PREDICT: ", kmeans.fit_predict(train_matrix_data))
+    centroids = kmeans.cluster_centers_ # Access the centroids
+    print_info(activate_print, "Cluster centroids: ", centroids)
 
-# Load the CSV file into a DataFrame (Assuming each row is a flattened matrix)
-train_df = pd.read_csv(train_directory)
-train_filenames = train_df.iloc[:, 0]
-# matrix_data = df.values  # Extract the matrix data (skipping the first row and first column)
-train_matrix_data = train_df.iloc[:, 1:].values
-original_shape = (n_div, n_div)  # Update this to match the shape of your matrices
-train_matrices = [train_matrix_data[i].reshape(original_shape) for i in range(train_matrix_data.shape[0])] # Reshape the rows (flattened matrices) back into matrices
-
-# print(train_matrix_data)
-# print(train_matrices[0])
-
-
-# K-Means clustering on the distance matrix
-kmeans = KMeans(n_clusters=n_clusters, random_state=42)
-# kmeans.fit(distance_matrix)
-kmeans.fit(train_matrix_data)
-# Output the cluster labels
-cluster_labels = kmeans.labels_
-print_info(activate_print, "Cluster labels:", kmeans.labels_)
-# print("FIT PREDICT: ", kmeans.fit_predict(train_matrix_data))
-# Access the centroids
-centroids = kmeans.cluster_centers_
-print_info(activate_print, "Cluster centroids: ", centroids)
-# ## Save cluster labels of train data in CSV
-# pred_train_labels = pd.DataFrame({
-#     'SampleName': train_filenames,
-#     'ClusterLabel': cluster_labels
-# })
-
-# create_semantic_classes()
-
-
-## Save metric images in a folder correpsonding to the cluster
-if save_imgs:
-    # Create a folder for saving clusterized data
-    os.makedirs(write_directory, exist_ok=True)
-
-    # Loop over each cluster
-    for cluster_id in np.unique(cluster_labels):
-        # Create a folder for the current cluster
-        cluster_folder = os.path.join(write_directory, f"cluster_{cluster_id}")
-        os.makedirs(cluster_folder, exist_ok=True)
-        
-        # Get the indices of matrices in this cluster
-        cluster_indices = np.where(cluster_labels == cluster_id)[0]
-        
-        # Loop over each matrix in the cluster and save it as an image
-        for idx in cluster_indices:
-            matrix = train_matrices[idx]  # Get the matrix for this index
-            filename = train_filenames[idx]
-            
-            # Create a heatmap for the matrix
-            plt.figure(figsize=(6, 6))
-            im = plt.imshow(matrix, cmap='plasma', interpolation='nearest', vmin=0, vmax=-1)
-            plt.colorbar(im)  # Add a colorbar to the heatmap
-            plt.title(f"Matrix {filename} in Cluster {cluster_id}")
-            
-            output_file = os.path.join(cluster_folder, f"{filename}.png")  # Save as .png with original filename
-            plt.savefig(output_file)
-            plt.close()  # Close the figure to avoid memory issues
-
-            # print(f"Saved matrix {idx} in cluster {cluster_id} to {output_file}")
-
-    print("All matrices saved!")
-
-
-# Validation
-validation_metrics(train_matrix_data, kmeans)
-# wcss = calculate_wcss(matrix_data, kmeans)
-# wcss = calculate_wcss_with_distances(matrix_data, kmeans.labels_, n_clusters)
-wcss = calculate_wcss(train_matrix_data, kmeans)
-print("WCSS: ", wcss)
-            
-# dunn_index = compute_dunn_index(matrix_data, kmeans.labels_)
-dunn_index = dunn_index(train_matrix_data, kmeans.labels_)
-print("Dunn Index:", dunn_index)
-
-
-
-
-
-# ##### TEST DATA
-# Load the CSV file into a DataFrame (Assuming each row is a flattened matrix)
-test_df = pd.read_csv(test_directory)
-test_filenames = test_df.iloc[:, 0]
-test_matrix_data = test_df.iloc[:, 1:].values
-original_shape = (n_div, n_div)  # Update this to match the shape of your matrices
-test_matrices = [test_matrix_data[i].reshape(original_shape) for i in range(test_matrix_data.shape[0])] # Reshape the rows (flattened matrices) back into matrices
-
-## Predict labels for the test set
-test_labels = kmeans.predict(test_matrix_data) 
-## Save cluster labels of test data in CSV
-pred_test_labels = pd.DataFrame({
-    'SampleName': test_filenames,
-    'ClusterLabel': test_labels
-})
-# cluster_labels_dir = write_directory + "pred_test_labels.csv"
-# pred_test_labels.to_csv(cluster_labels_dir, index=False)
-
-
-
-
-# #### EVALUATE CLUSTERING 
-# ## Get TEST GT labels
-# test_gt_df = pd.read_csv(test_gt_directory)
-# test_gt_filenames = test_gt_df.iloc[:, 0]
-# test_gt_labels = test_gt_df.iloc[:, 1:].values
-# test_gt_labels = test_gt_labels.flatten() # Transform to a flat array
-# ## Get HUMAN TEST GT labels
-# human_test_gt_df = pd.read_csv(human_test_gt_directory)
-# human_test_gt_filenames = human_test_gt_df.iloc[:, 0]
-# human_test_gt_labels = human_test_gt_df.iloc[:, 1:].values
-# human_test_gt_labels = human_test_gt_labels.flatten() # Transform to a flat array
-# print("------------------------------------------------")
-# print("PREDICTED TEST LABELS: ", test_labels)
-# print("TEST GT LABELS: ", test_gt_labels)
-# print("HUMAN GT LABELS: ", human_test_gt_labels)
-# # print("------------------------------------------------")
-# # print("PREDICTED TEST LABELS: ", test_filenames)
-# # print("TEST GT LABELS: ", test_gt_filenames)
-# # print("HUMAN GT LABELS: ", human_gt_filenames)
-
-# ## Alignment of cluster labels to TEST GT + accuracy evaluation
-# print("------------------------------------------------")
-# print("\033[94m ALL DATA MODEL CLUSTER GT ACCURACY \033[0m")
-# # img_dir = write_directory + "all_data_GT.png"
-# name = "all_data_GT"
-# accuracy, confusion, aligned_labels, mapping, mismatched_samples = evaluate_clustering(test_labels, test_gt_labels, test_gt_filenames, name)
-# print(aligned_labels)
-
-# ## Alignment of cluster labels to HUMAN GT + accuracy evaluation
-# print("------------------------------------------------")
-# print("\033[94m HUMAN GT ACCURACY \033[0m")
-# # img_dir = write_directory + "confusion_matrix_human_GT.png"
-# name = "human_GT"
-# accuracy, confusion, aligned_labels, mapping, mismatched_samples = evaluate_clustering(test_labels, human_test_gt_labels, human_test_gt_filenames, name)
-
-## 
-print("------------------------------------------------")
-print("\033[94m ALL DATA CLUSTER LABELS with HUMAN GT ACCURACY \033[0m")
-## Get all data cluster labels
-all_labels_df = pd.read_csv(all_labels_directory)
-all_labels_filenames = all_labels_df.iloc[:, 0]
-all_labels = all_labels_df.iloc[:, 1:].values
-all_labels = all_labels.flatten() # Transform to a flat array
-## Get all human gt labels
-human_gt_df = pd.read_csv(human_gt_directory)
-human_gt_filenames = human_gt_df.iloc[:, 0]
-human_gt_labels = human_gt_df.iloc[:, 1:].values
-human_gt_labels = human_gt_labels.flatten() # Transform to a flat array
-name = "all_labels_human_GT"
-accuracy, confusion, aligned_labels, mapping, mismatched_samples = evaluate_clustering(all_labels, human_gt_labels, human_gt_filenames, name)
-
-
-print("------------------------------------------------")
-print("\033[94m ALL DATA PREDICTIONS WITH TRAIN DATA MODEL with HUMAN GT ACCURACY \033[0m")
-## Save cluster labels of all data with model trained only with train data in CSV
-all_pred_filenames = np.concatenate((train_filenames, test_filenames))
-all_pred_labels = np.concatenate((cluster_labels, test_labels))
-print("hola ", all_pred_filenames)
-print("hola2 ", all_pred_labels)
-pred_all_labels = pd.DataFrame({
-    'SampleName': all_pred_filenames,
-    'ClusterLabel': all_pred_labels
-})
-## The files will be saved in a different order
-all_predict_labels_dir = "/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/statistical_analysis/pred_all_labels.csv"
-pred_all_labels.to_csv(all_predict_labels_dir, index=False)
-## Upload the previous file but with the files ordered (ordered manually)
-all_pred_labels_directory = directory + str(n_div) + "x" + str(n_div) + "/clusters_raw/pred_all_labels.csv"
-all_pred_labels_df = pd.read_csv(all_pred_labels_directory)
-all_pred_labels_filenames = all_pred_labels_df.iloc[:, 0]
-all_pred_labels = all_pred_labels_df.iloc[:, 1:].values
-all_pred_labels = all_pred_labels.flatten() # Transform to a flat array
-name = "pred_all_data2"
-accuracy, confusion, aligned_labels, mapping, mismatched_samples = evaluate_clustering(all_pred_labels, human_gt_labels, human_gt_filenames, name)
-
-
-### TO DO
-
-
+    return kmeans

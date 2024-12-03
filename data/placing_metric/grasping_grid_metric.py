@@ -16,15 +16,15 @@ import plotly.express as px
 import plotly.graph_objs as go
 
 
-all_files = True
+all_files = False
 # data_directory ="/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/grasping_data/PCD_grasping_folds/"
 data_directory ="/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/complete_grasp_data_PCD/"
-pcd_file = "towel_12l_short_se.pcd" #cotnap_6l_long_me.pcd" #"towel_12l_short_se.pcd" #waffle_12l_long_me.pcd"
+pcd_file = "towel_8l_long_me.pcd" #cotnap_6l_long_me.pcd" #"towel_12l_short_se.pcd" #waffle_12l_long_me.pcd"
 # pcd_file = "towel_62l_se.pcd"
 pcd_dir = data_directory+pcd_file
 write_dir = "/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/complete_grasp_data_metric/train_test/3x3/metric/"
 
-save_csv = True
+save_csv = False
 activate_print = False
 
 n_divisions = 3
