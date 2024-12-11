@@ -16,16 +16,16 @@ directory="/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/complete_g
 # csv_directory ="/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/complete_grasp_data_metric/3x3/means_data.csv"
 # write_directory="/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/complete_grasp_data_metric/3x3/clusters/"
 
-n_div = 7
-n_clusters = 3  # Number of clusters
+n_div = 2 # Number of grid divisions
+# n_clusters = 2  # Number of clusters
 activate_print = False
-print("GRID: ", n_div, " / Clusters: ", n_clusters)
+print("\033[92m ----- Grid division: \033[96m "+str(n_div)+"\033[92m ----- \033[0m")
 
 
 save_imgs = False
 
 csv_directory = directory + str(n_div) + "x" + str(n_div) + "/metric/all_metrics.csv"
-write_directory = directory + str(n_div) + "x" + str(n_div) + "/clusters_raw/"
+# write_directory = directory + str(n_div) + "x" + str(n_div) + "/clusters_raw/" + str(n_clusters) + "clusters/"
 
 ##################################################################################################
 ## CLASSIFICATION
@@ -224,110 +224,139 @@ def dunn_index(X, labels):
 ##################################################################################################
 ## MAIN
 
-# Load the CSV file into a DataFrame (Assuming each row is a flattened matrix)
-df = pd.read_csv(csv_directory)
-filenames = df.iloc[:, 0]
-# matrix_data = df.values  # Extract the matrix data (skipping the first row and first column)
-matrix_data = df.iloc[:, 1:].values
-original_shape = (n_div, n_div)  # Update this to match the shape of your matrices
-matrices = [matrix_data[i].reshape(original_shape) for i in range(matrix_data.shape[0])] # Reshape the rows (flattened matrices) back into matrices
+## SHOULD BE MOVED TO grasping_grid_metric.py
+def save_train_test_csv(csv_file_dir):
+    print("\033[94m Saving train and test CSV files \033[0m")
+    df = pd.read_csv(csv_file_dir)
+    test_obj = ["check", "linenap"] # Filter rows containing any of the tokens
+    test_df = df[df['Filename'].str.contains('|'.join(test_obj))].sort_values('Filename')  # Contains test_obj names
+    train_df = df[~df['Filename'].str.contains('|'.join(test_obj))].sort_values('Filename')  # Does not contain tst_obj names
+    write_dir = directory + str(n_div) + "x" + str(n_div) + "/metric/" 
+    test_cluster_labels_dir = write_dir + "test_metrics.csv" ## CSV file to save test metrics
+    test_df.to_csv(test_cluster_labels_dir, index=False)
+    train_cluster_labels_dir = write_dir + "train_metrics.csv"
+    train_df.to_csv(train_cluster_labels_dir, index=False)
 
-# print(matrices[0])
+save_train_test_csv(csv_directory)
 
-# Compute pairwise distance matrix using Frobenius norm - Measures the similarity between each data
-num_matrices = len(matrices)
-distance_matrix = np.zeros((num_matrices, num_matrices))
+for n_clusters in range(2,8): ## Clusterize for all number of clusters (from 2 to 7)
+    print("\033[92m ----- Clustering for N Clusters: \033[96m "+str(n_clusters)+"\033[92m ----- \033[0m")
 
-for i in range(num_matrices):
-    for j in range(i + 1, num_matrices):
-        dist = frobenius_norm(matrices[i], matrices[j])
-        distance_matrix[i, j] = dist
-        distance_matrix[j, i] = dist
-# # Visualizing the distance matrix as a heatmap
-# plt.figure(figsize=(8, 6))
-# plt.imshow(distance_matrix, cmap="YlGnBu")
-# # sns.heatmap(distance_matrix, annot=True, cmap="YlGnBu", fmt=".2f", cbar=True)
-# plt.title("Pairwise Distance Matrix")
-# plt.show()
+    write_directory = directory + str(n_div) + "x" + str(n_div) + "/clusters_raw/" + str(n_clusters) + "clusters/"
 
-# K-Means clustering on the distance matrix
-kmeans = KMeans(n_clusters=n_clusters, random_state=42)
-# kmeans.fit(distance_matrix)
-kmeans.fit(matrix_data)
-# Output the cluster labels
-cluster_labels = kmeans.labels_
-print_info(activate_print, "Cluster labels:", kmeans.labels_)
-# Access the centroids
-centroids = kmeans.cluster_centers_
-print_info(activate_print, "Cluster centroids: ", centroids)
-## Save cluster labels of all data in CSV
-cluster_labels_df = pd.DataFrame({
-    'SampleName': filenames,
-    'ClusterLabel': cluster_labels
-})
-cluster_labels_dir = write_directory + "all_cluster_labels.csv"
-cluster_labels_df.to_csv(cluster_labels_dir, index=False)
+    # Load the CSV file into a DataFrame (Assuming each row is a flattened matrix)
+    df = pd.read_csv(csv_directory)
+    filenames = df.iloc[:, 0]
+    # matrix_data = df.values  # Extract the matrix data (skipping the first row and first column)
+    matrix_data = df.iloc[:, 1:].values
+    original_shape = (n_div, n_div)  # Update this to match the shape of your matrices
+    matrices = [matrix_data[i].reshape(original_shape) for i in range(matrix_data.shape[0])] # Reshape the rows (flattened matrices) back into matrices
 
-# create_semantic_classes()
+    # print(matrices[0])
 
-# Validation
-validation_metrics(matrix_data, kmeans)
+    # Compute pairwise distance matrix using Frobenius norm - Measures the similarity between each data
+    num_matrices = len(matrices)
+    distance_matrix = np.zeros((num_matrices, num_matrices))
+
+    for i in range(num_matrices):
+        for j in range(i + 1, num_matrices):
+            dist = frobenius_norm(matrices[i], matrices[j])
+            distance_matrix[i, j] = dist
+            distance_matrix[j, i] = dist
+    # # Visualizing the distance matrix as a heatmap
+    # plt.figure(figsize=(8, 6))
+    # plt.imshow(distance_matrix, cmap="YlGnBu")
+    # # sns.heatmap(distance_matrix, annot=True, cmap="YlGnBu", fmt=".2f", cbar=True)
+    # plt.title("Pairwise Distance Matrix")
+    # plt.show()
+
+    # K-Means clustering on the distance matrix
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+    # kmeans.fit(distance_matrix)
+    kmeans.fit(matrix_data)
+    # Output the cluster labels
+    cluster_labels = kmeans.labels_
+    print_info(activate_print, "Cluster labels:", kmeans.labels_)
+    # Access the centroids
+    centroids = kmeans.cluster_centers_
+    print_info(activate_print, "Cluster centroids: ", centroids)
+
+    ## Save cluster labels in CSV
+    cluster_labels_df = pd.DataFrame({
+        'SampleName': filenames,
+        'ClusterLabel': cluster_labels
+    })
+    cluster_labels_dir = write_directory + "complete_model_all_data_labels.csv"
+    cluster_labels_df.to_csv(cluster_labels_dir, index=False)
+    ## Seprate into CSV with train and test data
+    test_obj = ["check", "linenap"] # Filter rows containing any of the tokens
+    test_df = cluster_labels_df[cluster_labels_df['SampleName'].str.contains('|'.join(test_obj))].sort_values('SampleName')  # Contains test_obj names
+    train_df = cluster_labels_df[~cluster_labels_df['SampleName'].str.contains('|'.join(test_obj))].sort_values('SampleName')  # Does not contain tst_obj names
+    test_cluster_labels_dir = write_directory + "complete_model_test_data_labels.csv"
+    test_df.to_csv(test_cluster_labels_dir, index=False)
+    train_cluster_labels_dir = write_directory + "complete_model_train_data_labels.csv"
+    train_df.to_csv(train_cluster_labels_dir, index=False)
+
+    # create_semantic_classes()
+
+    # Validation
+    validation_metrics(matrix_data, kmeans)
 
 
 
-# # Visualizing the matrices with their cluster labels
-# plt.figure(figsize=(10, 6))
-# for idx, matrix in enumerate(matrices):
-#     plt.subplot(2, 3, idx + 1)
-#     im = plt.imshow(matrix, cmap='viridis', vmin=np.min(distance_matrix), vmax=np.max(distance_matrix))
-#     plt.title(f'Cluster {kmeans.labels_[idx]}')
-#     plt.colorbar(im)
+    # # Visualizing the matrices with their cluster labels
+    # plt.figure(figsize=(10, 6))
+    # for idx, matrix in enumerate(matrices):
+    #     plt.subplot(2, 3, idx + 1)
+    #     im = plt.imshow(matrix, cmap='viridis', vmin=np.min(distance_matrix), vmax=np.max(distance_matrix))
+    #     plt.title(f'Cluster {kmeans.labels_[idx]}')
+    #     plt.colorbar(im)
 
 
 
-## Save metric images in a folder correpsonding to the cluster
-if save_imgs:
-    # Create a folder for saving clusterized data
-    os.makedirs(write_directory, exist_ok=True)
+    ## Save metric images in a folder correpsonding to the cluster
+    if save_imgs:
+        # Create a folder for saving clusterized data
+        os.makedirs(write_directory, exist_ok=True)
 
-    # Loop over each cluster
-    for cluster_id in np.unique(cluster_labels):
-        # Create a folder for the current cluster
-        cluster_folder = os.path.join(write_directory, f"cluster_{cluster_id}")
-        os.makedirs(cluster_folder, exist_ok=True)
-        
-        # Get the indices of matrices in this cluster
-        cluster_indices = np.where(cluster_labels == cluster_id)[0]
-        
-        # Loop over each matrix in the cluster and save it as an image
-        for idx in cluster_indices:
-            matrix = matrices[idx]  # Get the matrix for this index
-            filename = filenames[idx]
+        # Loop over each cluster
+        for cluster_id in np.unique(cluster_labels):
+            # Create a folder for the current cluster
+            cluster_folder = os.path.join(write_directory, f"cluster_{cluster_id}")
+            os.makedirs(cluster_folder, exist_ok=True)
             
-            # Create a heatmap for the matrix
-            plt.figure(figsize=(6, 6))
-            im = plt.imshow(matrix, cmap='plasma', interpolation='nearest', vmin=0, vmax=-1)
-            plt.colorbar(im)  # Add a colorbar to the heatmap
-            plt.title(f"Matrix {filename} in Cluster {cluster_id}")
+            # Get the indices of matrices in this cluster
+            cluster_indices = np.where(cluster_labels == cluster_id)[0]
             
-            output_file = os.path.join(cluster_folder, f"{filename}.png")  # Save as .png with original filename
-            plt.savefig(output_file)
-            plt.close()  # Close the figure to avoid memory issues
+            # Loop over each matrix in the cluster and save it as an image
+            for idx in cluster_indices:
+                matrix = matrices[idx]  # Get the matrix for this index
+                filename = filenames[idx]
+                
+                # Create a heatmap for the matrix
+                plt.figure(figsize=(6, 6))
+                im = plt.imshow(matrix, cmap='plasma', interpolation='nearest', vmin=0, vmax=-1)
+                plt.colorbar(im)  # Add a colorbar to the heatmap
+                plt.title(f"Matrix {filename} in Cluster {cluster_id}")
+                
+                output_file = os.path.join(cluster_folder, f"{filename}.png")  # Save as .png with original filename
+                plt.savefig(output_file)
+                plt.close()  # Close the figure to avoid memory issues
 
-            # print(f"Saved matrix {idx} in cluster {cluster_id} to {output_file}")
+                # print(f"Saved matrix {idx} in cluster {cluster_id} to {output_file}")
 
-    print("All matrices saved!")
+        print("All matrices saved!")
 
 
-# wcss = calculate_wcss(matrix_data, kmeans)
-# wcss = calculate_wcss_with_distances(matrix_data, kmeans.labels_, n_clusters)
-wcss = calculate_wcss(matrix_data, kmeans)
-print("WCSS: ", wcss)
-        
-# dunn_index = compute_dunn_index(matrix_data, kmeans.labels_)
-dunn_index = dunn_index(matrix_data, kmeans.labels_)
-print("Dunn Index:", dunn_index)
+    # wcss = calculate_wcss(matrix_data, kmeans)
+    # wcss = calculate_wcss_with_distances(matrix_data, kmeans.labels_, n_clusters)
+    wcss = calculate_wcss(matrix_data, kmeans)
+    print("WCSS: ", wcss)
+            
+    # dunn_index = compute_dunn_index(matrix_data, kmeans.labels_)
+    dunn_ind = dunn_index(matrix_data, kmeans.labels_)
+    print("Dunn Index:", dunn_ind)
 
-### TO DO
+    ### TO DO
 
 

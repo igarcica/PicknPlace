@@ -14,22 +14,22 @@ import open3d as o3d
 import statistics as sts
 import plotly.express as px
 import plotly.graph_objs as go
+import pandas as pd
 
+n_divisions = 2
+cam_to_gripper = 0.35 ## Used in transl_data to define Minimum deformation (gripper point)
+gripper_position = [0.12, -0.025] ## Used to compute grid divisions
 
-all_files = False
-# data_directory ="/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/grasping_data/PCD_grasping_folds/"
+all_files = True
 data_directory ="/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/complete_grasp_data_PCD/"
-pcd_file = "towel_8l_long_me.pcd" #cotnap_6l_long_me.pcd" #"towel_12l_short_se.pcd" #waffle_12l_long_me.pcd"
-# pcd_file = "towel_62l_se.pcd"
+pcd_file = "towel_12l_short_se.pcd" #cotnap_6l_long_me.pcd" #"towel_12l_short_se.pcd" #waffle_12l_long_me.pcd"
 pcd_dir = data_directory+pcd_file
-write_dir = "/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/complete_grasp_data_metric/train_test/3x3/metric/"
+directory = "/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/complete_grasp_data_metric/train_test/"
+write_dir = directory + str(n_divisions) + "x" + str(n_divisions) + "/metric/"
+means_data_file = write_dir + "all_metrics.csv" ## CSV file to save def metric
 
 save_csv = False
 activate_print = False
-
-n_divisions = 3
-cam_to_gripper = 0.35 ## Used in transl_data to define Minimum deformation (gripper point)
-gripper_position = [0.12, -0.025] ## Used to compute grid divisions
 
 raw_sample_filter_box = [[0.3, 0.7], [-0.2, 0.2], [-0.3, 0.3]] #box to filter sample removing noise points
 plot_scale = dict(xaxis=dict(range=[0.2, -0.2]), yaxis=dict(range=[0.2, -0.2]), zaxis=dict(range=[-1, 0]), aspectratio=dict(x=1, y=1, z=1) ) #plot scale for grasped samples
@@ -208,6 +208,20 @@ def save_data(csv_file_wr, exp_name, data_values):
     for i in range(len(data_values)):
         data.append(data_values[i])
     csv_file_wr.writerow(data)
+
+def save_train_test_csv(csv_file_d):
+    print("\033[94m Saving train and test CSV files \033[0m")
+    df = pd.read_csv(csv_file_d)
+    # print(df)
+    # print(df.tail(20))
+    test_obj = ["check", "linenap", "waffle"] # Filter rows containing any of the tokens
+    test_df = df[df['Filename'].str.contains('|'.join(test_obj))].sort_values('Filename')  # Contains test_obj names
+    # print(test_df)
+    train_df = df[~df['Filename'].str.contains('|'.join(test_obj))].sort_values('Filename')  # Does not contain tst_obj names
+    test_cluster_labels_dir = write_dir + "test_metrics.csv" ## CSV file to save test metrics
+    test_df.to_csv(test_cluster_labels_dir, index=False)
+    train_cluster_labels_dir = write_dir + "train_metrics.csv"
+    train_df.to_csv(train_cluster_labels_dir, index=False)
 
 
 ##################################################################################################
@@ -488,7 +502,7 @@ if not all_files:
 if all_files:
     if(save_csv):
         ## Create CSV file to save metrics
-        means_data_file = write_dir + "all_metrics.csv" ## CSV file to save def metric
+        # means_data_file = write_dir + "all_metrics.csv" ## CSV file to save def metric
         my_file = open(means_data_file, "w")
         means_data_wr = csv.writer(my_file, delimiter=",")
         ## Write Headers
@@ -554,8 +568,12 @@ if all_files:
                         # plot_with_info(norm_transl_data, can_x_grid_divs, can_y_grid_divs, can_edges, filename.replace(".pcd", ""), plot_scale, plot_scale_color)
                         # plot_metrics(filename.replace(".pcd", ""), mean_metrics, plot_scale_color) ## In means/
 
+    # ## NOT WORKING Separate CSV in train and test data and save new CSVs
+    # if(save_csv):
+    #     save_train_test_csv(means_data_file)
+
     
-## OK -Normalize metric (from 0 to max depth (non-grasped edge size))
+
 
 ## REFS
 # Colormap scale in 3D scatter plots: https://plotly.com/python-api-reference/generated/plotly.express.scatter_3d
