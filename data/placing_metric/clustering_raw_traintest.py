@@ -20,14 +20,14 @@ directory="/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/complete_g
 # csv_directory ="/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/complete_grasp_data_metric/3x3/means_data.csv"
 # write_directory="/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/complete_grasp_data_metric/3x3/clusters/"
 
-n_div = 5
+n_div = 3
 # n_clusters = 2  # Number of clusters
 print("GRID DIVISION: ", n_div)
 
 show_imgs = False
 save_imgs = False
+save_csv = True
 activate_print = False
-save_csv = False
 
 # write_directory = directory + str(n_div) + "x" + str(n_div) + "/clusters_raw/" + str(n_clusters) + "clusters/"
 train_directory = directory + str(n_div) + "x" + str(n_div) + "/metric/train_metrics.csv"
@@ -314,6 +314,9 @@ def evaluate_clustering(cluster_labels, gt_labels, sample_names, clust_probs, na
 
     return accuracy, confusion, aligned_labels, mapping, mismatched_samples
 
+##################################################################################################
+## EVALUATION
+
 
 
 ##################################################################################################
@@ -409,25 +412,25 @@ for n_clusters in range(3,4): ## Clusterize for all number of clusters (from 2 t
     # dunn_ind = dunn_index(train_matrix_data, cluster_labels)
     # print("Dunn Index:", dunn_ind)
 
-    print("HOLA")
-    ## Validate Human GT
-    human_gt_df = pd.read_csv(human_train_gt_directory)
-    human_gt_filenames = human_gt_df.iloc[:, 0]
-    human_gt_labels = human_gt_df.iloc[:, 1:].values
-    human_gt_labels = human_gt_labels.flatten() # Transform to a flat array
-    validation_metrics(train_matrix_data, human_gt_labels)
-    #WCSS
-    unique_labels = np.unique(human_gt_labels)
-    wcss = 0
-    for label in unique_labels:
-        cluster_points = train_matrix_data[human_gt_labels == label]
-        centroid = cluster_points.mean(axis=0)
-        wcss += ((cluster_points - centroid) ** 2).sum()
-    print("WCSS: ", wcss)
+    # print("HOLA")
+    # ## Validate Human GT
+    # human_gt_df = pd.read_csv(human_train_gt_directory)
+    # human_gt_filenames = human_gt_df.iloc[:, 0]
+    # human_gt_labels = human_gt_df.iloc[:, 1:].values
+    # human_gt_labels = human_gt_labels.flatten() # Transform to a flat array
+    # validation_metrics(train_matrix_data, human_gt_labels)
+    # #WCSS
+    # unique_labels = np.unique(human_gt_labels)
+    # wcss = 0
+    # for label in unique_labels:
+    #     cluster_points = train_matrix_data[human_gt_labels == label]
+    #     centroid = cluster_points.mean(axis=0)
+    #     wcss += ((cluster_points - centroid) ** 2).sum()
+    # print("WCSS: ", wcss)
 
-    dunn_ind = dunn_index(train_matrix_data, cluster_labels)
-    print("Dunn Index:", dunn_ind)
-    print("HOLA")
+    # dunn_ind = dunn_index(train_matrix_data, cluster_labels)
+    # print("Dunn Index:", dunn_ind)
+    # print("HOLA")
 
 
 
@@ -457,28 +460,52 @@ for n_clusters in range(3,4): ## Clusterize for all number of clusters (from 2 t
 
 
 
-    #### EVALUATE CLUSTERING 
-    ## Get TEST GT labels of complete model
-    test_gt_df = pd.read_csv(test_gt_directory)
-    test_gt_filenames = test_gt_df.iloc[:, 0]
-    test_gt_labels = test_gt_df.iloc[:, 1:].values
-    test_gt_labels = test_gt_labels.flatten() # Transform to a flat array
-    print("\033[94m TEST DATA ACCURACY - Partial model prediction vs complete model GT \033[0m")
-    # img_dir = write_directory + "all_data_GT.png"
-    name = "test_data_GT"
-    test_accuracy, confusion, aligned_labels, mapping, mismatched_samples = evaluate_clustering(pred_test_labels, test_gt_labels, test_gt_filenames, test_clustering_probabilities, name)
-    print("\033[92m TEST Accuracy: ", test_accuracy*100, " %\033[0m")
+    ## Save CSV with predicte labels of all data
+    all_pred_filenames = np.concatenate((train_filenames, test_filenames))
+    all_pred_labels = np.concatenate((cluster_labels, pred_test_labels))
+    # print("hola ", all_pred_filenames)
+    # print("hola2 ", all_pred_labels)
+    pred_all_labels_df = pd.DataFrame({
+        'SampleName': all_pred_filenames,
+        'ClusterLabel': all_pred_labels
+    })
+    print(pred_all_labels_df)
+    sorted_pred_all_labels_df = pred_all_labels_df.sort_values(by='SampleName')
+    print(sorted_pred_all_labels_df)
+    if(save_csv):
+        pred_labels_dir = write_directory + "pred_all_labels.csv"
+        sorted_pred_all_labels_df.to_csv(pred_labels_dir, index=False)
 
-    print("\033[94m ALL DATA ACCURACY (train+test) - Partial model prediction vs complete model GT \033[0m")
-    ## Get TRAIN GT labels of complete model (sum to test data accuracy to get all data accuracy)
-    train_gt_labels_df = pd.read_csv(train_gt_directory)
-    train_gt_filenames = train_gt_labels_df.iloc[:, 0]
-    train_gt_labels = train_gt_labels_df.iloc[:, 1:].values
-    train_gt_labels = train_gt_labels.flatten() # Transform to a flat array
-    name = "train_data_GT"
-    train_accuracy, confusion, aligned_labels, mapping, mismatched_samples = evaluate_clustering(cluster_labels, train_gt_labels, train_gt_filenames, train_clustering_probabilities, name)
-    all_data_accuracy = ((test_accuracy + train_accuracy)/2)*100
-    print("\033[92m ALL Accuracy all data: ", round(all_data_accuracy,1), "\033[0m")
+
+
+
+
+    # #### EVALUATE CLUSTERING 
+    # ## Get TEST GT labels of complete model
+    # test_gt_df = pd.read_csv(test_gt_directory)
+    # test_gt_filenames = test_gt_df.iloc[:, 0]
+    # test_gt_labels = test_gt_df.iloc[:, 1:].values
+    # test_gt_labels = test_gt_labels.flatten() # Transform to a flat array
+    # print("\033[94m TEST DATA ACCURACY - Partial model prediction vs complete model GT \033[0m")
+    # # img_dir = write_directory + "all_data_GT.png"
+    # name = "test_data_GT"
+    # test_accuracy, confusion, aligned_labels, mapping, mismatched_samples = evaluate_clustering(pred_test_labels, test_gt_labels, test_gt_filenames, test_clustering_probabilities, name)
+    # print("\033[92m TEST Accuracy: ", test_accuracy*100, " %\033[0m")
+
+    # print("\033[94m ALL DATA ACCURACY (train+test) - Partial model prediction vs complete model GT \033[0m")
+    # ## Get TRAIN GT labels of complete model (sum to test data accuracy to get all data accuracy)
+    # train_gt_labels_df = pd.read_csv(train_gt_directory)
+    # train_gt_filenames = train_gt_labels_df.iloc[:, 0]
+    # train_gt_labels = train_gt_labels_df.iloc[:, 1:].values
+    # train_gt_labels = train_gt_labels.flatten() # Transform to a flat array
+    # name = "train_data_GT"
+    # train_accuracy, confusion, aligned_labels, mapping, mismatched_samples = evaluate_clustering(cluster_labels, train_gt_labels, train_gt_filenames, train_clustering_probabilities, name)
+    # all_data_accuracy = ((test_accuracy + train_accuracy)/2)*100
+    # print("\033[92m ALL Accuracy all data: ", round(all_data_accuracy,1), "\033[0m")
+
+
+
+
 
 
     # #### EVALUATE CLUSTERING 

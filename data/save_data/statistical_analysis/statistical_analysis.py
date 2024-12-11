@@ -11,29 +11,31 @@ import numpy as np
 
 directory="/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/statistical_analysis/"
 
-n_div = 7
+n_div = 3
 n_clusters = 3
 # cluster_to_check = 'AllCluster3x3'
-cluster_to_check = 'HumanCluster'
+# cluster_to_check = 'HumanCluster'
+cluster_to_check = 'ClusterLabel'
 print("GRID: ", n_div)
 
-show_imgs = False
+show_imgs = True
 save_imgs = False
+save_csv = False
 activate_print = False
 
-# write_directory = directory + str(n_div) + "x" + str(n_div) + "/clusters_raw/"
-cluster_labels_directory = directory + "human_GT_labels.csv"
+clusters_directory = "/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/complete_grasp_data_metric/train_test_3objs/" + str(n_div) + "x" + str(n_div) + "/clusters_raw/" + str(n_clusters)+ "clusters/"
+clusters_file = clusters_directory + "pred_all_labels.csv"
+human_cluster_directory = directory + "human_GT_labels.csv"
 features_directory = directory + "features.csv"
+
 
 
 ##################################################################################################
 
-## Read CSV with cluster labels
-cluster_labels_df = pd.read_csv(cluster_labels_directory)
-# print(cluster_labels_df.head()) # Display the first few rows to inspect
-## Read CSV with features
-features_df = pd.read_csv(features_directory)
-
+features_df = pd.read_csv(features_directory) ## Read CSV with features
+cluster_df = pd.read_csv(clusters_file) ## Read CSV with cluster labels
+# print(cluster_df.head()) # Display the first few rows to inspect
+# human_cluster_labels_df = pd.read_csv(human_cluster_directory) ## Read CSV with features
 
 # ## Contingency table
 # for cluster in range(0,n_clusters):
@@ -45,7 +47,7 @@ features_df = pd.read_csv(features_directory)
 #     print(contingency_table)
 
 ## Contingency table and Chi-square test for categorical parameters (Object, Layers, Grasp, Edge)
-print("\033[94---------CHI-SQUARE TEST---------\033[0")
+print("\033[94m ---------CHI-SQUARE TEST---------\033[0m")
 exclude_columns = ['Filename', 'NonGraspedSize', 'GraspedSize', 'Area', 'FoldStiffness', 'Friction', 'HumanCluster', 'AllCluster3x3', 'AllCluster7x7', 'TrainCluster3x3', 'AllDataTrain7x7'] # Specify the column(s) to exclude
 for column in features_df.columns: # Loop through and print column headers, excluding specific ones
     if column not in exclude_columns:
@@ -53,10 +55,11 @@ for column in features_df.columns: # Loop through and print column headers, excl
         print("Feature: ", column)
         feature = column
         # feature = 'Layers'
-        contingency_table = pd.crosstab(features_df[cluster_to_check], features_df[feature])
+        contingency_table = pd.crosstab(cluster_df[cluster_to_check], features_df[feature])
         print(contingency_table)
-        contingency_table_dir = directory + feature + "_contingency_table.csv"
-        contingency_table.to_csv(contingency_table_dir, index=False)
+        if(save_csv):
+            contingency_table_dir = directory + feature + "_contingency_table.csv"
+            contingency_table.to_csv(contingency_table_dir, index=False)
 
         # Chi-Square Test
         chi2, p, dof, expected = chi2_contingency(contingency_table)
@@ -83,14 +86,15 @@ for column in features_df.columns: # Loop through and print column headers, excl
         print("Standardized Residuals:")
         print(residuals_df)
 
-        # Highlight values with high absolute residuals
-        significant_residuals = residuals_df.abs() > 2
-        print("\nSignificant Residuals (absolute value > 2):")
-        print(significant_residuals)
+        # # Highlight values with high absolute residuals
+        # significant_residuals = residuals_df.abs() > 2
+        # print("\nSignificant Residuals (absolute value > 2):")
+        # print(significant_residuals)
 
         ## Visualize relationships with stacked bar chart
         if(show_imgs):
-            sns.countplot(x=cluster_to_check, hue=feature, data=features_df)   
+            combined_df = pd.concat([features_df, cluster_df], axis=1) # Combine the DataFrames for plotting
+            sns.countplot(x=cluster_to_check, hue=feature, data=combined_df)   
             plt.title(f"Distribution of '{feature}' Across '{cluster_to_check}'")
             plt.show()
 
@@ -105,7 +109,7 @@ for column in features_df.columns: # Loop through and print column headers, excl
         print("Feature: ", column)
         feature = column
         # Split the data by cluster
-        groups = [features_df[features_df[cluster_to_check] == c][feature] for c in features_df[cluster_to_check].unique()]
+        groups = [features_df[cluster_df[cluster_to_check] == c][feature] for c in cluster_df[cluster_to_check].unique()]
         # ANOVA Test
         f_stat, p_value = f_oneway(*groups)
         print(f"ANOVA Test for {feature}:")
@@ -119,7 +123,7 @@ for column in features_df.columns: # Loop through and print column headers, excl
         ## Identify which clusters have significantly different feature values
         ## Perform Tukey's HSD (Honestly Significant Difference) test (Post-Hoc for ANOVA)
         tukey = pairwise_tukeyhsd(endog=features_df[feature],  # Feature values
-                                groups=features_df[cluster_to_check],    # Cluster labels
+                                groups=cluster_df[cluster_to_check],    # Cluster labels
                                 alpha=0.05)
 
         print(tukey)
@@ -140,6 +144,7 @@ for column in features_df.columns: # Loop through and print column headers, excl
             plt.xlabel("Mean Difference")
             plt.show()
 
-            sns.boxplot(x=cluster_to_check, y=feature, data=features_df)
+            combined_df = pd.concat([features_df, cluster_df], axis=1) # Combine the DataFrames for plotting
+            sns.boxplot(x=cluster_to_check, y=feature, data=combined_df)
             plt.title(f"Distribution of '{feature}' across '{cluster_to_check}'")
             plt.show()
