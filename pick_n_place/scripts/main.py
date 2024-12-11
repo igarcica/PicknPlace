@@ -4,6 +4,7 @@ import rospy
 import ros_numpy
 from sensor_msgs.msg import PointCloud2
 from std_msgs.msg import String
+from pick_n_place.srv import GetDefClass, GetDefClassResponse
 
 import numpy as np
 import open3d as o3d
@@ -77,9 +78,9 @@ save_data = False
 
 ############ CLUSTERING ############
 n_clusters = 3
-grid_div = 3
-directory = "/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/complete_grasp_data_metric/train_test/"
-train_data_dir = directory + str(grid_div) + "x" + str(grid_div) + "/metric/train_metrics.csv"
+# grid_div = 3
+directory = "/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/complete_grasp_data_metric/train_test_3objs/"
+train_data_dir = directory + str(n_divisions) + "x" + str(n_divisions) + "/metric/train_metrics.csv"
 
 
 ##################################################################################################
@@ -98,7 +99,7 @@ def say_bye():
 ##################################################################################################
 ## ROS FUNCTIONS
 
-## Subscriber function of the segmented pointcloud of the grasped object (/segment_table/place)
+## Get the grid metrics of the sample - Calls functions from grasping_grid_metric
 def process_pointcloud(data):
 
     print("\033[96m--- Received pointcloud message ---\033[0m")
@@ -107,8 +108,9 @@ def process_pointcloud(data):
     cloud_array = ros_numpy.point_cloud2.pointcloud2_to_array(data) # Convert PointCloud2 to a numpy structured array
     obj_data = np.stack((cloud_array['x'], cloud_array['y'], cloud_array['z']), axis=-1) # Extract 'x', 'y', and 'z' fields
     obj_data = np.array(obj_data)
-    # fig = grid_metric.plot_raw_data(obj_data)
-    # show_save_figs(fig)
+    fig = grid_metric.plot_raw_data(obj_data)
+    show_save_figs(fig)
+    print("hola")
     
     ## ---Process data---
     filtered_sample = grid_metric.filter_sample(obj_data, raw_sample_filter_box) ## Remove table points
@@ -132,6 +134,7 @@ def process_pointcloud(data):
 
     return mean_metrics
 
+## Clusterizes the sample (through the grid metric) to a deformation class - Calls functions from clustering_raw_traintest
 def clusterize_data(grid_metric, train_data_directory, n_clusts, n_div):
 
     ## ---Train kmeans model---
@@ -144,6 +147,21 @@ def clusterize_data(grid_metric, train_data_directory, n_clusts, n_div):
 
     return predicted_label
 
+def handle_service(req):
+
+    msg = rospy.wait_for_message('/segment_table/place', PointCloud2) # Get next message from the topis /segment_table/place (segmented pointcloud of the grasped object)
+    grid_metric = process_pointcloud(msg) #Obtain grid metric
+    def_class = clusterize_data(grid_metric, train_data_dir, n_clusters, n_divisions) #Obtain deformation cluster label
+    int_def_class = def_class.item()
+    #If class is 0 then send "A", etc
+
+    return GetDefClassResponse(int_def_class)
+
+def main():
+    rospy.init_node('grasping_deformation', anonymous=True)
+    rospy.loginfo("Node Ready")
+    s = rospy.Service('/pick_n_place/get_def_class', GetDefClass, handle_service)
+    rospy.spin()
 
 # def listener():
     # rospy.init_node('pointcloud_listener', anonymous=True)
@@ -154,18 +172,21 @@ def clusterize_data(grid_metric, train_data_directory, n_clusts, n_div):
 ##################################################################################################
 ##################################################################################################
 
-if __name__ == '__main__':
-    # listener()
-    rospy.init_node('grasping_deformation', anonymous=True)
-    try:
-        rospy.loginfo("Node Ready")
-        msg = rospy.wait_for_message('/segment_table/place', PointCloud2)
-        grid_metric = process_pointcloud(msg) #Obtain grid metric
-        def_class = clusterize_data(grid_metric, train_data_dir, n_clusters, grid_div) #Obtain deformation cluster label
-    except rospy.ROSException as e:
-        rospy.logerr(f"An error occurred: {e}")
-    rospy.signal_shutdown("Message received and processed. Shutting down.")
+# if __name__ == '__main__':
+#     # listener()
+#     rospy.init_node('grasping_deformation', anonymous=True)
+#     try:
+#         rospy.loginfo("Node Ready")
+#         msg = rospy.wait_for_message('/segment_table/place', PointCloud2) # Get next message from the topis /segment_table/place (segmented pointcloud of the grasped object)
+#         grid_metric = process_pointcloud(msg) #Obtain grid metric
+#         def_class = clusterize_data(grid_metric, train_data_dir, n_clusters, n_divisions) #Obtain deformation cluster label
+#     except rospy.ROSException as e:
+#         rospy.logerr(f"An error occurred: {e}")
+#     rospy.signal_shutdown("Message received and processed. Shutting down.")
 
+
+if __name__ == '__main__':
+    main()
 
 
 # #####

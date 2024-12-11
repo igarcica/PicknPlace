@@ -49,6 +49,7 @@
 #include <kortex_driver/SetCartesianReferenceFrame.h>
 #include <kortex_driver/Base_ClearFaults.h>
 #include <kortex_driver/OnNotificationActionTopic.h>
+#include <pick_n_place/GetDefClass.h>
 
 // [action server client headers]
 #include <actionlib/client/simple_action_client.h>
@@ -232,6 +233,9 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
 
     ros::ServiceClient activate_publishing_client_;
     kortex_driver::OnNotificationActionTopic activate_publishing_srv_;
+
+    ros::ServiceClient get_deformation_class_client_;
+    pick_n_place::GetDefClass get_deformation_class_srv_;
 
 
     // [action server attributes]

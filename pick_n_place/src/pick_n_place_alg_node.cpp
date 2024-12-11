@@ -84,6 +84,8 @@ PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
 
   activate_publishing_client_ = this->private_node_handle_.serviceClient<kortex_driver::OnNotificationActionTopic>("/" + this->robot_name + "/base/activate_publishing_of_action_topic");
 
+  get_deformation_class_client_ = this->private_node_handle_.serviceClient<pick_n_place::GetDefClass>("/pick_n_place/get_def_class");
+
   // [init action servers]
   //as_(nh_, name, boost::bind(&activateSMAction::executeCB, this, _1), false);
   ROS_INFO("PicknPlaceAlgNode:: Activating action server grasp");
@@ -627,7 +629,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                              }
       break;
 
-      case CHOOSE_PLACING: ROS_DEBUG("PickPlacceAlgNode: state CHOOSE PLACING");
+/*      case CHOOSE_PLACING: ROS_DEBUG("PickPlacceAlgNode: state CHOOSE PLACING");
                            {
 			                       std::cout << this->placing_strategy << std::endl;
                              this->success = true;
@@ -641,8 +643,31 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                                this->state=OPEN_GRIPPER;
                              ros::Duration(0.5).sleep();
                            }
-	    break;
+	    break;*/
 
+      case CHOOSE_PLACING: ROS_DEBUG("PickPlacceAlgNode: state CHOOSE PLACING");
+                           {
+                            if(get_deformation_class_client_.call(get_deformation_class_srv_))
+                            {
+                              ROS_INFO("Deformation class: ");
+                              ROS_INFO("Sum: %ld", (long int)get_deformation_class_srv_.response.output_response);
+			                        std::cout << this->placing_strategy << std::endl;
+                              this->success = true;
+                              if(this->placing_strategy==1)
+                                this->state=PRE_PLACE_DIAGONAL;
+                              else if(this->placing_strategy==2)
+			                          this->state=PRE_PLACE_RECTO;
+			                        else if(this->placing_strategy==3)
+                                this->state=PRE_PLACE_ROTATING;
+                              else if(this->placing_strategy==4)
+                                this->state=OPEN_GRIPPER;
+                              ros::Duration(0.5).sleep();
+                            }else{
+                              ROS_INFO("No deformation class received");
+                            }
+                           }
+	    break;
+      
       // ROTATE PRE-PLACE POSITION - CARTESIAN
       // Sets a slight rotation before the diagonal placement
       case PRE_PLACE_DIAGONAL: ROS_DEBUG("PicknPlaceAlgNode: state PRE PLACE DIAGONAL");
