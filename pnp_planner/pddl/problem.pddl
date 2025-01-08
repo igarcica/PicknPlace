@@ -1,39 +1,46 @@
 (define (problem task)
-(:domain picknplacetest)
+(:domain picknplacepileclass)
 (:objects
-    towel - garment
-    multedges singledge - grasp
+    towel hola - garment
+    long short - grasp
     placevert placediag - placing
     grws rotws - workspace
     grasped placed notgrasped lifted - state
-    unknown known - corners
-    home high_pose - position
+    home high_pose else drag_pose - position
+    flat a b - defclass
 )
 (:init
-    (garment_obj towel)
+    (garment_at towel rotws)
 
-    (garment_at rotws)
+    (at_pose towel long)
 
-    (at_pose singledge)
+    (garment_state towel notgrasped)
 
-    (garment_state notgrasped)
+    (not (corners_pos_known towel))
 
-    (corners_pos unknown)
+    (robot_at home)
 
-    (not (robot_at home))
+    (robot_empty)
+
+    (not (known_obj hola))
+
+    (defstate towel flat)
+
+
+    (def_class a)
 
     (= (time_cost) 0)
 
     (= (place_qual) 0)
 
-    (= (place_succ towel singledge placevert) 100)
-    (= (place_succ towel multedges placevert) 100)
-    (= (place_succ towel singledge placediag) 5000)
-    (= (place_succ towel multedges placediag) 3)
+    (= (place_succ a placevert) 0)
+    (= (place_succ b placevert) 10)
+    (= (place_succ a placediag) 1)
+    (= (place_succ b placediag) 1)
 
 )
 (:goal (and
-    (garment_state placed)
+    (garment_state towel placed)
 ))
-(:metric minimize (+ (* 1 (time_cost)) (* 100 (place_qual))))
+(:metric minimize (+ (* 1 (time_cost)) (* 10 (place_qual))))
 )

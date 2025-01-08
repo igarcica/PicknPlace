@@ -29,8 +29,9 @@
 	(robot_empty)
 	(known_obj ?cloth - garment)
 	(defstate ?cloth - garment ?class - defclass) 		;;the object has deformation class ?class
-	(obj_grasp_class ?cloth - garment ?edge - grasp ?class - defclass) ;; ?cloth grasped by ?edge will produce deformation class ?class
+	;;(obj_grasp_class ?cloth - garment ?edge - grasp ?class - defclass) ;; ?cloth grasped by ?edge will produce deformation class ?class
 	(on ?piledcloth ?placedcloth - garment)
+	(def_class ?class - defclass)
 )
 
 (:functions
@@ -71,6 +72,7 @@
 )
 
 (:action home
+	:parameters ()
 	:precondition (and 
 				(robot_empty)
 				(or (robot_at else) (robot_at high_pose)))
@@ -83,6 +85,7 @@
 )
 
 (:action go_high
+	:parameters ()
 	:precondition (and
 				(robot_at home))
 	:effect (and
@@ -100,7 +103,8 @@
 				(at_pose ?cloth ?gr)
 				(garment_state ?cloth notgrasped)
 				(corners_pos_known ?cloth)
-				(obj_grasp_class ?cloth ?gr ?class)
+				;;(obj_grasp_class ?cloth ?gr ?class)
+				(def_class ?class)
 				(defstate ?cloth flat))
 	:effect (and
 			(not (garment_state ?cloth notgrasped))

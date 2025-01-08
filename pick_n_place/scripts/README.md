@@ -1,7 +1,9 @@
 
-## Compute deformation cluster with ROS
+# Compute deformation cluster with ROS
 
-# Offline - Without the robot
+Provides a ROS Service ``/pick_n_place/get_def_class`` of type ``GetDefClass`` that computes the grid metric and clusterizes it. It resturn the deformation cluster where it pertains.
+
+## Offline - Without the robot
 
 To compute the deformation cluster of a grasped object in real time (through ROS topic), execute:
 
@@ -16,7 +18,7 @@ When a point cloud message is published in the topic /segment_table/place, the n
 It can be run without the robot with ``rosbag play grasped_object_sample.bag``
 
 
-# Online - With the robot
+## Online - With the robot
 
 Launch the robot and camers, the pick and place demo and the deformation clustering node:
 

@@ -157,7 +157,12 @@ namespace KCL_rosplan {
 			for(size_t i=0; i<msg->parameters.size(); i++) {
 				if(params.typed_parameters[j].key == msg->parameters[i].key) {
 					boundParameters[msg->parameters[i].key] = msg->parameters[i].value;
+					ROS_WARN("Hola");
+					std::cout << "intro value: " << msg->parameters[i].value << std::endl;
+					std::cout << "typed params size: " << params.typed_parameters.size() <<std::endl;
+					std::cout << "msg size: " << msg->parameters.size() <<std::endl;
 					found[j] = true;
+					std::cout << "found size: " << found.size() <<std::endl;
 					break;
 				}
 			}
@@ -179,6 +184,8 @@ namespace KCL_rosplan {
 			
 			// simple START del effects
 			for(int i=0; i<op.at_start_del_effects.size(); i++) {
+				ROS_WARN(" AT START DEL Debug1: (%i)", op.at_start_del_effects.size());
+				std::cout << op.at_start_del_effects[i].name << std::endl;
 
 				std::map<std::string, rosplan_knowledge_msgs::DomainFormula>::iterator it = sensed_predicates.find(op.at_start_del_effects[i].name);
 				if(it != sensed_predicates.end()) continue; // sensed predicate
@@ -188,9 +195,30 @@ namespace KCL_rosplan {
 				item.attribute_name = op.at_start_del_effects[i].name;
 				item.values.clear();
 				diagnostic_msgs::KeyValue pair;
+				std::cout << "op start size: " << op.at_start_del_effects.size() <<std::endl;
 				for(size_t j=0; j<op.at_start_del_effects[i].typed_parameters.size(); j++) {
 					pair.key = predicates[op.at_start_del_effects[i].name].typed_parameters[j].key;
-					pair.value = boundParameters[op.at_start_del_effects[i].typed_parameters[j].key];
+					//pair.value = boundParameters[op.at_start_del_effects[i].typed_parameters[j].key];
+					if (boundParameters[op.at_start_del_effects[i].typed_parameters[j].key].empty()){ 
+						std::cout << "empty (constant)" << std::endl;
+						pair.value = op.at_start_del_effects[i].typed_parameters[j].key; //get constant predicate values from action
+					}
+					else{
+						std::cout << "not empty (variable)" << std::endl;
+						pair.value = boundParameters[op.at_start_del_effects[i].typed_parameters[j].key]; //get predicate values selected by planner
+					}
+					// if(found.size()==0){
+					// 	std::cout << "constant" << std::endl;
+					// 	std::cout << "value: " << op.at_start_del_effects[i].typed_parameters[j].key << std::endl;
+					// 	pair.value = op.at_start_del_effects[i].typed_parameters[j].key;
+					// }else{
+					// 	std::cout << "variable" << std::endl;
+					// 	std::cout << "value: " << boundParameters[op.at_start_del_effects[i].typed_parameters[j].key] << std::endl;
+					// 	std::cout << "op start typed size: " << op.at_start_del_effects[i].typed_parameters.size() <<std::endl;
+					// 	pair.value = boundParameters[op.at_start_del_effects[i].typed_parameters[j].key];
+					// }
+					std::cout << "AI Del eff- Key: " << pair.key << std::endl;
+					std::cout << "AI Del eff- Value: " << pair.value << std::endl;
 					item.values.push_back(pair);
 				}
 				updatePredSrv.request.knowledge.push_back(item);
@@ -199,7 +227,9 @@ namespace KCL_rosplan {
 
 			// simple START add effects
 			for(int i=0; i<op.at_start_add_effects.size(); i++) {
-
+				ROS_WARN(" AT START ADD Debug1: (%i)", op.at_start_add_effects.size());
+				ROS_INFO("AT START Debug2: (%s)", op.at_start_add_effects[i].name);
+				std::cout << op.at_start_add_effects[i].name << std::endl;
 				std::map<std::string, rosplan_knowledge_msgs::DomainFormula>::iterator it = sensed_predicates.find(op.at_start_add_effects[i].name);
 				if(it != sensed_predicates.end()) continue; // sensed predicate
 
@@ -210,7 +240,26 @@ namespace KCL_rosplan {
 				diagnostic_msgs::KeyValue pair;
 				for(size_t j=0; j<op.at_start_add_effects[i].typed_parameters.size(); j++) {
 					pair.key = predicates[op.at_start_add_effects[i].name].typed_parameters[j].key;
-					pair.value = boundParameters[op.at_start_add_effects[i].typed_parameters[j].key];
+					//pair.value = boundParameters[op.at_start_add_effects[i].typed_parameters[j].key];
+					if (boundParameters[op.at_start_add_effects[i].typed_parameters[j].key].empty()){
+						std::cout << "empty (constant)" << std::endl;
+						pair.value = op.at_start_add_effects[i].typed_parameters[j].key; //get constant predicate values from action
+					}
+					else{
+						std::cout << "not empty (variable)" << std::endl;
+						pair.value = boundParameters[op.at_start_add_effects[i].typed_parameters[j].key]; //get predicate values selected by planner
+					}
+					// if(found.size()==0){
+					// 	std::cout << "constant" << std::endl;
+					// 	std::cout << "value: " << op.at_start_add_effects[i].typed_parameters[j].key << std::endl;
+					// 	pair.value = op.at_start_add_effects[i].typed_parameters[j].key;
+					// }else{
+					// 	std::cout << "variable" << std::endl;
+					// 	std::cout << "value: " << boundParameters[op.at_start_add_effects[i].typed_parameters[j].key] << std::endl;
+					// 	pair.value = boundParameters[op.at_start_add_effects[i].typed_parameters[j].key];
+					// }
+					std::cout << "AI Add eff- Key: " << pair.key << std::endl;
+					std::cout << "AI Add eff- Value: " << pair.value << std::endl;
 					item.values.push_back(pair);
 				}
 				updatePredSrv.request.knowledge.push_back(item);
@@ -239,7 +288,8 @@ namespace KCL_rosplan {
 
 			// simple END del effects
 			for(int i=0; i<op.at_end_del_effects.size(); i++) {
-
+				ROS_WARN(" AT END Debug1: (%i)", op.at_end_del_effects.size());
+				ROS_INFO("AT END Debug2: (%s)", op.at_end_add_effects[i].name);
 				std::map<std::string, rosplan_knowledge_msgs::DomainFormula>::iterator it = sensed_predicates.find(op.at_end_del_effects[i].name);
 				if(it != sensed_predicates.end()) continue; // sensed predicate
 
@@ -252,6 +302,7 @@ namespace KCL_rosplan {
 					pair.key = predicates[op.at_end_del_effects[i].name].typed_parameters[j].key;
 					pair.value = boundParameters[op.at_end_del_effects[i].typed_parameters[j].key];
 					item.values.push_back(pair);
+					ROS_INFO("AI Del effects- value: (%s)", pair.value);
 				}
 				updatePredSrv.request.knowledge.push_back(item);
 				updatePredSrv.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE);

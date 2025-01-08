@@ -21,7 +21,7 @@ namespace KCL_rosplan {
 		//actionlib::SimpleActionClient<activatesm::activateSMAction> ac("activatesm", true);
 		actionlib::SimpleActionClient<pick_n_place::activateSMAction> ac("/pick_n_place/activatesm", true);
 
-        std::cout << "HOLA " << msg->action_id << std::endl;
+        std::cout << "(RPTutorial10) Action ID: " << msg->action_id << std::endl;
 		ROS_WARN("RPTutorial: Sending PDDL action (%s)", msg->name.c_str());
 
         for(size_t i=0; i<msg->parameters.size(); i++) {
