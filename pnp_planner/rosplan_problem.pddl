@@ -12,7 +12,7 @@
 
 (:init (garment_at towel rotws) (at_pose towel long) (garment_state towel notgrasped) (not (corners_pos_known towel)) (defstate towel flat)
 		(not (known_obj hola))
-		(robot_at home) (robot_empty)
+		(robot_at else) (robot_empty)
 		(= (time_cost) 0)
 		(= (place_qual) 0)
 		(= (place_succ A placevert) 0)

@@ -84,7 +84,14 @@ PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
 
   activate_publishing_client_ = this->private_node_handle_.serviceClient<kortex_driver::OnNotificationActionTopic>("/" + this->robot_name + "/base/activate_publishing_of_action_topic");
 
+  //Deformation class service
   get_deformation_class_client_ = this->private_node_handle_.serviceClient<pick_n_place::GetDefClass>("/pick_n_place/get_def_class");
+
+  //ROSPlan services
+  generate_problem_client_ = this->private_node_handle_.serviceClient<std_srvs::Empty>("/rosplan_problem_interface/problem_generation_server");
+  get_plan_client_ = this->private_node_handle_.serviceClient<std_srvs::Empty>("/rosplan_planner_interface/planning_server");
+  parse_plan_client_ = this->private_node_handle_.serviceClient<std_srvs::Empty>("/rosplan_parsing_interface/parse_plan");
+  dispatch_plan_client_ = this->private_node_handle_.serviceClient<rosplan_dispatch_msgs::DispatchService>("/rosplan_plan_dispatcher/dispatch_plan");
 
   // [init action servers]
   //as_(nh_, name, boost::bind(&activateSMAction::executeCB, this, _1), false);
@@ -94,7 +101,8 @@ PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
   as_.start();
 
   // PDDL variables
-  this->pddl_demo=false;
+  this->start_pddl_demo=false; //Start SM calling ROSPlan to generate plan
+  this->pddl_demo=false;  //Ends the SM when the planned action is completed
   this->pddl_action_done=false;
   this->drag=false;
   this->rotate=false;
@@ -159,7 +167,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
       case IDLE: ROS_DEBUG("PicknPlaceAlgNode: state IDLE");
                  if(this->start_demo)
                  {
-                   ROS_INFO("PicknPlaceAlgNode: IDLE - Opening gripper");
+                   ROS_INFO("PicknPlaceAlgNode (IDLE state): Opening gripper");
 		               this->get_pile_height = false;
                    this->success &= send_gripper_command(this->open_gripper);
                    if (this->success)
@@ -168,9 +176,23 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                      ros::Duration(0.5).sleep();
                      this->start_demo=false;
                    }else{
+                     ROS_INFO("PicknPlaceAlgNode (IDLE state): Failed to open gripper");
                      this->start_demo=false;
                      this->state=IDLE;
                    }
+                 }
+                 // home, go_high and check_corners should go before planning
+                 else if(this->start_pddl_demo) //Generates plan and starts demo
+                 {
+                   ROS_WARN("PicknPlaneAlgNode: Generating plan");
+                   this->pddl_demo = true; 
+                   //call ROSPlan services
+                   generate_problem_client_.call(empty_srv_); //Generate problem
+                   get_plan_client_.call(empty_srv_); //Get plan - to check the plan rostopic echo /rosplan_planner_interface/planner_output -p -n 1
+                   parse_plan_client_.call(empty_srv_); //Parse the plan
+                   //dispatch_plan_client_.call(dispatch_plan_srv_); //Dispatch plan - bloqueante!
+                   this->start_pddl_demo=false;
+                   ROS_WARN("PicknPlaneAlgNode: Waiting to dispatch plan");
                  }
                  //else if(this->start_experiments)
 		             //{
@@ -183,7 +205,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
 
       // HOME POSITION
       case HOME: ROS_DEBUG("PicknPlaceAlgNode: state HOME");
-                ROS_INFO("PicknPlaceAlgNode: Moving to home position.");
+                 ROS_INFO("PicknPlaceAlgNode (HOME state): Moving to home position.");
                  this->success &= home_the_robot(); // Move the robot to the Home position with an Action
                  if (this->success)
                  {
@@ -540,17 +562,38 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                                 else if(kinova_linear_move_state==actionlib::SimpleClientGoalState::SUCCEEDED)
                                 {
                                   this->success = true;
+                                  /*if(this->pddl_demo)
+                                  {
+                                    this->pddl_action_done=true; // End PDDL action
+                                    this->state=IDLE;
+                                  }
+                                  else // Continue SM
+                                    this->state=CLOSE_GRIPPER2;*/
+                                  this->state=CHECK_DEFORMATION;
+                                  ros::Duration(0.5).sleep();
+                                }
+                              }
+      break;
+
+      case CHECK_DEFORMATION: ROS_INFO("PicknPlaceAlgNode: state CHECK DEFORMATION");
+                              {
+                                if(get_deformation_class_client_.call(get_deformation_class_srv_))
+                                {
+                                  ROS_INFO("Deformation class: ");
+                                  ROS_INFO("Sum: %ld", (long int)get_deformation_class_srv_.response.output_response);
+                                  //Replan with sensed class (to select placing strategy) this->state=IDLE; this->start_pddl_demo=true;
                                   if(this->pddl_demo)
                                   {
                                     this->pddl_action_done=true; // End PDDL action
                                     this->state=IDLE;
                                   }
                                   else // Continue SM
-                                    this->state=CLOSE_GRIPPER2;
-                                  ros::Duration(0.5).sleep();
+                                    this->state=CLOSE_GRIPPER2; //Change to CHOOSE_PLACING
+                                }else{
+                                  ROS_WARN("PicknPlaceAlgNode (CHECK DEFORMATION): Unable to sense deformation class");
+                                  this->state=END_POSITION;
                                 }
                               }
-      break;
 
       /*
       // ROTATE POST-GRASP POSITION - CARTESIAN
@@ -629,7 +672,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                              }
       break;
 
-/*      case CHOOSE_PLACING: ROS_DEBUG("PickPlacceAlgNode: state CHOOSE PLACING");
+      case CHOOSE_PLACING: ROS_DEBUG("PickPlacceAlgNode: state CHOOSE PLACING");
                            {
 			                       std::cout << this->placing_strategy << std::endl;
                              this->success = true;
@@ -643,9 +686,9 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                                this->state=OPEN_GRIPPER;
                              ros::Duration(0.5).sleep();
                            }
-	    break;*/
+	    break;
 
-      case CHOOSE_PLACING: ROS_DEBUG("PickPlacceAlgNode: state CHOOSE PLACING");
+      /*case CHOOSE_PLACING: ROS_DEBUG("PickPlacceAlgNode: state CHOOSE PLACING");
                            {
                             if(get_deformation_class_client_.call(get_deformation_class_srv_))
                             {
@@ -666,7 +709,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                               ROS_INFO("No deformation class received");
                             }
                            }
-	    break;
+	    break;*/
       
       // ROTATE PRE-PLACE POSITION - CARTESIAN
       // Sets a slight rotation before the diagonal placement
@@ -1241,24 +1284,26 @@ void PicknPlaceAlgNode::node_config_update(Config &config, uint32_t level)
     this->garment_edge_size=config.garment_edge_size;
   }
   // Execute sections of SM according to received PDDL actions
-  if(config.pddl_demo)
+  if(config.start_pddl_demo)
   {
     ROS_WARN("PicknPlaceAlgNode: Activated PDDL SM management");
-    this->pddl_demo=true;
+    this->start_pddl_demo=true;
+    config.start_pddl_demo=false;
+    //this->pddl_demo=true;
   }
   if(config.drag)
   {
-    ROS_WARN("PicknPlaceAlgNode: Activated PDDL SM management");
+    //ROS_WARN("PicknPlaceAlgNode: Activated PDDL SM management");
     this->drag=true;
   }
   if(config.rotate)
   {
-    ROS_WARN("PicknPlaceAlgNode: Activated PDDL SM management");
+    //ROS_WARN("PicknPlaceAlgNode: Activated PDDL SM management");
     this->rotate=true;
   }
   
   //Start SM for demo (use 'towel' bool to change strategy for grasping and placing towel (less gripper closure + vertical place) or napkin (more gripper closure + place2)
-  if(config.start_demo && !config.pddl_demo)
+  if(config.start_demo)// && !config.start_pddl_demo)
   {
     this->pddl_demo=false;
     this->start_demo=true;

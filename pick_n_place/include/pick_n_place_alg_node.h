@@ -49,7 +49,9 @@
 #include <kortex_driver/SetCartesianReferenceFrame.h>
 #include <kortex_driver/Base_ClearFaults.h>
 #include <kortex_driver/OnNotificationActionTopic.h>
-#include <pick_n_place/GetDefClass.h>
+#include <pick_n_place/GetDefClass.h> //Deformation class module
+#include <std_srvs/Empty.h> 
+#include <rosplan_dispatch_msgs/DispatchService.h> //ROSPlan
 
 // [action server client headers]
 #include <actionlib/client/simple_action_client.h>
@@ -86,6 +88,7 @@ typedef enum {TEST,
               CLOSE_GRIPPER2,
               POST_GRASP,
               WAIT_POST_GRASP,
+              CHECK_DEFORMATION,
               CHOOSE_PLACING,
               PRE_PLACE_DIAGONAL,
               PLACE_DIAGONAL1,
@@ -237,6 +240,13 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     ros::ServiceClient get_deformation_class_client_;
     pick_n_place::GetDefClass get_deformation_class_srv_;
 
+    //ROSPlan services
+    ros::ServiceClient generate_problem_client_;
+    ros::ServiceClient get_plan_client_;
+    ros::ServiceClient parse_plan_client_;
+    std_srvs::Empty empty_srv_;
+    ros::ServiceClient dispatch_plan_client_;
+    rosplan_dispatch_msgs::DispatchService dispatch_plan_srv_;
 
     // [action server attributes]
     actionlib::SimpleActionServer<pick_n_place::activateSMAction> as_; 
@@ -245,6 +255,7 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     void managePDDLactions(void);
 
     // PDDL variables
+    bool start_pddl_demo;
     bool pddl_demo;
     bool pddl_action_done;
     bool drag;

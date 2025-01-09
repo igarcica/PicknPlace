@@ -74,10 +74,19 @@ After launching the previous launches, launch the the knowledge base, problem an
 ``cd PicknPlace/pnp_planner/launch``
 ``roslaunch rosplan_tutorial10.launch``
 
-Generate the problem and the plan with the script:
+<!--Generate the problem and the plan with the script:
 
-`` ./tutorial04.bash``
+`` ./tutorial04.bash`` -->
 
-<!-- To generate different plans, modify the init or goal conditions in the problem file "/pnp_planner/rosplan_problem.pddl". To check the output plan: 
+Start the demo generating and parsing the plan activating the boolean ``start_pddl_demo`` in the reconfigure.
 
-`` `` -->
+Check if the generated plan is ok:
+ 
+``rostopic echo /rosplan_planner_interface/planner_output -p -n 1``
+
+Dispatch plan:
+
+``rosservice call /rosplan_plan_dispatcher/dispatch_plan``
+
+This will start the demo by executing the sections of the SM according to the parsed actions by ROSPLAN. When it gets to "check_corners" action, you must activate the boolean `ok` in the reconfigure to select the detected grasp point.
+

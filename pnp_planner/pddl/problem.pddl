@@ -18,7 +18,7 @@
 
     (not (corners_pos_known towel))
 
-    (robot_at home)
+    (robot_at else)
 
     (robot_empty)
 
