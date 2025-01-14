@@ -91,7 +91,9 @@ PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
   generate_problem_client_ = this->private_node_handle_.serviceClient<std_srvs::Empty>("/rosplan_problem_interface/problem_generation_server");
   get_plan_client_ = this->private_node_handle_.serviceClient<std_srvs::Empty>("/rosplan_planner_interface/planning_server");
   parse_plan_client_ = this->private_node_handle_.serviceClient<std_srvs::Empty>("/rosplan_parsing_interface/parse_plan");
-  dispatch_plan_client_ = this->private_node_handle_.serviceClient<rosplan_dispatch_msgs::DispatchService>("/rosplan_plan_dispatcher/dispatch_plan");
+  //dispatch_plan_client_ = this->private_node_handle_.serviceClient<rosplan_dispatch_msgs::DispatchService>("/rosplan_plan_dispatcher/dispatch_plan");
+  update_kb_client_ = this->private_node_handle_.serviceClient<rosplan_knowledge_msgs::KnowledgeUpdateServiceArray>("/rosplan_knowledge_base/update_array");
+  cancel_dispatch_client_ = this->private_node_handle_.serviceClient<std_srvs::Empty>("/rosplan_plan_dispatcher/cancel_dispatch");
 
   // [init action servers]
   //as_(nh_, name, boost::bind(&activateSMAction::executeCB, this, _1), false);
@@ -154,7 +156,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
 
   if(this->state!=IDLE && this->stop)
   {
-    ROS_WARN("Demo Pick n Place has stopped!");
+    ROS_INFO("Demo Pick n Place has stopped!");
     this->state=IDLE;
     this->start_demo=false;
     this->start_experiments=false;
@@ -181,7 +183,8 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                      this->state=IDLE;
                    }
                  }
-                 // home, go_high and check_corners should go before planning
+                 // TO DO: home, go_high and check_corners should go before planning
+                 // TO DO: before planning it is also necessary to predict the deformation class
                  else if(this->start_pddl_demo) //Generates plan and starts demo
                  {
                    ROS_WARN("PicknPlaneAlgNode: Generating plan");
@@ -582,18 +585,53 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                                   ROS_INFO("Deformation class: ");
                                   ROS_INFO("Sum: %ld", (long int)get_deformation_class_srv_.response.output_response);
                                   //Replan with sensed class (to select placing strategy) this->state=IDLE; this->start_pddl_demo=true;
-                                  if(this->pddl_demo)
+                                  /*if(this->pddl_demo)
                                   {
                                     this->pddl_action_done=true; // End PDDL action
                                     this->state=IDLE;
                                   }
                                   else // Continue SM
-                                    this->state=CLOSE_GRIPPER2; //Change to CHOOSE_PLACING
+                                    this->state=CLOSE_GRIPPER2; //Change to CHOOSE_PLACING*/
+                                  this->state=UPDATE_ROSPLAN_KB;
                                 }else{
                                   ROS_WARN("PicknPlaceAlgNode (CHECK DEFORMATION): Unable to sense deformation class");
-                                  this->state=END_POSITION;
+                                  this->state=END;
                                 }
                               }
+      break;
+      
+      case UPDATE_ROSPLAN_KB: ROS_INFO("PicknPlaceAlgNode: state UPDATE ROSPLAN KB");
+                              {
+                                //Update deformation class in ROSPlan knowledge base to replan accordingly
+                                update_kb_srv_ = updateKB();
+                                if(update_kb_client_.call(update_kb_srv_))
+                                {
+                                  ROS_WARN("PicknPlaceAlgNode: Knowledge Base updated!");
+                                  //Replan with sensed class (to select placing strategy) this->state=IDLE; this->start_pddl_demo=true;
+                                  if(this->pddl_demo)
+                                  {
+                                    // if(cancel_dispatch_client_.call(empty_srv_))
+                                    // {
+                                    ROS_WARN("PicknPlaceAlgNode: Canceling dispatch plan");
+                                    this->state=IDLE;
+                                    std::cout << "state: " << this->state << std::endl;
+                                    // this->pddl_action_done=true; // End PDDL action
+                                    as_.setPreempted();
+                                    ROS_WARN("HOLA");
+                                    // }
+                                  }
+                                  else // Continue SM
+                                  {
+                                    // this->state=CLOSE_GRIPPER2; //Change to CHOOSE_PLACING
+                                    ROS_WARN("PicknPlaceAlgNode: hola");
+                                  }
+                                }else{
+                                  ROS_WARN("PicknPlaceAlgNode: Knowledge Base NOT updated!");
+                                  this->state=END;
+                                }
+                              }
+      break;
+                                                                
 
       /*
       // ROTATE POST-GRASP POSITION - CARTESIAN
@@ -618,7 +656,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
       break;
       */
 
-      case CLOSE_GRIPPER2: ROS_DEBUG("PicknPlaceAlgNode: state EXPERIMENTS2");
+      case CLOSE_GRIPPER2: ROS_INFO("PicknPlaceAlgNode: state CLOSE GRIPPER2");
 			                     if(config_.close)
 			                     {
                              ROS_DEBUG("PicknPlaceAlgNode: Closing the gripper");
@@ -1196,7 +1234,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
 
       case END: ROS_INFO("PicknPlaceAlgNode: state END");
 		            this->stop=true;
-                this->pddl_action_done=true;
+                this->pddl_action_done=true; //TODO if(cancel_dispatch_client_.call(empty_srv_))
       break;
 
     }
@@ -1412,8 +1450,11 @@ void PicknPlaceAlgNode::node_config_update(Config &config, uint32_t level)
 void PicknPlaceAlgNode::PDDLpreemptCB()
 {
   ROS_INFO("PicknPlace: PDDL Action Preempted");
+  this->state=IDLE;
   // set the action state to preempted
   as_.setPreempted();
+
+  // as_.setAborted();
 }
 
 //PDDL action callback manager
@@ -1566,6 +1607,43 @@ void PicknPlaceAlgNode::managePDDLactions(void)
   ROS_WARN("PicknPlaceAlgNode: PDDL Action ended");
   as_.setSucceeded(result_); // set the action state to succeeded
   this->pddl_action_done=false;
+}
+
+rosplan_knowledge_msgs::KnowledgeUpdateServiceArray PicknPlaceAlgNode::updateKB(void)
+{
+  //Update deformation class in ROSPlan knowledge base to replan accordingly
+
+  //Remove previous def class
+  rosplan_knowledge_msgs::KnowledgeItem item;
+	item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
+	item.attribute_name = "defstate";
+	item.values.clear();
+	diagnostic_msgs::KeyValue pair;
+  pair.key = "cloth";
+	pair.value = "towel";
+	item.values.push_back(pair);
+  pair.key = "class";
+	pair.value = "a"; //Get from current KB state
+	item.values.push_back(pair);
+  update_kb_srv_.request.knowledge.push_back(item);
+	update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE);
+
+  //Add def class
+  // rosplan_knowledge_msgs::KnowledgeItem item;
+	item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
+	item.attribute_name = "defstate";
+	item.values.clear();
+	// diagnostic_msgs::KeyValue pair;
+  pair.key = "cloth";
+	pair.value = "towel";
+	item.values.push_back(pair);
+  pair.key = "class";
+	pair.value = "B"; //Get from sensed def class
+	item.values.push_back(pair);
+  update_kb_srv_.request.knowledge.push_back(item);
+	update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE);
+
+  return update_kb_srv_;
 }
 
 /* PERCEPTION FUNCTIONS */

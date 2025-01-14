@@ -112,6 +112,7 @@
 			(robot_at else)
 			(not (robot_empty))
 			(garment_state ?cloth grasped)
+			(not (defstate ?cloth flat))
 			(defstate ?cloth ?class)
 			(increase (time_cost) 1)
 			(increase (place_qual) 0))

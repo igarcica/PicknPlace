@@ -14,17 +14,16 @@
 
     (at_pose towel long)
 
-    (garment_state towel notgrasped)
+    (garment_state towel lifted)
 
-    (not (corners_pos_known towel))
+    (corners_pos_known towel)
 
     (robot_at else)
 
-    (robot_empty)
 
     (not (known_obj hola))
 
-    (defstate towel flat)
+    (defstate towel B)
 
 
     (def_class a)

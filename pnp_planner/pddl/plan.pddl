@@ -14,29 +14,18 @@ ff: search configuration is weighted A* with weight 0.
 Metric is ((1.00*[RF1](TIME_COST)10.00*[RF0](PLACE_QUAL)) - () + 0.00)
 COST MINIMIZATION DONE (WITH cost-minimizing relaxed plans).
 
-advancing to goal distance:    6
-                               5
-                               4
-                               3
-                               2
-                               1
+advancing to goal distance:    1
                                0
 
 ff: found legal plan as follows
-step    0: HOME
-        1: GO_HIGH
-        2: CHECK_CORNERS TOWEL
-        3: HOME
-        4: GRASP TOWEL LONG A
-        5: CHECK_DEFORMATION TOWEL
-        6: PLACEVERT TOWEL TOWEL LONG A
-plan cost: 7.000000
+step    0: PLACEDIAG TOWEL TOWEL LONG B
+plan cost: 11.000000
 
 time spent:    0.00 seconds instantiating 63 easy, 18 hard action templates
-               0.00 seconds reachability analysis, yielding 35 facts and 48 actions
-               0.00 seconds creating final representation with 32 relevant facts, 2 relevant fluents
+               0.00 seconds reachability analysis, yielding 30 facts and 30 actions
+               0.00 seconds creating final representation with 25 relevant facts, 2 relevant fluents
                0.00 seconds computing LNF
                0.00 seconds building connectivity graph
-               0.00 seconds searching, evaluating 14 states, to a max depth of 0
+               0.00 seconds searching, evaluating 2 states, to a max depth of 0
                0.00 seconds total time
 

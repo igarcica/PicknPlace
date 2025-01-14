@@ -51,7 +51,9 @@
 #include <kortex_driver/OnNotificationActionTopic.h>
 #include <pick_n_place/GetDefClass.h> //Deformation class module
 #include <std_srvs/Empty.h> 
-#include <rosplan_dispatch_msgs/DispatchService.h> //ROSPlan
+//#include <rosplan_dispatch_msgs/DispatchService.h> //ROSPlan
+#include <rosplan_knowledge_msgs/KnowledgeUpdateServiceArray.h> //ROSPlan
+#include <rosplan_knowledge_msgs/KnowledgeUpdateService.h>
 
 // [action server client headers]
 #include <actionlib/client/simple_action_client.h>
@@ -69,8 +71,7 @@
 #include <actionlib/server/simple_action_server.h>
 #include <pick_n_place/activateSMAction.h>
 
-typedef enum {TEST,
-              IDLE,
+typedef enum {IDLE,
               HOME,
               PRE_PRE_DRAG_ROTATE,
               PRE_DRAG_ROTATE,
@@ -89,6 +90,7 @@ typedef enum {TEST,
               POST_GRASP,
               WAIT_POST_GRASP,
               CHECK_DEFORMATION,
+              UPDATE_ROSPLAN_KB,
               CHOOSE_PLACING,
               PRE_PLACE_DIAGONAL,
               PLACE_DIAGONAL1,
@@ -244,15 +246,19 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     ros::ServiceClient generate_problem_client_;
     ros::ServiceClient get_plan_client_;
     ros::ServiceClient parse_plan_client_;
+    ros::ServiceClient cancel_dispatch_client_;
     std_srvs::Empty empty_srv_;
-    ros::ServiceClient dispatch_plan_client_;
-    rosplan_dispatch_msgs::DispatchService dispatch_plan_srv_;
+    // ros::ServiceClient dispatch_plan_client_;
+    // rosplan_dispatch_msgs::DispatchService dispatch_plan_srv_;
+    ros::ServiceClient update_kb_client_;
+    rosplan_knowledge_msgs::KnowledgeUpdateServiceArray update_kb_srv_;
 
     // [action server attributes]
     actionlib::SimpleActionServer<pick_n_place::activateSMAction> as_; 
     void PDDLgoalCB();
     void PDDLpreemptCB();
     void managePDDLactions(void);
+    rosplan_knowledge_msgs::KnowledgeUpdateServiceArray updateKB(void);
 
     // PDDL variables
     bool start_pddl_demo;

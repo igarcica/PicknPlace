@@ -1,7 +1,7 @@
 #goal definition
 int32 order
 bool activate_grasp
-string action_name
+string action_name #pddl action name
 ---
 #result definition
 int32[] sequence
