@@ -31,7 +31,7 @@
 	(defstate ?cloth - garment ?class - defclass) 		;;the object has deformation class ?class
 	;;(obj_grasp_class ?cloth - garment ?edge - grasp ?class - defclass) ;; ?cloth grasped by ?edge will produce deformation class ?class
 	(on ?piledcloth ?placedcloth - garment)
-	(def_class ?class - defclass)
+	(def_class ?cloth - garment ?class - defclass)
 )
 
 (:functions
@@ -49,11 +49,12 @@
 				(not (known_obj hola)))
 	:effect (and
 			(known_obj hola)
-			(garment_at hola grws) 
+			(garment_at hola rotws) 
 			(at_pose hola short) 
 			(garment_state hola notgrasped)
 			(not (corners_pos_known hola))
 			(defstate hola flat)
+			(def_class hola A)
 			(increase (time_cost) 0)
 			(increase (place_qual) 0))
 )
@@ -67,7 +68,7 @@
 				(robot_at high_pose))
 	:effect (and
 			(corners_pos_known ?cloth)
-			(increase (time_cost) 1)
+			(increase (time_cost) 0)
 			(increase (place_qual) 0))
 )
 
@@ -92,7 +93,7 @@
 			(not (robot_at home))
 			(robot_at high_pose)
 			(increase (time_cost) 1)
-			(increase (place_qual) 0))
+			(increase (place_qual) 1))
 )
 
 (:action grasp
@@ -104,7 +105,7 @@
 				(garment_state ?cloth notgrasped)
 				(corners_pos_known ?cloth)
 				;;(obj_grasp_class ?cloth ?gr ?class)
-				(def_class ?class)
+				(def_class ?cloth ?class)
 				(defstate ?cloth flat))
 	:effect (and
 			(not (garment_state ?cloth notgrasped))
@@ -114,7 +115,7 @@
 			(garment_state ?cloth grasped)
 			(not (defstate ?cloth flat))
 			(defstate ?cloth ?class)
-			(increase (time_cost) 1)
+			(increase (time_cost) 10)
 			(increase (place_qual) 0))
 )
 
@@ -131,7 +132,7 @@
 			(garment_at ?cloth rotws)
 			(robot_at drag_pose)
 			(not (robot_at home))
-			(increase (time_cost) 1)
+			(increase (time_cost) 10)
 			(increase (place_qual) 0))
 )
 
@@ -153,7 +154,7 @@
 			(not (robot_at drag_pose))
 			;(not (robot_at home))
 			;(robot_at drag_pose)
-			(increase (time_cost) 0)
+			(increase (time_cost) 5)
 			(increase (place_qual) 0))
 )
 
@@ -164,7 +165,7 @@
 	:effect (and 
 			(garment_state ?cloth lifted)
 			(not (garment_state ?cloth grasped))
-			(increase (time_cost) 1)
+			(increase (time_cost) 0)
 			(increase (place_qual) 0))
 )
 
@@ -180,7 +181,7 @@
 			(on ?cloth ?tablecloth)
 			(garment_state ?cloth placed)
 			(not (garment_state ?cloth lifted))
-			(increase (time_cost) 1)
+			(increase (time_cost) 10)
 			(increase (place_qual) (place_succ ?class placevert)))
 )
 
@@ -196,8 +197,24 @@
 			(on ?cloth ?tablecloth)
 			(garment_state ?cloth placed)
 			(not (garment_state ?cloth lifted))
-			(increase (time_cost) 1)
+			(increase (time_cost) 15)
 			(increase (place_qual) (place_succ ?class placediag)))
+)
+
+(:action placerot
+	:parameters (?cloth ?tablecloth - garment ?edge - grasp  ?class - defclass)
+	:precondition (and
+				(at_pose ?tablecloth ?edge) ;;piledcloth is on placedcloth is in placed with edge
+				(at_pose ?cloth ?edge)
+				(garment_state ?cloth lifted)
+				(defstate ?cloth ?class))
+	:effect (and 
+			(robot_empty)
+			(on ?cloth ?tablecloth)
+			(garment_state ?cloth placed)
+			(not (garment_state ?cloth lifted))
+			(increase (time_cost) 20)
+			(increase (place_qual) (place_succ ?class placerot)))
 )
 
 )
