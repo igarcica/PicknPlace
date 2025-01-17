@@ -94,7 +94,7 @@ def show_save_figs(figure):
         figure.write_image(filename)
 
 def say_bye():
-    print("Shutting down")
+    print("Deformation_clustering: Shutting down")
     
 ##################################################################################################
 ## ROS FUNCTIONS
@@ -102,7 +102,7 @@ def say_bye():
 ## Get the grid metrics of the sample - Calls functions from grasping_grid_metric
 def process_pointcloud(data):
 
-    print("\033[96m--- Received pointcloud message ---\033[0m")
+    print("\033[96m Deformation clustering: Received pointcloud message 033[0m")
 
     ## Read topic and obtain pointcloud
     cloud_array = ros_numpy.point_cloud2.pointcloud2_to_array(data) # Convert PointCloud2 to a numpy structured array
@@ -110,7 +110,6 @@ def process_pointcloud(data):
     obj_data = np.array(obj_data)
     fig = grid_metric.plot_raw_data(obj_data)
     show_save_figs(fig)
-    print("hola")
     
     ## ---Process data---
     filtered_sample = grid_metric.filter_sample(obj_data, raw_sample_filter_box) ## Remove table points
@@ -143,7 +142,7 @@ def clusterize_data(grid_metric, train_data_directory, n_clusts, n_div):
     ## ---Predict deformation cluster of current sample---
     grid_metric = grid_metric.reshape(1, -1) # Contains a single sample with n_div*n_div features
     predicted_label = kmeans_model.predict(grid_metric) 
-    print("Predicted label: ", predicted_label)
+    print("Deformation_clustering: Predicted label ", predicted_label)
 
     return predicted_label
 
@@ -154,12 +153,18 @@ def handle_service(req):
     def_class = clusterize_data(grid_metric, train_data_dir, n_clusters, n_divisions) #Obtain deformation cluster label
     int_def_class = def_class.item()
     #If class is 0 then send "A", etc
+    if(int_def_class == 0):
+        str_def_class = "B"
+    elif(int_def_class == 1):
+        str_def_class = "A"
+    elif(int_def_class == 2):
+        str_def_class = "C"
 
-    return GetDefClassResponse(int_def_class)
+    return GetDefClassResponse(str_def_class)
 
 def main():
-    rospy.init_node('grasping_deformation', anonymous=True)
-    rospy.loginfo("Node Ready")
+    rospy.init_node('deformation_clustering', anonymous=True)
+    rospy.loginfo("Deformation_clustering: Node ready")
     s = rospy.Service('/pick_n_place/get_def_class', GetDefClass, handle_service)
     rospy.spin()
 

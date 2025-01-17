@@ -86,12 +86,14 @@ PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
 
   //Deformation class service
   get_deformation_class_client_ = this->private_node_handle_.serviceClient<pick_n_place::GetDefClass>("/pick_n_place/get_def_class");
+  this->sensed_deformation_class = "A";
 
   //ROSPlan services
   generate_problem_client_ = this->private_node_handle_.serviceClient<std_srvs::Empty>("/rosplan_problem_interface/problem_generation_server");
   get_plan_client_ = this->private_node_handle_.serviceClient<std_srvs::Empty>("/rosplan_planner_interface/planning_server");
   parse_plan_client_ = this->private_node_handle_.serviceClient<std_srvs::Empty>("/rosplan_parsing_interface/parse_plan");
   //dispatch_plan_client_ = this->private_node_handle_.serviceClient<rosplan_dispatch_msgs::DispatchService>("/rosplan_plan_dispatcher/dispatch_plan");
+  get_kb_state_client_ = this->private_node_handle_.serviceClient<rosplan_knowledge_msgs::GetAttributeService>("/rosplan_knowledge_base/state/propositions");
   update_kb_client_ = this->private_node_handle_.serviceClient<rosplan_knowledge_msgs::KnowledgeUpdateServiceArray>("/rosplan_knowledge_base/update_array");
   cancel_dispatch_client_ = this->private_node_handle_.serviceClient<std_srvs::Empty>("/rosplan_plan_dispatcher/cancel_dispatch");
 
@@ -582,9 +584,8 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                               {
                                 if(get_deformation_class_client_.call(get_deformation_class_srv_))
                                 {
-                                  ROS_INFO("Deformation class: ");
-                                  ROS_INFO("Sum: %ld", (long int)get_deformation_class_srv_.response.output_response);
-                                  //Replan with sensed class (to select placing strategy) this->state=IDLE; this->start_pddl_demo=true;
+                                  ROS_INFO("PicknPlace: Received deformation class: %s", get_deformation_class_srv_.response.output_response.c_str());
+                                  this->sensed_deformation_class = get_deformation_class_srv_.response.output_response;
                                   /*if(this->pddl_demo)
                                   {
                                     this->pddl_action_done=true; // End PDDL action
@@ -603,22 +604,18 @@ void PicknPlaceAlgNode::mainNodeThread(void)
       case UPDATE_ROSPLAN_KB: ROS_INFO("PicknPlaceAlgNode: state UPDATE ROSPLAN KB");
                               {
                                 //Update deformation class in ROSPlan knowledge base to replan accordingly
-                                update_kb_srv_ = updateKB();
+                                update_kb_srv_ = updateKB_defstate();
                                 if(update_kb_client_.call(update_kb_srv_))
                                 {
                                   ROS_WARN("PicknPlaceAlgNode: Knowledge Base updated!");
                                   //Replan with sensed class (to select placing strategy) this->state=IDLE; this->start_pddl_demo=true;
                                   if(this->pddl_demo)
                                   {
-                                    // if(cancel_dispatch_client_.call(empty_srv_))
-                                    // {
+                                    //Can it go to a REPLAN state and not abort current plan?
                                     ROS_WARN("PicknPlaceAlgNode: Canceling dispatch plan");
                                     this->state=IDLE;
-                                    std::cout << "state: " << this->state << std::endl;
                                     // this->pddl_action_done=true; // End PDDL action
                                     as_.setPreempted();
-                                    ROS_WARN("HOLA");
-                                    // }
                                   }
                                   else // Continue SM
                                   {
@@ -1191,7 +1188,13 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                                  else if(kinova_linear_move_state==actionlib::SimpleClientGoalState::SUCCEEDED)
                                  {
                                    this->success = true;
-                                   this->state=END;
+                                   if(this->pddl_demo)
+                                   {
+                                     this->pddl_action_done=true; // End PDDL action
+                                     this->state=IDLE;
+                                   }
+                                   else // Continue SM
+                                     this->state=END;
                                    ros::Duration(0.5).sleep();
                                  }
                                }
@@ -1232,9 +1235,35 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                                }
       break;
 
+      case GET_OBJECT_POSE: ROS_DEBUG("PicknPlaceAlgnode: state GET OBJECT POSE");
+                            {
+                              //TO DO:
+                              //Get object pose (nearest edge + worspace location)
+                              //Predict def class
+                              //Update KB with object pose
+                              //Replan
+                              update_kb_srv_ = updateKB_new_obj(); //Update based on sensed info (object's pose + predicted deformation class)
+                              if(update_kb_client_.call(update_kb_srv_))
+                              {
+                                ROS_WARN("PicknPlaceAlgNode: Knowledge Base updated!");
+                                ROS_WARN("PicknPlaceAlgNode: Canceling current dispatch plan to replan");
+                                this->state=IDLE;
+                                as_.setPreempted(); //Stop current plan and replan with updated KB
+                              }else{
+                                ROS_WARN("PicknPlaceAlgNode: Knowledge Base NOT updated!");
+                                this->state=END;
+                              }
+                            }
+      break;
+
       case END: ROS_INFO("PicknPlaceAlgNode: state END");
 		            this->stop=true;
-                this->pddl_action_done=true; //TODO if(cancel_dispatch_client_.call(empty_srv_))
+                // this->pddl_action_done=true; //TODO if(cancel_dispatch_client_.call(empty_srv_))
+                if(this->pddl_demo)
+                {
+                  ROS_WARN("PicknPlaceAlgNode: Aborting plan!");
+                  as_.setAborted();
+                }
       break;
 
     }
@@ -1311,6 +1340,7 @@ void PicknPlaceAlgNode::get_params(void)
 void PicknPlaceAlgNode::node_config_update(Config &config, uint32_t level)
 {
   this->alg_.lock();
+  this->config_=config;
   if(config.rate!=this->getRate())
     this->setRate(config.rate);
 
@@ -1441,8 +1471,9 @@ void PicknPlaceAlgNode::node_config_update(Config &config, uint32_t level)
     std::cout << "\033[1;36m PRE-GRASP orientation: -> \033[1;0m  x: " << this->pre_grasp_center.theta_x << ", y: " << this-> pre_grasp_center.theta_y << ", z: " << this->pre_grasp_center.theta_z << std::endl;
     config.test=false;
   }
+  config.ok=false;
 
-  this->config_=config;
+  // this->config_=config;
   this->alg_.unlock();
 }
 
@@ -1512,13 +1543,19 @@ void PicknPlaceAlgNode::PDDLgoalCB()
   else if(0==goal->action_name.compare("placevert")) 
   {
     ROS_WARN("PicknPlace: PLACE VERT action");
-    this->placing_strategy=2; //Will be given by the action of PDDL
+    this->placing_strategy=2;
     this->state=CHOOSE_PLACING;
   }
   else if(0==goal->action_name.compare("placediag")) 
   {
     ROS_WARN("PicknPlace: PLACE DIAG action");
-    this->placing_strategy=1; //Will be given by the action of PDDL
+    this->placing_strategy=1; 
+    this->state=CHOOSE_PLACING;
+  }
+  else if(0==goal->action_name.compare("placerot")) 
+  {
+    ROS_WARN("PicknPlace: PLACE ROT action");
+    this->placing_strategy=3; 
     this->state=CHOOSE_PLACING;
   }
   else if(0==goal->action_name.compare("drag")) 
@@ -1543,6 +1580,13 @@ void PicknPlaceAlgNode::PDDLgoalCB()
   {
     ROS_WARN("PicknPlace: GO HIGH action");
     this->state=CHECK_CORNERS_POSE;
+  }
+  else if(0==goal->action_name.compare("new_object")) 
+  {
+    ROS_WARN("PicknPlace: NEW OBJECT action");
+    // this->get_garment_position=true;
+    this->state=GET_OBJECT_POSE;
+
   }
   else
   {
@@ -1609,9 +1653,193 @@ void PicknPlaceAlgNode::managePDDLactions(void)
   this->pddl_action_done=false;
 }
 
-rosplan_knowledge_msgs::KnowledgeUpdateServiceArray PicknPlaceAlgNode::updateKB(void)
+rosplan_knowledge_msgs::KnowledgeUpdateServiceArray PicknPlaceAlgNode::updateKB_defstate(void)
 {
   //Update deformation class in ROSPlan knowledge base to replan accordingly
+
+  //Get current predicate values
+  // rosplan_knowledge_msgs::KnowledgeItem[] current_kb_state;
+  
+  get_kb_state_srv_.request.predicate_name = "defstate"; //predicate name of which we want to get the status
+  // current_kb_state = get_kb_state_client_.call(get_kb_state_srv_);
+  if(get_kb_state_client_.call(get_kb_state_srv_)){
+    std::vector<rosplan_knowledge_msgs::KnowledgeItem> current_kb_state;
+    // diagnostic_msgs::KeyValue &pair;
+    current_kb_state = get_kb_state_srv_.response.attributes;
+    ROS_WARN("CURRENT KB STATE");
+    std::cout << "Size: " << current_kb_state.size() << std::endl;
+
+    for(size_t i=0; i<current_kb_state.size(); i++) {
+      // std::cout << "PicknPlace: Sense deformation class: " << this->sensed_deformation_class << std::endl;
+      ROS_INFO("PicknPlace: REMOVING %s to %s", current_kb_state[i].values[1].value.c_str(), current_kb_state[i].values[0].value.c_str());
+
+      //Remove previous def class
+      rosplan_knowledge_msgs::KnowledgeItem item;
+      item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
+      item.attribute_name = "defstate";
+      item.values.clear();
+      diagnostic_msgs::KeyValue pair;
+      pair.key = "cloth";
+      pair.value = current_kb_state[i].values[0].value; //"towel" or "hola"
+      item.values.push_back(pair);
+      pair.key = "class";
+      pair.value = current_kb_state[i].values[1].value; //"a"; //Get from current KB state
+      item.values.push_back(pair);
+      update_kb_srv_.request.knowledge.push_back(item);
+      update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE);
+
+      ROS_INFO("PicknPlace: ADDING %s to %s", this->sensed_deformation_class.c_str(), current_kb_state[i].values[0].value.c_str());
+      //Add sensed def class
+      item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
+      item.attribute_name = "defstate";
+      item.values.clear();
+      pair.key = "cloth";
+      pair.value = current_kb_state[i].values[0].value; //"towel"; //Get from current KB state 
+      item.values.push_back(pair);
+      pair.key = "class";
+      pair.value = this->sensed_deformation_class;
+      item.values.push_back(pair);
+      update_kb_srv_.request.knowledge.push_back(item);
+      update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE);
+
+    }
+    return update_kb_srv_;
+    
+    // std::cout << current_kb_state[0].values.value[1] << std::endl;
+  }else
+    ROS_WARN("PicknPlaceAlgNode: Not possible to get current KB state");
+  
+  // //for loop current_kb_state[i]
+  // //Remove previous def class
+  // rosplan_knowledge_msgs::KnowledgeItem item;
+	// item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
+	// item.attribute_name = "defstate";
+	// item.values.clear();
+	// diagnostic_msgs::KeyValue pair;
+  // pair.key = "cloth";
+	// pair.value = "towel"; //current_kb_state[0].values[0].value; //"towel" or "hola"
+	// item.values.push_back(pair);
+  // pair.key = "class";
+	// pair.value = "A"; //current_kb_state[0].values[1].value; //"a"; //Get from current KB state
+	// item.values.push_back(pair);
+  // update_kb_srv_.request.knowledge.push_back(item);
+	// update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE);
+
+  // //Add sensed def class
+	// item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
+	// item.attribute_name = "defstate";
+	// item.values.clear();
+  // pair.key = "cloth";
+	// pair.value = "towel"; //current_kb_state[0].values[0].value; //"towel"; //Get from current KB state
+	// item.values.push_back(pair);
+  // pair.key = "class";
+	// pair.value = "B"; //sensed_deformation_class;
+	// item.values.push_back(pair);
+  // update_kb_srv_.request.knowledge.push_back(item);
+	// update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE);
+
+  // return update_kb_srv_;
+}
+
+rosplan_knowledge_msgs::KnowledgeUpdateServiceArray PicknPlaceAlgNode::updateKB_new_obj(void)
+{
+	//TO O: Get predicates and params from current KB state
+
+  //Update deformation class in ROSPlan knowledge base to replan accordingly
+
+  // //Add (known_obj hola)
+  // rosplan_knowledge_msgs::KnowledgeItem item;
+	// item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
+	// item.attribute_name = "known_obj";
+	// item.values.clear();
+	// diagnostic_msgs::KeyValue pair;
+  // pair.key = "cloth";
+	// pair.value = "hola"; 
+	// item.values.push_back(pair);
+  // update_kb_srv_.request.knowledge.push_back(item);
+  // update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE);
+
+  // //Add (garment_at hola rotws)
+	// item.attribute_name = "garment_at";
+	// item.values.clear();
+	// item.values.push_back(pair);
+  // pair.key = "cloth";
+	// pair.value = "hola"; 
+  // pair.key = "ws";
+	// pair.value = "rotws"; 
+	// item.values.push_back(pair);
+  // update_kb_srv_.request.knowledge.push_back(item);
+	// update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE);
+
+  // //Add (at_pose hola short)
+	// item.attribute_name = "at_pose";
+	// item.values.clear();
+	// item.values.push_back(pair);
+  // pair.key = "cloth";
+	// pair.value = "hola"; 
+  // pair.key = "edge";
+	// pair.value = "short"; 
+	// item.values.push_back(pair);
+  // update_kb_srv_.request.knowledge.push_back(item);
+	// update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE);
+
+  // //Add (garment_state hola notgrasped)
+	// item.attribute_name = "garment_state";
+	// item.values.clear();
+	// item.values.push_back(pair);
+  // pair.key = "cloth";
+	// pair.value = "hola"; 
+  // pair.key = "state";
+	// pair.value = "notgrasped"; 
+	// item.values.push_back(pair);
+  // update_kb_srv_.request.knowledge.push_back(item);
+	// update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE);
+
+  // //Remove (not (corners_pos_known hola))
+  // item.attribute_name = "corners_pos_known";
+	// item.values.clear();
+	// item.values.push_back(pair);
+  // pair.key = "cloth";
+	// pair.value = "hola"; 
+	// item.values.push_back(pair);
+  // update_kb_srv_.request.knowledge.push_back(item);
+	// update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE);
+
+  // //Add (defstate hola flat)
+  // item.attribute_name = "defstate";
+	// item.values.clear();
+	// item.values.push_back(pair);
+  // pair.key = "cloth";
+	// pair.value = "hola"; 
+  // pair.key = "state2";
+	// pair.value = "flat"; 
+	// item.values.push_back(pair);
+  // update_kb_srv_.request.knowledge.push_back(item);
+	// update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE);
+  // 
+  // // Add (def_class hola B)
+  // item.attribute_name = "def_class";
+	// item.values.clear();
+	// item.values.push_back(pair);
+  // pair.key = "cloth";
+	// pair.value = "hola"; 
+  // pair.key = "class";
+	// pair.value = "B"; 
+	// item.values.push_back(pair);
+  // update_kb_srv_.request.knowledge.push_back(item);
+	// update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE);
+
+  // // Remove (def_class hola A)
+  // item.attribute_name = "def_class";
+	// item.values.clear();
+	// item.values.push_back(pair);
+  // pair.key = "cloth";
+	// pair.value = "hola"; 
+  // pair.key = "class";
+	// pair.value = "A"; 
+	// item.values.push_back(pair);
+  // update_kb_srv_.request.knowledge.push_back(item);
+	// update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE);
 
   //Remove previous def class
   rosplan_knowledge_msgs::KnowledgeItem item;
@@ -1620,7 +1848,7 @@ rosplan_knowledge_msgs::KnowledgeUpdateServiceArray PicknPlaceAlgNode::updateKB(
 	item.values.clear();
 	diagnostic_msgs::KeyValue pair;
   pair.key = "cloth";
-	pair.value = "towel";
+	pair.value = "hola"; //Get from current KB state
 	item.values.push_back(pair);
   pair.key = "class";
 	pair.value = "a"; //Get from current KB state
@@ -1635,10 +1863,10 @@ rosplan_knowledge_msgs::KnowledgeUpdateServiceArray PicknPlaceAlgNode::updateKB(
 	item.values.clear();
 	// diagnostic_msgs::KeyValue pair;
   pair.key = "cloth";
-	pair.value = "towel";
+	pair.value = "hola"; //Get from current KB state
 	item.values.push_back(pair);
   pair.key = "class";
-	pair.value = "B"; //Get from sensed def class
+	pair.value = "B"; //predicted deformation class
 	item.values.push_back(pair);
   update_kb_srv_.request.knowledge.push_back(item);
 	update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE);
@@ -1863,11 +2091,11 @@ void PicknPlaceAlgNode::corners_callback(const visualization_msgs::MarkerArray::
 
     if(this->pddl_demo)
     {
-      if(config_.ok)
+      if(this->config_.ok)
       {
         this->get_garment_position=false;
         this->pddl_action_done=true; //End PDDL action
-        config_.ok=false;
+        this->config_.ok=false;
       }
     }
     else

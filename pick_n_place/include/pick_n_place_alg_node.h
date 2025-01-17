@@ -54,6 +54,7 @@
 //#include <rosplan_dispatch_msgs/DispatchService.h> //ROSPlan
 #include <rosplan_knowledge_msgs/KnowledgeUpdateServiceArray.h> //ROSPlan
 #include <rosplan_knowledge_msgs/KnowledgeUpdateService.h>
+#include <rosplan_knowledge_msgs/GetAttributeService.h>
 
 // [action server client headers]
 #include <actionlib/client/simple_action_client.h>
@@ -120,6 +121,7 @@ typedef enum {IDLE,
 	            PILING2,
               END_POSITION,
               WAIT_END_POSITION,
+              GET_OBJECT_POSE,
               END} pick_place_states_t;
 
 /**
@@ -241,6 +243,7 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
 
     ros::ServiceClient get_deformation_class_client_;
     pick_n_place::GetDefClass get_deformation_class_srv_;
+    std::string sensed_deformation_class;
 
     //ROSPlan services
     ros::ServiceClient generate_problem_client_;
@@ -250,6 +253,8 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     std_srvs::Empty empty_srv_;
     // ros::ServiceClient dispatch_plan_client_;
     // rosplan_dispatch_msgs::DispatchService dispatch_plan_srv_;
+    ros::ServiceClient get_kb_state_client_;
+    rosplan_knowledge_msgs::GetAttributeService get_kb_state_srv_;
     ros::ServiceClient update_kb_client_;
     rosplan_knowledge_msgs::KnowledgeUpdateServiceArray update_kb_srv_;
 
@@ -258,7 +263,8 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     void PDDLgoalCB();
     void PDDLpreemptCB();
     void managePDDLactions(void);
-    rosplan_knowledge_msgs::KnowledgeUpdateServiceArray updateKB(void);
+    rosplan_knowledge_msgs::KnowledgeUpdateServiceArray updateKB_defstate(void);
+    rosplan_knowledge_msgs::KnowledgeUpdateServiceArray updateKB_new_obj(void);
 
     // PDDL variables
     bool start_pddl_demo;

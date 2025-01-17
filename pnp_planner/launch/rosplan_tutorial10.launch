@@ -77,6 +77,27 @@
 		<param name="action_dispatch_topic" value="/rosplan_plan_dispatcher/action_dispatch" />
 		<param name="action_feedback_topic" value="/rosplan_plan_dispatcher/action_feedback" />
 	</node>
+
+	<node name="rosplan_interface_placediag" pkg="rosplan_planning_system" type="tutorialInterface" respawn="false" output="screen">
+		<param name="knowledge_base"		value="rosplan_knowledge_base" />
+		<param name="pddl_action_name"		value="placediag" />
+		<param name="action_dispatch_topic" value="/rosplan_plan_dispatcher/action_dispatch" />
+		<param name="action_feedback_topic" value="/rosplan_plan_dispatcher/action_feedback" />
+	</node>
+	
+	<node name="rosplan_interface_placerot" pkg="rosplan_planning_system" type="tutorialInterface" respawn="false" output="screen">
+		<param name="knowledge_base"		value="rosplan_knowledge_base" />
+		<param name="pddl_action_name"		value="placerot" />
+		<param name="action_dispatch_topic" value="/rosplan_plan_dispatcher/action_dispatch" />
+		<param name="action_feedback_topic" value="/rosplan_plan_dispatcher/action_feedback" />
+	</node>
+
+	<node name="rosplan_interface_new_object" pkg="rosplan_planning_system" type="tutorialInterface" respawn="false" output="screen">
+		<param name="knowledge_base"		value="rosplan_knowledge_base" />
+		<param name="pddl_action_name"		value="new_object" />
+		<param name="action_dispatch_topic" value="/rosplan_plan_dispatcher/action_dispatch" />
+		<param name="action_feedback_topic" value="/rosplan_plan_dispatcher/action_feedback" />
+	</node>
 	
 
 </launch>

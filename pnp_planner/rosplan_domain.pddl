@@ -50,7 +50,7 @@
 	:effect (and
 			(known_obj hola)
 			(garment_at hola rotws) 
-			(at_pose hola short) 
+			(at_pose hola long) 
 			(garment_state hola notgrasped)
 			(not (corners_pos_known hola))
 			(defstate hola flat)

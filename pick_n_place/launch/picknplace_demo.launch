@@ -11,5 +11,8 @@
 <!-- TIAGO PCL TUTORIAL -->
   <include file="$(find vision_pick_place)/launch/picknplace.launch"> </include>
 
+  <node name="deformation_class" pkg="pick_n_place" type="main.py" output="screen" />
+
+  <!-- <include file="$(find pnp_planner)/launch/rosplan_tutotial10.launch"> </include> -->
 
 </launch>
