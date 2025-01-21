@@ -273,6 +273,8 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     bool drag;
     bool rotate;
     double rotation;
+    std::string nearest_edge;
+    
 
     // [action client attributes]
     actionlib::SimpleActionClient<iri_kinova_linear_movement::kinova_linear_movementAction> kinova_linear_move_client_;

@@ -111,6 +111,7 @@ PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
   this->drag=false;
   this->rotate=false;
   this->rotation=90;
+  this->nearest_edge="long";
 
   // [init action clients]
 
@@ -424,6 +425,8 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                   {
                     ROS_INFO("PicknPlaceSM: Sending to GRASP position.");
                     geometry_msgs::Pose desired_pose;
+                    std::cout << this->pre_grasp_distance.x << std::endl;
+                    std::cout << this->pre_grasp_distance.y << std::endl;
                     desired_pose.position.x = tool_pose.x + this->pre_grasp_distance.x;  // + 0.05;
                     desired_pose.position.y = tool_pose.y + this->pre_grasp_distance.y;
                     desired_pose.position.z = tool_pose.z;
@@ -1887,10 +1890,10 @@ void PicknPlaceAlgNode::handeye_frame_pub(const ros::TimerEvent& event)
   this->broadcaster.sendTransform(tf::StampedTransform(transform,ros::Time::now(),"base_link","ext_camera_link"));
 }
 
-//Subscribes to the topic sending the corner's position
-//Renames them according to its position wrt base_link
-//Computes edges size
-void PicknPlaceAlgNode::corners_callback(const visualization_msgs::MarkerArray::ConstPtr& msg)
+// Subscribes to the topic sending the corner's position
+// Renames them according to its position wrt base_link
+// Computes edges size
+/*void PicknPlaceAlgNode::corners_callback(const visualization_msgs::MarkerArray::ConstPtr& msg)
 {
   ROS_DEBUG("PicknPlaceAlgNode: Pick corners callback");
 
@@ -1928,18 +1931,18 @@ void PicknPlaceAlgNode::corners_callback(const visualization_msgs::MarkerArray::
   float edge1 = sqrt(pow(abs(corner_dr.x-corner_dl.x),2)+pow(abs(corner_dr.y-corner_dl.y),2));
 
  //DEBUG
-  /*  std::cout << "\033[1;36m DR -> \033[1;36m  x: " <<  corner_dr.x << " y: " << corner_dr.y << " z: " << corner_dr.z << std::endl;
-  std::cout << "\033[1;36m UL -> \033[1;36m  x: " <<  corner_ul.x << " y: " << corner_ul.y << " z: " << corner_ul.z << std::endl;
-  std::cout << "\033[1;36m UR -> \033[1;36m  x: " <<  corner_ur.x << " y: " << corner_ur.y << " z: " << corner_ur.z << std::endl;
-  std::cout << "\033[1;36m DL -> \033[1;36m  x: " <<  corner_dl.x << " y: " << corner_dl.y << " z: " << corner_dl.z << std::endl;
-  std::cout << "\033[1;36m --------------------------" << std::endl;
-  //std::cout << "ul-dl: " <<  corner_ul.position.x-corner_dl.position.x << std::endl;
-  //std::cout << "dr-dl: " <<  edge1 << std::endl;
-  //std::cout << "\033[1;36m --------------------------" << std::endl;
-  std::cout << "Edge1: " <<  edge1 << std::endl;
-  std::cout << "Edge2: " <<  edge2 << std::endl;
-  std::cout << "\033[1;36m --------------------------" << std::endl;
-  std::cout << "\033[1;36m --------------------------" << std::endl; */
+  // std::cout << "\033[1;36m DR -> \033[1;36m  x: " <<  corner_dr.x << " y: " << corner_dr.y << " z: " << corner_dr.z << std::endl;
+  // std::cout << "\033[1;36m UL -> \033[1;36m  x: " <<  corner_ul.x << " y: " << corner_ul.y << " z: " << corner_ul.z << std::endl;
+  // std::cout << "\033[1;36m UR -> \033[1;36m  x: " <<  corner_ur.x << " y: " << corner_ur.y << " z: " << corner_ur.z << std::endl;
+  // std::cout << "\033[1;36m DL -> \033[1;36m  x: " <<  corner_dl.x << " y: " << corner_dl.y << " z: " << corner_dl.z << std::endl;
+  // std::cout << "\033[1;36m --------------------------" << std::endl;
+  // //std::cout << "ul-dl: " <<  corner_ul.position.x-corner_dl.position.x << std::endl;
+  // //std::cout << "dr-dl: " <<  edge1 << std::endl;
+  // //std::cout << "\033[1;36m --------------------------" << std::endl;
+  // std::cout << "Edge1: " <<  edge1 << std::endl;
+  // std::cout << "Edge2: " <<  edge2 << std::endl;
+  // std::cout << "\033[1;36m --------------------------" << std::endl;
+  // std::cout << "\033[1;36m --------------------------" << std::endl; 
 
   // COMPUTES GRASP POINT - In another function?
   geometry_msgs::Point grasp_point;
@@ -2095,7 +2098,225 @@ void PicknPlaceAlgNode::corners_callback(const visualization_msgs::MarkerArray::
       {
         this->get_garment_position=false;
         this->pddl_action_done=true; //End PDDL action
-        this->config_.ok=false;
+      }
+    }
+    else
+      this->get_garment_position=false;
+  }
+
+}*/
+
+void PicknPlaceAlgNode::corners_callback(const visualization_msgs::MarkerArray::ConstPtr& msg)
+{
+  ROS_DEBUG("PicknPlaceAlgNode: Pick corners callback");
+
+  //Get distances to base_link and set corresponding names (down_left, up_right, etc)
+  geometry_msgs::PointStamped point_in;
+  geometry_msgs::PointStamped point_out;
+  std::vector<geometry_msgs::PointStamped> points;
+
+  // Transform point to robot base_link reference frame
+  for(int i=0; i<msg->markers.size(); i++)
+  {
+    point_in.header.frame_id = msg->markers[i].header.frame_id;
+    point_in.header.stamp = msg->markers[i].header.stamp;
+    point_in.point = msg->markers[i].pose.position;
+
+    this->listener.transformPoint("base_link", point_in, point_out);
+    points.push_back(point_out);
+  }
+
+  // ---GET CORNERS NAMES---
+  geometry_msgs::Point corner_ul, corner_dl, corner_ur, corner_dr, center; //Better format, as we dont have orientation
+  // Identify bottom-right (smallest x, smallest y wrt base_link) and top-left (largest x, largest y wrt base_link)
+  corner_dr = points[0].point;
+  corner_ul = points[0].point;
+  for (int i = 1; i < 4; i++) {
+    // if (points[i].point.x < corner_dr.x || (points[i].point.x == corner_dr.x && points[i].point.y < corner_dr.y))
+    if (points[i].point.x <= corner_dr.x && points[i].point.y <= corner_dr.y)
+        corner_dr = points[i].point;
+    // if (points[i].point.x > corner_ul.x || (points[i].point.x == corner_ul.x && points[i].point.y > corner_ul.y))
+    if (points[i].point.x >= corner_ul.x && points[i].point.y >= corner_ul.y)
+        corner_ul = points[i].point;
+  }
+  // Identify the remaining two points
+  geometry_msgs::Point remaining[2];
+  int idx = 0;
+  for (int i = 0; i < 4; i++) {
+    if (!(points[i].point.x == corner_dr.x && points[i].point.y == corner_dr.y) &&
+        !(points[i].point.x == corner_ul.x && points[i].point.y == corner_ul.y)) {
+        remaining[idx++] = points[i].point;
+    }
+  }
+  // Assign top-right and bottom-left based on y-values wrt base_link
+  if (remaining[0].y > remaining[1].y) {
+      corner_dl = remaining[0];
+      corner_ur = remaining[1];
+  } else {
+      corner_dl = remaining[1];
+      corner_ur = remaining[0];
+  }
+  ROS_DEBUG("PicknPlace: Identified corners:");
+  ROS_DEBUG("Bottom Left  (DL): (%f, %f)", corner_dl.x, corner_dl.y);
+  ROS_DEBUG("Bottom Right (DR): (%f, %f)", corner_dr.x, corner_dr.y);
+  ROS_DEBUG("Top Left     (UL): (%f, %f)", corner_ul.x, corner_ul.y);
+  ROS_DEBUG("Top Right    (UR): (%f, %f)", corner_ur.x, corner_ur.y);
+  // std::cout << "Identified Corners:\n";
+  // std::cout << "Bottom Left  (DL): (" << corner_dl.x << ", " << corner_dl.y << ")\n";
+  // std::cout << "Bottom Right (DR): (" << corner_dr.x << ", " << corner_dr.y << ")\n";
+  // std::cout << "Top Left     (UL): (" << corner_ul.x << ", " << corner_ul.y << ")\n";
+  // std::cout << "Top Right    (UR): (" << corner_ur.x << ", " << corner_ur.y << ")\n";
+
+  // ---COMPUTE EDGES LENGTH AND CENTERS---
+  // Define the edges 
+  std::pair<geometry_msgs::Point, geometry_msgs::Point> edges[4] = {
+      {corner_dl, corner_dr}, // Bottom edge
+      {corner_ul, corner_ur}, // Top edge
+      {corner_dl, corner_ul}, // Left edge
+      {corner_dr, corner_ur}  // Right edge
+  };
+
+  // Compute the edges lenth and their midpoints
+  double lengths[4];
+  geometry_msgs::Point edge_centers[4];
+  geometry_msgs::Point a, b;
+
+  for (int i = 0; i < 4; i++) {
+    a = edges[i].first;
+    b = edges[i].second;
+    lengths[i] = sqrt(pow(a.x - b.x, 2) + pow(a.y - b.y, 2));
+    edge_centers[i].x = (a.x + b.x) / 2.0;
+    edge_centers[i].y = (a.y + b.y) / 2.0;
+    ROS_DEBUG("Length: %d", lengths[i]);
+    ROS_DEBUG("Center: (%d, %d )", edge_centers[i].x, edge_centers[i].y);
+  }
+
+  // ---GET NEAREST EDGE---
+  // Find the nearest and second nearest center to the origin
+  int nearestIndex = -1, secondNearestIndex = -1;
+  double minDistance = 1000;
+  double secondMinDistance = 1000;
+  for (int i = 0; i < 4; i++) {
+      double d = sqrt(pow(edge_centers[i].x, 2) + pow(edge_centers[i].y, 2));
+      if (d < minDistance) {
+        secondMinDistance = minDistance; // Update second nearest before updating the nearest
+        secondNearestIndex = nearestIndex;
+        minDistance = d;
+        nearestIndex = i;
+      } else if (d < secondMinDistance) {
+        secondMinDistance = d;
+        secondNearestIndex = i;
+      }
+  }
+  std::cout << "Nearest center to origin: (" << edge_centers[nearestIndex].x << ", " << edge_centers[nearestIndex].y << ") with distance " << minDistance << std::endl;
+  // std::cout << "Second nearest center to origin: (" << edge_centers[secondNearestIndex].x << ", " << edge_centers[secondNearestIndex].y << ") with distance " << secondMinDistance << std::endl;
+
+  // ---COMPUTE IF THE NEAREST EDGE IS LONG OR SHORT---
+  if(lengths[nearestIndex] < lengths[secondNearestIndex]) 
+  {
+    this->nearest_edge="short";
+    ROS_DEBUG("PicknPlaceAlgNode: Nearest edge is SHORT");
+  }else{
+    this->nearest_edge="long";
+    ROS_DEBUG("PicknPlaceAlgNode: Nearest edge is LONG");
+  }
+
+  // ---COMPUTE THE GRASP ANGLE---
+   // Compute perpendicular angle for the nearest edge
+  double dx = edges[nearestIndex].first.x - edges[nearestIndex].second.x;
+  double dy = edges[nearestIndex].first.y - edges[nearestIndex].second.y;
+  double perpendicularAngle = std::atan2(dx, -dy);
+  // std::cout << "Grasping perpendicular angle (radians): " << perpendicularAngle << std::endl;
+  // std::cout << "Grasping perpendicular angle (degrees): " << perpendicularAngle * 180.0 / M_PI << std::endl;
+  // std::cout << "N: " << std::atan2(dx, dy) * 180.0 / M_PI << std::endl;
+  // std::cout << "A: " << std::atan2(dx, -dy) * 180.0 / M_PI << std::endl;
+  // std::cout << "B: " << std::atan2(-dx, dy) * 180.0 / M_PI << std::endl;
+  // std::cout << "AA: " << std::atan2(-dy, dx) * 180.0 / M_PI << std::endl;
+  // float cos_alpha = (abs(dy))/(sqrt(pow(dx,2)+pow(dy,2)));
+  // float alpha = acos(cos_alpha);
+  // std::cout << "alpha: " << alpha << std::endl;
+  // double grasp_angle = -std::atan2(-dy, dx);
+  // std::cout << "Grasping angle (radians): " << grasp_angle << std::endl;
+  // std::cout << "Grasping angle (degrees): " << grasp_angle * 180.0 / M_PI << std::endl;
+
+  // CENTER POINT OF GARMENT - computed averaging the coordinates of the corners
+  geometry_msgs::Point garment_center;
+  for (const auto& corner : points) { 
+      garment_center.x += corner.point.x;
+      garment_center.y += corner.point.y;
+      garment_center.z += corner.point.z; // Its not necessary
+  }
+  garment_center.x /= points.size();
+  garment_center.y /= points.size();
+  garment_center.z /= points.size();
+
+  //-------GRASPING POSITION-------
+  visualization_msgs::Marker marker;
+  marker.header.frame_id = "base_link";
+  marker.id = 0;
+  marker.type = visualization_msgs::Marker::SPHERE;
+  marker.scale.x=0.01;
+  marker.scale.y=0.01;
+  marker.scale.z=0.01;
+  marker.color.r = 1.0f;
+  marker.color.g = 0.0f;
+  marker.color.b = 1.0f;
+  marker.color.a = 1.0;
+  marker.lifetime = ros::Duration();
+  
+  if(this->get_garment_position)
+  {
+    std::cout << "------------------------------------------------" << std::endl;
+    // Get current grasp position
+    // this->compute_grasp_angle(grasp_angle);
+    std_msgs::Float64 hola;
+    hola.data = 0;
+    this->compute_grasp_angle(hola);
+
+    //---COMPUTE PRE GRASP POINT bsaed on perpendicular angle---
+    this->pre_grasp_center.x = edge_centers[nearestIndex].x + 0.05 * cos(perpendicularAngle);
+    this->pre_grasp_center.y = edge_centers[nearestIndex].y - 0.05 * sin(-perpendicularAngle);
+    this->pre_grasp_distance.x = abs(0.05 * cos(perpendicularAngle));
+    this->pre_grasp_distance.y = abs(0.05 * sin(-perpendicularAngle));
+    std::cout << "pre grasp dist: (" << this->pre_grasp_distance.x << ", " << this->pre_grasp_distance.y << ")" << std::endl;
+    std::cout << "pre grasp position: (" << this->pre_grasp_center.x << ", " << this->pre_grasp_center.y << ")" << std::endl;
+
+    // this->pre_grasp_center.x = edge_centers[nearestIndex].x-this->pre_grasp_distance.x;
+    // this->pre_grasp_center.y = edge_centers[nearestIndex].y-this->pre_grasp_distance.y;
+    this->pre_grasp_center.z = this->config_.table_height+0.05;
+    this->grasping_point_garment = this->pre_grasp_center;
+
+    std::cout << "\033[1;36m GRASP POINT -->  x: " <<  pre_grasp_center.x << " y: " << pre_grasp_center.y << " z: " << pre_grasp_center.z << "\033[1;0m" <<std::endl;
+    marker.pose.position.x=pre_grasp_center.x;
+    marker.pose.position.y=pre_grasp_center.y;
+    marker.pose.position.z=0.005;// pre_grasp_center.z;
+    grasp_marker_publisher.publish(marker); //Publish grasping point marker - nearest edge center
+
+    this->pile_height = 0.0;
+    this->get_pile_height = true;
+    //this->garment_edge_size = garment_edge.data;
+    std::cout << "\033[1;36m Non grasped edge size --> \033[1;0m " <<  this->garment_edge_size << std::endl;
+    std::cout << "\033[1;36m SENSED Non grasped edge size --> \033[1;0m " <<  lengths[secondNearestIndex] << std::endl;
+
+    // Get current center position
+    this->dragging_pose_garment.x = garment_center.x;
+    this->dragging_pose_garment.y = garment_center.y;
+    this->dragging_pose_garment.z = 0.20;
+    this->dragging_pose_garment.theta_x = 179; //-179.4
+    this->dragging_pose_garment.theta_y = 0; //1
+    this->dragging_pose_garment.theta_z = 90; //92.7
+    std::cout << "DRAGGING pose --> x: " << this->dragging_pose_garment.x << " y: " << this->dragging_pose_garment.y << " z: " << this->dragging_pose_garment.x << std::endl;
+    marker.pose.position.x=edge_centers[nearestIndex].x; //garment_center.x;
+    marker.pose.position.y=edge_centers[nearestIndex].y; //garment_center.y;
+    marker.pose.position.z=0.005; //garment_center.z;
+    garment_marker_publisher.publish(marker);
+
+    if(this->pddl_demo)
+    {
+      if(this->config_.ok)
+      {
+        this->get_garment_position=false;
+        this->pddl_action_done=true; //End PDDL action
       }
     }
     else
@@ -2103,6 +2324,7 @@ void PicknPlaceAlgNode::corners_callback(const visualization_msgs::MarkerArray::
   }
 
 }
+
 
 void PicknPlaceAlgNode::place_corners_callback(const visualization_msgs::MarkerArray::ConstPtr& msg)
 {
@@ -2173,8 +2395,8 @@ void PicknPlaceAlgNode::compute_grasp_angle(const std_msgs::Float64& garment_ang
   if(garment_angle.data == 0)
   {
     std::cout << "Gripper orientation \033[1;36m HORIZONTAL \033[1;0m" <<  std::endl;
-    this->pre_grasp_distance.x = 0.06;
-    this->pre_grasp_distance.y = 0;
+    // this->pre_grasp_distance.x = 0.06;
+    // this->pre_grasp_distance.y = 0;
     this->pre_grasp_center.theta_x = 0;
     this->pre_grasp_center.theta_y = -125.5;
     this->pre_grasp_center.theta_z = 180;
@@ -2182,8 +2404,8 @@ void PicknPlaceAlgNode::compute_grasp_angle(const std_msgs::Float64& garment_ang
   else if(garment_angle.data == 1)
   {
     std::cout << "Gripper horientation \033[1;36m DIAG IZQUIERDA \033[1;0m" <<  std::endl;
-    this->pre_grasp_distance.x = 0.08;
-    this->pre_grasp_distance.y = -0.08;
+    // this->pre_grasp_distance.x = 0.08;
+    // this->pre_grasp_distance.y = -0.08;
     this->pre_grasp_center.theta_x = 0;
     this->pre_grasp_center.theta_y = -120;
     this->pre_grasp_center.theta_z = 135;
@@ -2191,8 +2413,8 @@ void PicknPlaceAlgNode::compute_grasp_angle(const std_msgs::Float64& garment_ang
   else if(garment_angle.data == 2)
   {
     std::cout << "Gripper horientation \033[1;36m DIAG DERECHA \033[1;0m" <<  std::endl;
-    this->pre_grasp_distance.x = 0.08;
-    this->pre_grasp_distance.y = 0.08;
+    // this->pre_grasp_distance.x = 0.08;
+    // this->pre_grasp_distance.y = 0.08;
     this->pre_grasp_center.theta_x = -176;
     this->pre_grasp_center.theta_y = -52;
     this->pre_grasp_center.theta_z = 37;
@@ -2200,8 +2422,8 @@ void PicknPlaceAlgNode::compute_grasp_angle(const std_msgs::Float64& garment_ang
   else if(garment_angle.data == 3)
   {
     std::cout << "Gripper horientation \033[1;36m VERTICAL \033[1;0m" << std::endl;
-    this->pre_grasp_distance.x = 0;
-    this->pre_grasp_distance.y = 0.04;
+    // this->pre_grasp_distance.x = 0;
+    // this->pre_grasp_distance.y = 0.04;
     this->pre_grasp_center.theta_x = -179; //-170;
     this->pre_grasp_center.theta_y = -50; //-52;
     this->pre_grasp_center.theta_z = 85; //55;
@@ -2209,8 +2431,8 @@ void PicknPlaceAlgNode::compute_grasp_angle(const std_msgs::Float64& garment_ang
   this->get_garment_angle=false;
   this->get_garment_position=true;
 
-  std::cout << "Defined orientation -->   x: " << this->pre_grasp_center.theta_x << ", y: " << this-> pre_grasp_center.theta_y << ", z: " << this->pre_grasp_center.theta_z << std::endl;
-  std::cout << "Pregrasp Distances -->   x: " << this->pre_grasp_distance.x << ", y: " << this-> pre_grasp_distance.y << ", z: " << std::endl;
+  // std::cout << "Defined orientation -->   x: " << this->pre_grasp_center.theta_x << ", y: " << this-> pre_grasp_center.theta_y << ", z: " << this->pre_grasp_center.theta_z << std::endl;
+  // std::cout << "Pregrasp Distances -->   x: " << this->pre_grasp_distance.x << ", y: " << this-> pre_grasp_distance.y << ", z: " << std::endl;
   //}
 }
 
