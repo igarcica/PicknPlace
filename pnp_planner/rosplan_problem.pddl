@@ -1,7 +1,7 @@
 (define (problem PICKNPLACEpileclass)
 (:domain PICKNPLACEpileclass)
 (:objects
-    towel hola - garment
+    towel towel2 - garment
 	placevert placediag placerot - placing
 	long short - grasp
 	grws rotws - workspace
@@ -11,28 +11,41 @@
 )
 
 (:init (garment_at towel grws) (at_pose towel long) (garment_state towel notgrasped) (not (corners_pos_known towel)) (defstate towel flat)
-		(not (known_obj hola))
+		(not (known_obj towel2))
 		(robot_at else) (robot_empty)
 		(= (time_cost) 0)
 		(= (place_qual) 0)
-		(= (place_succ A placevert) 0)
-		(= (place_succ B placevert) 30)
-		(= (place_succ C placevert) 60)
-		(= (place_succ A placediag) 10)
-		(= (place_succ B placediag) 15)
-		(= (place_succ C placediag) 31)
-		(= (place_succ A placerot) 11)
-		(= (place_succ B placerot) 20)
-		(= (place_succ C placerot) 5)
-		(def_class towel A)
+		;;placing costs
+		(= (place_succ towel A placevert) 0)
+		(= (place_succ towel B placevert) 10)
+		(= (place_succ towel C placevert) 60)
+		(= (place_succ towel A placediag) 10)
+		(= (place_succ towel B placediag) 15)
+		(= (place_succ towel C placediag) 31)
+		(= (place_succ towel A placerot) 11)
+		(= (place_succ towel B placerot) 20)
+		(= (place_succ towel C placerot) 5)
+		;;piling costs
+		(= (place_succ towel2 A placevert) 100)
+		(= (place_succ towel2 B placevert) 10)
+		(= (place_succ towel2 C placevert) 60)
+		(= (place_succ towel2 A placediag) 100)
+		(= (place_succ towel2 B placediag) 15)
+		(= (place_succ towel2 C placediag) 31)
+		(= (place_succ towel2 A placerot) 110)
+		(= (place_succ towel2 B placerot) 0)
+		(= (place_succ towel2 C placerot) 5)
+		(obj_grasp_class long A) ;;towel grasped by multedges results in deformation class A
+		(obj_grasp_class short B) ;; It can be the same as with long, the second object will adapt to the first object's init pose
+		;;(def_class towel A)
 )
 
 ;;(:goal (and (garment_state towel placed) ))
 ;;(:goal (and (on hola towel) (on teta hola) ))
-(:goal (and (on hola towel) ))
+(:goal (and (on towel2 towel) ))
 
 ;;(:metric minimize (time_cost))
-;;(:metric minimize (place_qual))
-(:metric minimize (+ (* 5 (time_cost)) (* 10 (place_qual))))
+(:metric minimize (place_qual))
+;;(:metric minimize (+ (* 5 (time_cost)) (* 10 (place_qual))))
 
 )

@@ -32,12 +32,13 @@
 	;;(obj_grasp_class ?cloth - garment ?edge - grasp ?class - defclass) ;; ?cloth grasped by ?edge will produce deformation class ?class
 	(on ?piledcloth ?placedcloth - garment)
 	(def_class ?cloth - garment ?class - defclass)
+	(obj_grasp_class ?edge - grasp ?class - defclass) ;;?cloth grasped by ?edge will produce deformation class ?class
 )
 
 (:functions
     (time_cost)
 	(place_qual)
-	(place_succ ?class - defclass ?place - placing)
+	(place_succ ?cloth - garment ?class - defclass ?place - placing)
 )
 
 ;; It should consider ?edge and ?ws such that place_succ is the worst (just in case) - HOW??
@@ -46,15 +47,16 @@
 	:parameters (?edge - grasp ?ws - workspace)
 	:precondition (and
 				(garment_state towel placed)
-				(not (known_obj hola)))
+				(not (known_obj towel2)))
 	:effect (and
-			(known_obj hola)
-			(garment_at hola rotws) 
-			(at_pose hola long) 
-			(garment_state hola notgrasped)
-			(not (corners_pos_known hola))
-			(defstate hola flat)
-			(def_class hola A)
+			(known_obj towel2)
+			(garment_at towel2 rotws) 
+			(at_pose towel2 long) 
+			(garment_state towel2 notgrasped)
+			(not (corners_pos_known towel2))
+			(defstate towel2 flat)
+			;;(def_class towel2 A)
+			;;(obj_grasp_class ?edge ?class)
 			(increase (time_cost) 0)
 			(increase (place_qual) 0))
 )
@@ -105,8 +107,9 @@
 				(garment_state ?cloth notgrasped)
 				(corners_pos_known ?cloth)
 				;;(obj_grasp_class ?cloth ?gr ?class)
-				(def_class ?cloth ?class)
-				(defstate ?cloth flat))
+				;;(def_class ?cloth ?class)
+				(defstate ?cloth flat)
+				(obj_grasp_class ?gr ?class))
 	:effect (and
 			(not (garment_state ?cloth notgrasped))
 			(not (robot_at home))
@@ -182,7 +185,7 @@
 			(garment_state ?cloth placed)
 			(not (garment_state ?cloth lifted))
 			(increase (time_cost) 10)
-			(increase (place_qual) (place_succ ?class placevert)))
+			(increase (place_qual) (place_succ ?cloth ?class placevert)))
 )
 
 (:action placediag
@@ -198,7 +201,7 @@
 			(garment_state ?cloth placed)
 			(not (garment_state ?cloth lifted))
 			(increase (time_cost) 15)
-			(increase (place_qual) (place_succ ?class placediag)))
+			(increase (place_qual) (place_succ ?cloth ?class placediag)))
 )
 
 (:action placerot
@@ -214,7 +217,7 @@
 			(garment_state ?cloth placed)
 			(not (garment_state ?cloth lifted))
 			(increase (time_cost) 20)
-			(increase (place_qual) (place_succ ?class placerot)))
+			(increase (place_qual) (place_succ ?cloth ?class placerot)))
 )
 
 )

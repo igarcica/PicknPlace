@@ -589,14 +589,14 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                                 {
                                   ROS_INFO("PicknPlace: Received deformation class: %s", get_deformation_class_srv_.response.output_response.c_str());
                                   this->sensed_deformation_class = get_deformation_class_srv_.response.output_response;
-                                  /*if(this->pddl_demo)
+                                  if(this->pddl_demo)
                                   {
-                                    this->pddl_action_done=true; // End PDDL action
-                                    this->state=IDLE;
+                                    // this->pddl_action_done=true; // End PDDL action
+                                    // this->state=IDLE;
+                                    this->state=UPDATE_ROSPLAN_KB;
                                   }
                                   else // Continue SM
-                                    this->state=CLOSE_GRIPPER2; //Change to CHOOSE_PLACING*/
-                                  this->state=UPDATE_ROSPLAN_KB;
+                                    this->state=CLOSE_GRIPPER2; //Change to CHOOSE_PLACING
                                 }else{
                                   ROS_WARN("PicknPlaceAlgNode (CHECK DEFORMATION): Unable to sense deformation class");
                                   this->state=END;
@@ -2208,7 +2208,7 @@ void PicknPlaceAlgNode::corners_callback(const visualization_msgs::MarkerArray::
         secondNearestIndex = i;
       }
   }
-  std::cout << "Nearest center to origin: (" << edge_centers[nearestIndex].x << ", " << edge_centers[nearestIndex].y << ") with distance " << minDistance << std::endl;
+  // std::cout << "Nearest center to origin: (" << edge_centers[nearestIndex].x << ", " << edge_centers[nearestIndex].y << ") with distance " << minDistance << std::endl;
   // std::cout << "Second nearest center to origin: (" << edge_centers[secondNearestIndex].x << ", " << edge_centers[secondNearestIndex].y << ") with distance " << secondMinDistance << std::endl;
 
   // ---COMPUTE IF THE NEAREST EDGE IS LONG OR SHORT---
@@ -2225,10 +2225,11 @@ void PicknPlaceAlgNode::corners_callback(const visualization_msgs::MarkerArray::
    // Compute perpendicular angle for the nearest edge
   double dx = edges[nearestIndex].first.x - edges[nearestIndex].second.x;
   double dy = edges[nearestIndex].first.y - edges[nearestIndex].second.y;
-  double perpendicularAngle = std::atan2(dx, -dy);
+  double perpendicularAngle = std::atan2(dx, -dy); //Used to compute pregrasp distances
+  double grasp_angle = std::atan2(dx, dy) * 180 / M_PI; //Used to compute grasp orientation - Angle wrt x-axis of base_link. horizontal edge=0, edge vert=-90, clockwise>0, anticlockwise<0
   // std::cout << "Grasping perpendicular angle (radians): " << perpendicularAngle << std::endl;
   // std::cout << "Grasping perpendicular angle (degrees): " << perpendicularAngle * 180.0 / M_PI << std::endl;
-  // std::cout << "N: " << std::atan2(dx, dy) * 180.0 / M_PI << std::endl;
+  // std::cout << "N: " << std::atan2(dx, dy) * 180.0 / M_PI << std::endl; //Angle wrt x-axis of base_link. horizontal edge=0, edge vert=-90, clockwise>0, anticlockwise<0
   // std::cout << "A: " << std::atan2(dx, -dy) * 180.0 / M_PI << std::endl;
   // std::cout << "B: " << std::atan2(-dx, dy) * 180.0 / M_PI << std::endl;
   // std::cout << "AA: " << std::atan2(-dy, dx) * 180.0 / M_PI << std::endl;
@@ -2268,10 +2269,10 @@ void PicknPlaceAlgNode::corners_callback(const visualization_msgs::MarkerArray::
   {
     std::cout << "------------------------------------------------" << std::endl;
     // Get current grasp position
-    // this->compute_grasp_angle(grasp_angle);
-    std_msgs::Float64 hola;
-    hola.data = 0;
-    this->compute_grasp_angle(hola);
+    this->compute_grasp_angle(grasp_angle);
+    // std_msgs::Float64 hola;
+    // hola.data = 0;
+    // this->compute_grasp_angle(hola);
 
     //---COMPUTE PRE GRASP POINT bsaed on perpendicular angle---
     this->pre_grasp_center.x = edge_centers[nearestIndex].x + 0.05 * cos(perpendicularAngle);
@@ -2386,11 +2387,34 @@ void PicknPlaceAlgNode::garment_pose_callback(const visualization_msgs::Marker::
 }
 
 //void PicknPlaceAlgNode::garment_angle_callback(const std_msgs::Float64::ConstPtr& msg)
-void PicknPlaceAlgNode::compute_grasp_angle(const std_msgs::Float64& garment_angle)
+// void PicknPlaceAlgNode::compute_grasp_angle(const std_msgs::Float64& garment_angle)
+/*Based on the cloth nearest edge orientation, it sets the end-effector grasping orientation perpendicular to the edge
+  *Edge perpendicular angle (grasping_angle) is wrt base_link x-axis. angles < 0 are anticlockwise grasps, angles > 0 are clockwise grasps
+  *Roll and pitch are different due to euler angles singularities, woll angle (which is the one to modify) goes from 0 up for anticlockwise grasps and from 180 down for clockwise grasps
+*/
+void PicknPlaceAlgNode::compute_grasp_angle(double grasping_angle)
 {
-  ROS_DEBUG("PicknPlaceAlgNode: garment angle callback");
+  ROS_DEBUG("PicknPlaceAlgNode: Computing grasping angle perpendicular to cloth edge");
+  
+  double new_grasping_angle;
+  if(grasping_angle<0)
+  {
+    new_grasping_angle = round(abs(grasping_angle));
+    ROS_INFO("PicknPlace: End-effector's grasping orientation (%d, %d, %f)", -178, -50, new_grasping_angle);
+    this->pre_grasp_center.theta_x = -178;
+    this->pre_grasp_center.theta_y = -50;
+    this->pre_grasp_center.theta_z = new_grasping_angle;
+  }else if(grasping_angle>=0)
+  {
+    new_grasping_angle = 180.0-grasping_angle;
+    new_grasping_angle = round(new_grasping_angle);
+    ROS_INFO("PicknPlace: End-effector's grasping orientation (%d, %d, %f)", 0, -125, new_grasping_angle);
+    this->pre_grasp_center.theta_x = 0;
+    this->pre_grasp_center.theta_y = -125;
+    this->pre_grasp_center.theta_z = new_grasping_angle;
+  }
 
-  //if(this->get_garment_angle)
+  /*//if(this->get_garment_angle)
   //{
   if(garment_angle.data == 0)
   {
@@ -2429,7 +2453,7 @@ void PicknPlaceAlgNode::compute_grasp_angle(const std_msgs::Float64& garment_ang
     this->pre_grasp_center.theta_z = 85; //55;
   }
   this->get_garment_angle=false;
-  this->get_garment_position=true;
+  this->get_garment_position=true;*/
 
   // std::cout << "Defined orientation -->   x: " << this->pre_grasp_center.theta_x << ", y: " << this-> pre_grasp_center.theta_y << ", z: " << this->pre_grasp_center.theta_z << std::endl;
   // std::cout << "Pregrasp Distances -->   x: " << this->pre_grasp_distance.x << ", y: " << this-> pre_grasp_distance.y << ", z: " << std::endl;
@@ -2727,6 +2751,7 @@ bool PicknPlaceAlgNode::send_cartesian_pose(const kortex_driver::Pose &goal_pose
   {
     std::string error_string = "PicknPlaceAlgNode: Failed to call validate goal pose";
     ROS_ERROR("%s", error_string.c_str());
+    ROS_WARN("PicknPlaceAlgNode: Failed to call validate goal pose");
     return false;
   }
 
