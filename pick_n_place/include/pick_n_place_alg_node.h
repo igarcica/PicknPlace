@@ -74,13 +74,16 @@
 
 typedef enum {IDLE,
               HOME,
-              PRE_PRE_DRAG_ROTATE,
-              PRE_DRAG_ROTATE,
-              DRAG_ROTATE_POS,
+              PRE_PRE_DRAG,
+              PRE_DRAG,
               DRAG,
+              UP_DRAG,
+              PRE_PRE_ROTATE,
+              PRE_ROTATE,
+              ROTATE_POS,
               ROTATE,
+              UP_ROTATE,
               POST_DRAG_ROTATE,
-              POST_POST_DRAG_ROTATE,
               CHECK_CORNERS_POSE,
               WAIT_CHECK_CORNERS_POSE,
               PRE_GRASP,
@@ -148,7 +151,8 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     kortex_driver::Pose home_pose;
     kortex_driver::Pose pre_grasp_center;
     kortex_driver::Pose grasping_point_garment;
-    kortex_driver::Pose pre_dragging_pose_garment;
+    kortex_driver::Pose pre_rotating_pose_garment;
+    kortex_driver::Pose rotating_pose_garment;
     kortex_driver::Pose dragging_pose_garment;
     float garment_width;
     float garment_edge_size;
@@ -163,7 +167,8 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     bool send_cartesian_pose(const kortex_driver::Pose &goal_pose);
     bool wait_for_action_end_or_abort(void);
     kortex_driver::Waypoint FillCartesianWaypoint(const kortex_driver::Pose &goal_pose, float blending_radius);
-    bool send_joint_angles(float rotation);
+    bool rotate_end_effector(float rotation);
+    bool send_joint_angles(void);
 
     tf::TransformListener listener;
     tf::TransformBroadcaster broadcaster;
@@ -181,6 +186,7 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     ros::Subscriber place_corners_subscriber;
     ros::Subscriber pile_height_subscriber;
     void garment_pose_callback(const visualization_msgs::Marker::ConstPtr& msg);
+    void check_worspaces(double garment_center, double grasp_point);
     //void garment_angle_callback(const std_msgs::Float64::ConstPtr& msg);
     // void compute_grasp_angle(const std_msgs::Float64& msg);
     void compute_grasp_angle(double grasping_angle);
@@ -275,6 +281,7 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     bool rotate;
     double rotation;
     std::string nearest_edge;
+    std::string workspace;
     
 
     // [action client attributes]
