@@ -105,13 +105,14 @@ PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
   as_.start();
 
   // PDDL variables
-  this->start_pddl_demo=false; //Start SM calling ROSPlan to generate plan
+  this->plan_pddl_demo=false; //Start SM calling ROSPlan to generate plan
   this->pddl_demo=false;  //Ends the SM when the planned action is completed
   this->pddl_action_done=false;
   this->drag=false;
   this->rotate=false;
   this->rotation=90;
   this->nearest_edge="long";
+  this->workspace="grws";
 
   // [init action clients]
 
@@ -188,7 +189,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                  }
                  // TO DO: home, go_high and check_corners should go before planning
                  // TO DO: before planning it is also necessary to predict the deformation class
-                 else if(this->start_pddl_demo) //Generates plan and starts demo
+                 else if(this->plan_pddl_demo) //Generates plan and starts demo
                  {
                    ROS_WARN("PicknPlaneAlgNode: Generating plan");
                    this->pddl_demo = true; 
@@ -197,7 +198,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                    get_plan_client_.call(empty_srv_); //Get plan - to check the plan rostopic echo /rosplan_planner_interface/planner_output -p -n 1
                    parse_plan_client_.call(empty_srv_); //Parse the plan
                    //dispatch_plan_client_.call(dispatch_plan_srv_); //Dispatch plan - bloqueante!
-                   this->start_pddl_demo=false;
+                   this->plan_pddl_demo=false;
                    ROS_WARN("PicknPlaneAlgNode: Waiting to dispatch plan");
                  }
                  //else if(this->start_experiments)
@@ -231,6 +232,28 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                   ROS_WARN("PicknPlaceAlgNode: Could not execute HOME action");
                   this->state=IDLE;
                  }
+      break;
+
+      //State for ROSPlan
+      case UPDATE_INIT_ROSPLAN_KB: ROS_INFO("PicknPlaceAlgNode: state UPDATE ROSPLAN KB");
+                              {
+                                //Update deformation class in ROSPlan knowledge base to replan accordingly
+                                update_kb_srv_ = updateKB_init();
+                                if(update_kb_client_.call(update_kb_srv_))
+                                {
+                                  ROS_WARN("PicknPlaceAlgNode: Knowledge Base updated!");
+                                  //Replan with sensed class (to select placing strategy) this->state=IDLE; this->plan_pddl_demo=true;
+                                  //Can it go to a REPLAN state and not abort current plan?
+                                  ROS_WARN("PicknPlaceAlgNode: Canceling dispatch plan");
+                                  this->state=IDLE;
+                                  // this->pddl_action_done=true; // End PDDL action
+                                  as_.setPreempted();
+                                  //generate problem
+                                }else{
+                                  ROS_WARN("PicknPlaceAlgNode: Knowledge Base NOT updated!");
+                                  this->state=END;
+                                }
+                              }
       break;
 
       case PRE_PRE_DRAG: ROS_DEBUG("PicknPlaceAlgNode: state PRE_PRE_DRAG");
@@ -674,6 +697,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                               }
       break;
       
+      //State for ROSPlan
       case UPDATE_ROSPLAN_KB: ROS_INFO("PicknPlaceAlgNode: state UPDATE ROSPLAN KB");
                               {
                                 //Update deformation class in ROSPlan knowledge base to replan accordingly
@@ -681,20 +705,12 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                                 if(update_kb_client_.call(update_kb_srv_))
                                 {
                                   ROS_WARN("PicknPlaceAlgNode: Knowledge Base updated!");
-                                  //Replan with sensed class (to select placing strategy) this->state=IDLE; this->start_pddl_demo=true;
-                                  if(this->pddl_demo)
-                                  {
-                                    //Can it go to a REPLAN state and not abort current plan?
-                                    ROS_WARN("PicknPlaceAlgNode: Canceling dispatch plan");
-                                    this->state=IDLE;
-                                    // this->pddl_action_done=true; // End PDDL action
-                                    as_.setPreempted();
-                                  }
-                                  else // Continue SM
-                                  {
-                                    // this->state=CLOSE_GRIPPER2; //Change to CHOOSE_PLACING
-                                    ROS_WARN("PicknPlaceAlgNode: hola");
-                                  }
+                                  //Replan with sensed class (to select placing strategy) this->state=IDLE; this->plan_pddl_demo=true;
+                                  //Can it go to a REPLAN state and not abort current plan?
+                                  ROS_WARN("PicknPlaceAlgNode: Canceling dispatch plan");
+                                  this->state=IDLE;
+                                  // this->pddl_action_done=true; // End PDDL action
+                                  as_.setPreempted();
                                 }else{
                                   ROS_WARN("PicknPlaceAlgNode: Knowledge Base NOT updated!");
                                   this->state=END;
@@ -1427,11 +1443,11 @@ void PicknPlaceAlgNode::node_config_update(Config &config, uint32_t level)
     this->garment_edge_size=config.garment_edge_size;
   }
   // Execute sections of SM according to received PDDL actions
-  if(config.start_pddl_demo)
+  if(config.plan_pddl_demo)
   {
     ROS_WARN("PicknPlaceAlgNode: Activated PDDL SM management");
-    this->start_pddl_demo=true;
-    config.start_pddl_demo=false;
+    this->plan_pddl_demo=true;
+    config.plan_pddl_demo=false;
     //this->pddl_demo=true;
   }
   if(config.drag)
@@ -1448,7 +1464,7 @@ void PicknPlaceAlgNode::node_config_update(Config &config, uint32_t level)
   }
   
   //Start SM for demo (use 'towel' bool to change strategy for grasping and placing towel (less gripper closure + vertical place) or napkin (more gripper closure + place2)
-  if(config.start_demo)// && !config.start_pddl_demo)
+  if(config.start_demo)// && !config.plan_pddl_demo)
   {
     this->pddl_demo=false;
     this->start_demo=true;
@@ -1640,7 +1656,7 @@ void PicknPlaceAlgNode::PDDLgoalCB()
     ROS_WARN("PicknPlace: DRAG action");
     this->drag=true;
     this->rotate=false;
-    // this->state=PRE_PRE_DRAG;
+    this->state=PRE_PRE_DRAG;
   }
   else if(0==goal->action_name.compare("rotate")) 
   {
@@ -1729,6 +1745,109 @@ void PicknPlaceAlgNode::managePDDLactions(void)
   ROS_WARN("PicknPlaceAlgNode: PDDL Action ended");
   as_.setSucceeded(result_); // set the action state to succeeded
   this->pddl_action_done=false;
+}
+
+rosplan_knowledge_msgs::KnowledgeUpdateServiceArray PicknPlaceAlgNode::updateKB_init(void)
+{
+  //TO DO: Is there a way to update the init instead of the predicates?
+
+  //Get current predicate values
+  // rosplan_knowledge_msgs::KnowledgeItem[] current_kb_state;
+  
+  std::vector<rosplan_knowledge_msgs::KnowledgeItem> current_kb_state;
+
+  std::cout << "Nearest edge " << this->nearest_edge <<std::endl;
+  std::cout << "Workspace " << this->workspace <<std::endl;
+
+  //OBJECT'S WORKSPACE
+  get_kb_state_srv_.request.predicate_name = "garment_at"; 
+  // current_kb_state = get_kb_state_client_.call(get_kb_state_srv_);
+  if(get_kb_state_client_.call(get_kb_state_srv_))
+  {
+    current_kb_state = get_kb_state_srv_.response.attributes;
+    ROS_WARN("Update garment_at");
+
+    for(size_t i=0; i<current_kb_state.size(); i++) {
+      // std::cout << "PicknPlace: Sense deformation class: " << this->sensed_deformation_class << std::endl;
+      ROS_INFO("PicknPlace: REMOVING %s to %s", current_kb_state[i].values[1].value.c_str(), current_kb_state[i].values[0].value.c_str());
+      //Remove previous def class
+      rosplan_knowledge_msgs::KnowledgeItem item;
+      item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
+      item.attribute_name = "garment_at";
+      item.values.clear();
+      diagnostic_msgs::KeyValue pair;
+      pair.key = "cloth";
+      pair.value = current_kb_state[i].values[0].value; //"towel" or "hola"
+      item.values.push_back(pair);
+      pair.key = "ws";
+      pair.value = current_kb_state[i].values[1].value; //"grws"; //Get from current KB state
+      item.values.push_back(pair);
+      update_kb_srv_.request.knowledge.push_back(item);
+      update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE);
+
+      ROS_INFO("PicknPlace: ADDING %s to %s", this->workspace.c_str(), current_kb_state[i].values[0].value.c_str());
+      //Add sensed def class
+      item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
+      item.attribute_name = "garment_at";
+      item.values.clear();
+      pair.key = "cloth";
+      pair.value = current_kb_state[i].values[0].value; //"towel"; //Get from current KB state 
+      item.values.push_back(pair);
+      pair.key = "ws";
+      pair.value = this->workspace;
+      item.values.push_back(pair);
+      update_kb_srv_.request.knowledge.push_back(item);
+      update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE);
+    }
+    // return update_kb_srv_;
+    // std::cout << current_kb_state[0].values.value[1] << std::endl;
+  }else
+    ROS_WARN("PicknPlaceAlgNode: Not possible to get current KB state");
+
+  //OBJECT'S EDGE POSE
+  get_kb_state_srv_.request.predicate_name = "at_pose"; 
+  if(get_kb_state_client_.call(get_kb_state_srv_))
+  {
+    current_kb_state = get_kb_state_srv_.response.attributes;
+    ROS_WARN("Update at_pose");
+
+    for(size_t i=0; i<current_kb_state.size(); i++) {
+      // std::cout << "PicknPlace: Sense deformation class: " << this->sensed_deformation_class << std::endl;
+      ROS_INFO("PicknPlace: REMOVING %s to %s", current_kb_state[i].values[1].value.c_str(), current_kb_state[i].values[0].value.c_str());
+      //Remove previous def class
+      rosplan_knowledge_msgs::KnowledgeItem item;
+      item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
+      item.attribute_name = "at_pose";
+      item.values.clear();
+      diagnostic_msgs::KeyValue pair;
+      pair.key = "cloth";
+      pair.value = current_kb_state[i].values[0].value; //"towel" or "hola"
+      item.values.push_back(pair);
+      pair.key = "edge";
+      pair.value = current_kb_state[i].values[1].value; //"long / short"; //Get from current KB state
+      item.values.push_back(pair);
+      update_kb_srv_.request.knowledge.push_back(item);
+      update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE);
+
+      ROS_INFO("PicknPlace: ADDING %s to %s", this->nearest_edge.c_str(), current_kb_state[i].values[0].value.c_str());
+      //Add sensed def class
+      item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
+      item.attribute_name = "at_pose";
+      item.values.clear();
+      pair.key = "cloth";
+      pair.value = current_kb_state[i].values[0].value; //"towel"; //Get from current KB state 
+      item.values.push_back(pair);
+      pair.key = "edge";
+      pair.value = this->nearest_edge;
+      item.values.push_back(pair);
+      update_kb_srv_.request.knowledge.push_back(item);
+      update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE);
+    }
+  }else
+      ROS_WARN("PicknPlaceAlgNode: Not possible to get current KB state");
+
+  return update_kb_srv_; //What if service could not be called?
+  
 }
 
 rosplan_knowledge_msgs::KnowledgeUpdateServiceArray PicknPlaceAlgNode::updateKB_defstate(void)
@@ -2286,16 +2405,6 @@ void PicknPlaceAlgNode::corners_callback(const visualization_msgs::MarkerArray::
   // std::cout << "Nearest center to origin: (" << edge_centers[nearestIndex].x << ", " << edge_centers[nearestIndex].y << ") with distance " << minDistance << std::endl;
   // std::cout << "Second nearest center to origin: (" << edge_centers[secondNearestIndex].x << ", " << edge_centers[secondNearestIndex].y << ") with distance " << secondMinDistance << std::endl;
 
-  // ---COMPUTE IF THE NEAREST EDGE IS LONG OR SHORT---
-  if(lengths[nearestIndex] < lengths[secondNearestIndex]) 
-  {
-    this->nearest_edge="short";
-    ROS_DEBUG("PicknPlaceAlgNode: Nearest edge is SHORT");
-  }else{
-    this->nearest_edge="long";
-    ROS_DEBUG("PicknPlaceAlgNode: Nearest edge is LONG");
-  }
-
   // ---COMPUTE THE GRASP ANGLE---
    // Compute perpendicular angle for the nearest edge
   double dx = edges[nearestIndex].first.x - edges[nearestIndex].second.x;
@@ -2347,7 +2456,18 @@ void PicknPlaceAlgNode::corners_callback(const visualization_msgs::MarkerArray::
   {
     std::cout << "------------------------------------------------" << std::endl;
     std::cout << "Nearest center to origin: (" << edge_centers[nearestIndex].x << ", " << edge_centers[nearestIndex].y << ") with distance " << minDistance << std::endl;
+    std::cout << "Second nearest center to origin: (" << edge_centers[secondNearestIndex].x << ", " << edge_centers[secondNearestIndex].y << ") with distance " << secondMinDistance << std::endl;
     std::cout << "Garment center: (" << disGarmenCenter << std::endl;
+
+      // ---COMPUTE IF THE NEAREST EDGE IS LONG OR SHORT---
+    if(lengths[nearestIndex] < lengths[secondNearestIndex]) 
+    {
+      this->nearest_edge="short";
+      ROS_WARN("PicknPlaceAlgNode: Nearest edge is SHORT");
+    }else{
+      this->nearest_edge="long";
+      ROS_WARN("PicknPlaceAlgNode: Nearest edge is LONG");
+    }
 
     // Get current grasp position
     this->compute_grasp_angle(grasp_angle);
@@ -2425,8 +2545,10 @@ void PicknPlaceAlgNode::corners_callback(const visualization_msgs::MarkerArray::
     {
       if(this->config_.ok)
       {
+        check_worspaces(disGarmenCenter); //Get workspace based on distance of garment center
         this->get_garment_position=false;
-        this->pddl_action_done=true; //End PDDL action
+        this->state=UPDATE_INIT_ROSPLAN_KB;
+        // this->pddl_action_done=true; //End PDDL action
       }
     }
     else
@@ -2495,15 +2617,21 @@ void PicknPlaceAlgNode::garment_pose_callback(const visualization_msgs::Marker::
   }*/
 }
 
-void PicknPlaceAlgNode::check_worspaces(double garment_center, double grasp_point)
+//void PicknPlaceAlgNode::check_worspaces(double garment_center, double grasp_point)
+void PicknPlaceAlgNode::check_worspaces(double garment_center)
 {
   //Grasp workspace (Can be dragged and grasped but not rotated)
 
   //Rotate workspace (can rotate but maybe not grasp)
   if(garment_center<0.7)
   {
-    ROS_WARN("PicknPlace: Out of Rotating workspace!");
+    ROS_WARN("PicknPlace: Rotating workspace!");
     this->workspace = "rotws";
+  }
+  else
+  {
+    ROS_WARN("PicknPlace: Out of rotating workspace!");
+    this->workspace = "grws";
   }
   //Grasp workspace (can grasp but maybe not rotate)
   // if(<grasp_point<)

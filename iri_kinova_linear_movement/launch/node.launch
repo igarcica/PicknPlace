@@ -5,13 +5,15 @@
   <arg name="output"        default="screen"/>
   <arg name="launch_prefix" default=""/>
   <arg name="config_file"   default="$(find iri_kinova_linear_movement)/config/params.yaml"/>
+  <arg name="respawn"       default="false"/>
   <!-- <arg name="topic_name"  default="new_topic_name"/> -->
 
   <node name="$(arg node_name)"
         pkg ="iri_kinova_linear_movement"
         type="iri_kinova_linear_movement"
         output="$(arg output)"
-        launch-prefix="$(arg launch_prefix)">
+        launch-prefix="$(arg launch_prefix)"
+        respawn="$(arg respawn)">
     <rosparam file="$(arg config_file)" command="load"/>
     <!--<remap from="~/topic" to="$(arg topic_name)"/>-->
   </node>

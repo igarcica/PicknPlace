@@ -49,9 +49,7 @@
 				(garment_state towel placed)
 				(not (known_obj towel2)))
 	:effect (and
-			(known_obj towel2)
-			(garment_at towel2 rotws) 
-			(at_pose towel2 long) 
+			(known_obj towel2) 
 			(garment_state towel2 notgrasped)
 			(not (corners_pos_known towel2))
 			(defstate towel2 flat)
@@ -63,13 +61,15 @@
 
 ;; Move to any waypoint, avoiding terrain
 (:action check_corners
-	:parameters (?cloth - garment)
+	:parameters (?cloth - garment ?ws - workspace ?edge - grasp)
 	:precondition (and
 				(garment_state ?cloth notgrasped)
 				(not (corners_pos_known ?cloth))
 				(robot_at high_pose))
 	:effect (and
 			(corners_pos_known ?cloth)
+			(garment_at ?cloth ?ws)
+			(at_pose ?cloth ?edge)
 			(increase (time_cost) 0)
 			(increase (place_qual) 0))
 )
@@ -131,9 +131,11 @@
 				(garment_at ?cloth grws)
 				(garment_state ?cloth notgrasped))
 	:effect (and 
-			(not (garment_at ?cloth grws))
-			(garment_at ?cloth rotws)
-			(robot_at drag_pose)
+			;;(not (garment_at ?cloth grws))
+			(not (corners_pos_known ?cloth))
+			;;(garment_at ?cloth rotws)
+			;;(robot_at drag_pose)
+			(robot_at home)
 			(not (robot_at home))
 			(increase (time_cost) 10)
 			(increase (place_qual) 0))

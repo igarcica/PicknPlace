@@ -74,6 +74,7 @@
 
 typedef enum {IDLE,
               HOME,
+              UPDATE_INIT_ROSPLAN_KB,
               PRE_PRE_DRAG,
               PRE_DRAG,
               DRAG,
@@ -186,7 +187,7 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     ros::Subscriber place_corners_subscriber;
     ros::Subscriber pile_height_subscriber;
     void garment_pose_callback(const visualization_msgs::Marker::ConstPtr& msg);
-    void check_worspaces(double garment_center, double grasp_point);
+    void check_worspaces(double garment_center);
     //void garment_angle_callback(const std_msgs::Float64::ConstPtr& msg);
     // void compute_grasp_angle(const std_msgs::Float64& msg);
     void compute_grasp_angle(double grasping_angle);
@@ -270,11 +271,12 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     void PDDLgoalCB();
     void PDDLpreemptCB();
     void managePDDLactions(void);
+    rosplan_knowledge_msgs::KnowledgeUpdateServiceArray updateKB_init(void);
     rosplan_knowledge_msgs::KnowledgeUpdateServiceArray updateKB_defstate(void);
     rosplan_knowledge_msgs::KnowledgeUpdateServiceArray updateKB_new_obj(void);
 
     // PDDL variables
-    bool start_pddl_demo;
+    bool plan_pddl_demo;
     bool pddl_demo;
     bool pddl_action_done;
     bool drag;

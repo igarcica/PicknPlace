@@ -10,7 +10,7 @@
 	flat A B C - defclass
 )
 
-(:init (garment_state towel notgrasped) (not (corners_pos_known towel)) (defstate towel flat)
+(:init (garment_at towel grws) (at_pose towel long) (garment_state towel notgrasped) (not (corners_pos_known towel)) (defstate towel flat)
 		(not (known_obj towel2))
 		(robot_at else) (robot_empty)
 		(= (time_cost) 0)
@@ -40,9 +40,9 @@
 		;;(def_class towel A)
 )
 
-(:goal (and (garment_state towel placed) ))
+;;(:goal (and (garment_state towel placed) ))
 ;;(:goal (and (on hola towel) (on teta hola) ))
-;;(:goal (and (on towel2 towel) ))
+(:goal (and (on towel2 towel) ))
 
 ;;(:metric minimize (time_cost))
 (:metric minimize (place_qual))

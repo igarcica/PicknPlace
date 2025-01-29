@@ -38,13 +38,19 @@ Launch the knowledge base, problem and planner interface to store the PDDL model
 
 or `rosplan_tutorial10_sim.launch` without launching the robot.
 
-Use Metric-FF to optimize cost function (instead of POPf) and rosplan_domain.pddl and rosplan_problem.pddl files which don't have durative-actions since Metric-FF does not support temporal planners. 
+Press `plan_pddl_demo` in the reconfigure to generate problem, plan and parse. If the plan is correct (check with `rostopic echo /rosplan_planner_interface/planner_output -p -n 1`), dispatch the plan calling the service:
+
+``rosservice call /rosplan_plan_dispatcher/dispatch_plan``
+
+Every time that the demo cancels the plan (after check_corners and check_deformation), replan and disptach again.
+
+<!-- Use Metric-FF to optimize cost function (instead of POPf) and rosplan_domain.pddl and rosplan_problem.pddl files which don't have durative-actions since Metric-FF does not support temporal planners. 
 
 Generate the problem and the plan with the script:
 
 `` ./tutorial04.bash``
 
-Use pddl_simple_plan_parser and dispatcher to send actions one by one.
+Use pddl_simple_plan_parser and dispatcher to send actions one by one. -->
 
 ## Dependencies
 

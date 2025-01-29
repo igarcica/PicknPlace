@@ -1,7 +1,7 @@
 (define (problem task)
 (:domain picknplacepileclass)
 (:objects
-    towel hola - garment
+    towel towel2 - garment
     long short - grasp
     placevert placediag placerot - placing
     grws rotws - workspace
@@ -10,47 +10,53 @@
     flat a b c - defclass
 )
 (:init
-    (garment_at towel grws)
-    (garment_at hola rotws)
+    (garment_at towel rotws)
 
-    (at_pose towel long)
-    (at_pose hola long)
+    (at_pose towel short)
 
-    (garment_state towel placed)
-    (garment_state hola lifted)
+    (garment_state towel notgrasped)
 
-    (not (corners_pos_known towel))
-    (corners_pos_known hola)
+    (corners_pos_known towel)
 
-    (robot_at else)
+    (robot_at high_pose)
 
+    (robot_empty)
 
-    (known_obj hola)
+    (not (known_obj towel2))
 
-    (defstate towel A)
-    (defstate hola A)
+    (defstate towel flat)
 
 
-    (def_class towel a)
-    (def_class hola a)
+
+    (obj_grasp_class long a)
+    (obj_grasp_class short b)
 
     (= (time_cost) 0)
 
     (= (place_qual) 0)
 
-    (= (place_succ a placevert) 0)
-    (= (place_succ b placevert) 30)
-    (= (place_succ c placevert) 60)
-    (= (place_succ a placediag) 10)
-    (= (place_succ b placediag) 15)
-    (= (place_succ c placediag) 31)
-    (= (place_succ a placerot) 11)
-    (= (place_succ b placerot) 20)
-    (= (place_succ c placerot) 5)
+    (= (place_succ towel a placevert) 0)
+    (= (place_succ towel b placevert) 10)
+    (= (place_succ towel c placevert) 60)
+    (= (place_succ towel a placediag) 10)
+    (= (place_succ towel b placediag) 15)
+    (= (place_succ towel c placediag) 31)
+    (= (place_succ towel a placerot) 11)
+    (= (place_succ towel b placerot) 20)
+    (= (place_succ towel c placerot) 5)
+    (= (place_succ towel2 a placevert) 100)
+    (= (place_succ towel2 b placevert) 10)
+    (= (place_succ towel2 c placevert) 60)
+    (= (place_succ towel2 a placediag) 100)
+    (= (place_succ towel2 b placediag) 15)
+    (= (place_succ towel2 c placediag) 31)
+    (= (place_succ towel2 a placerot) 110)
+    (= (place_succ towel2 b placerot) 0)
+    (= (place_succ towel2 c placerot) 5)
 
 )
 (:goal (and
-    (on hola towel)
+    (garment_state towel placed)
 ))
-(:metric minimize (+ (* 5 (time_cost)) (* 10 (place_qual))))
+(:metric minimize (place_qual))
 )
