@@ -1,0 +1,9 @@
+string layers
+string grasp
+float32 nongraspedsize
+float32 graspedsize
+float32 area
+float32 stiffness
+float32 friction
+---
+string output_response
