@@ -1,0 +1,5 @@
+GIT
+data/save_data/PCD_placing/
+pick_n_place/scripts/grasped_object_sample.bag
+pnp_planner/config/
+pnp_planner/scripts/

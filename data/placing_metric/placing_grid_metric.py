@@ -20,22 +20,25 @@ import plotly.graph_objs as go
 
 
 all_files = False
-data_directory ="/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/PCD_placing/"
-pcd_file = "towel_me_r_1.pcd" #pillowc_se_v_1.pcd" #towel_me_r_1.pcd"
+# data_directory ="/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/PCD_placing/"
+# pcd_file = "towel_me_r_1.pcd" #pillowc_se_v_1.pcd" #towel_me_r_1.pcd"
+data_directory ="/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/test/bad/"
+pcd_file = "towel.pcd"
 pcd_dir = data_directory+pcd_file
-write_dir = "/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/placing_metric/3x3/metric/"
+write_dir = "/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/placing_metric/"
 
 save_csv = False
 activate_print = False
 
-n_divisions = 10
+n_divisions = 3
 cam_to_table = 0.8 ## Used in 
-gripper_position = [0.32, -0.025] ## Used to compute grid divisions
+gripper_position = [0.32, -0.025] ## Used to compute grid divisions (wrt ext_camera_link changing x-axis for z-axis)
 piling = False
 
-raw_sample_filter_box = [[0.3, 0.7], [-0.2, 0.2], [-0.3, 0.3]] #box to filter sample removing noise points
+raw_sample_filter_box = [[0, cam_to_table], [-0.2, 0.2], [0, 0.3]] #box to filter sample removing noise points wrt camera axis
 plot_scale = dict(xaxis=dict(range=[0, 0.4]), yaxis=dict(range=[0.2, -0.2]), zaxis=dict(range=[0, 0.3]), aspectratio=dict(x=1, y=1, z=1) ) #plot scale for grasped samples
-plot_scale_color = [0.0, 0.1] # plot depth color scale for grasped samples
+# plot_scale_color = [0.0, 0.1] # plot depth color scale for grasped samples
+plot_scale_color = [0.0, 1] # plot depth color scale for grasped samples
 
 ## In the case of the placing metric, the thickness of the objects plays a role
 CLOTH_SIZE = {
@@ -87,6 +90,7 @@ def print_info(activate, arg1, arg2="", arg3="", arg4="", arg5="", arg6="", arg7
     if(activate):
         print(str(arg1) + str(arg2) + str(arg3) + str(arg4) + str(arg5) + str(arg6) + str(arg7))
 
+## Plots data inside the given plot scale
 def plot(data, file_name, scale, scale_color):
     data = np.array(data)
     fig = px.scatter_3d(x=data[:,0], y=data[:,1], z=data[:,2], color=data[:,2])
@@ -114,6 +118,8 @@ def plot_with_info(data, x_grid_divs, y_grid_divs, can_edges, filename, scale, s
     z_data=data[:,2]
     bright_blue = [[0, '#7DF9FF'], [1, '#7DF9FF']]
     bright_pink = [[0, '#FF007F'], [1, '#FF007F']]
+    obj_edge_size = CLOTH_SIZE.get(obj_name, None) #Get object dimensions
+    obj_thickn=obj_edge_size[2]
 
     # Plot garment
     fig = px.scatter_3d(x=data[:,0], y=data[:,1], z=data[:,2], color=data[:,2])
@@ -136,7 +142,7 @@ def plot_with_info(data, x_grid_divs, y_grid_divs, can_edges, filename, scale, s
     # Plot Canonical plane
     x=np.linspace(can_edges[0],can_edges[1],100)
     y=np.linspace(can_edges[2],can_edges[3],50)
-    z=0.05*np.ones(len(y_data))
+    z=obj_thickn*np.ones(len(y_data))
     canonic = go.Surface(x=x, y=y, z=np.array([z]*len(x)).T, colorscale=bright_pink, opacity=0.4)
     canonic_plane.append(canonic)
 
@@ -222,10 +228,10 @@ def filter_sample(data, filter_box):
 
     return filtered_sample
 
-## Moves pointcloud to have gripper points to 0
-def translate_data(obj_data):
+## Moves pointcloud to have points near the table 0
+def translate_data(data):
     ## Traslate depth (0(gripper)-deformation)
-    depth = obj_data[:,0]
+    depth = data[:,0]
     transl_data = []
     not_pile_data = []
     suma = 0
@@ -233,7 +239,7 @@ def translate_data(obj_data):
         #point = (depth[i]-can_min_depth)/(1-can_min_depth)
         point = cam_to_table - depth[i] # new points should positive from 0 to deformation
         suma += point
-        new_point=[obj_data[i,2], obj_data[i,1], point] #changed axis to have z as depth
+        new_point=[data[i,2], data[i,1], point] #changed axis to have z as depth
         transl_data.append(new_point)
 
     transl_data = np.array(transl_data)
@@ -246,25 +252,27 @@ def translate_data(obj_data):
     metrics = [mean, median]
 
     activate_print=True
-    print_info(activate_print, "Y min: ", min(obj_data[:,1]))
-    print_info(activate_print, "Y max: ", max(obj_data[:,1]))
-    print_info(activate_print, "Edge Y: ", max(obj_data[:,1])-min(obj_data[:,1]))
-    print_info(activate_print, "X min: ", min(obj_data[:,2]))
-    print_info(activate_print, "X max: ", max(obj_data[:,2]))
-    print_info(activate_print, "Edge X: ", max(obj_data[:,2])-min(obj_data[:,2]))
+    print_info(activate_print, "Y min: ", min(data[:,1]))
+    print_info(activate_print, "Y max: ", max(data[:,1]))
+    print_info(activate_print, "Edge Y: ", max(data[:,1])-min(data[:,1]))
+    print_info(activate_print, "X min: ", min(data[:,2]))
+    print_info(activate_print, "X max: ", max(data[:,2]))
+    print_info(activate_print, "Edge X: ", max(data[:,2])-min(data[:,2]))
     activate_print=False
 
     return transl_data, metrics
 
 ## Normalizes pointcloud, where 0 is the table position + the object/pile thickness and 1 is largest size (?) - what can we assign as the max deformation?
-def normalize_transl_data(transl_data):
+def normalize_transl_data(data):
     obj_edge_size = CLOTH_SIZE.get(obj_name, None) #Get object dimensions
-    max_depth = obj_edge_size[non_grasped_edge]
-    depth = transl_data[:,2]
+    min_depth = obj_edge_size[2] #Object's thickness should be 0 deformation
+    max_depth = obj_edge_size[0]/2 #half of the long edge (is unlikely to be placed vertically)
+    depth = data[:,2]
     norm_transl_data = []
     for i in range(len(depth)):
-        point = depth[i]/max_depth
-        new_point=[obj_data[i,2], obj_data[i,1], point]
+        # point = depth[i]/max_depth
+        point = (depth[i]-min_depth)/max_depth
+        new_point=[data[i,0], data[i,1], point] #Maintain axis from transl_data
         norm_transl_data.append(new_point)
 
     norm_transl_data = np.array(norm_transl_data)
@@ -409,20 +417,32 @@ def def_metric(grids, obj_dims):
             print_info(activate_print, "Grid mean: ", grid_mean)
             means.append(grid_mean)
     
+            # #Instead of normalizing the data with the thickness (what will bias the data), we substract the thickness to the resulting metric
+            # if piling:
+            #     grid_def = grid_mean-(obj_thickness*2)
+            # else:
+            #     grid_def = grid_mean-obj_thickness
+            # norm_means.append(grid_def) 
+            # #What if grid_def is negative?
+
             #Instead of normalizing the data with the thickness (what will bias the data), we substract the thickness to the resulting metric
+            min_depth = obj_dims[2] #Object's thickness should be 0 deformation
+            max_depth = obj_dims[0]/2 #half of the long edge (is unlikely to be placed vertically)
             if piling:
-                grid_def = grid_mean-(obj_thickness*2)
+                # grid_def = grid_mean-(obj_thickness*2)
+                point = grid_mean/(max_depth+min_depth)
+                # grid_def = (grid_mean-(min_depth*2))/0.1
             else:
-                grid_def = grid_mean-obj_thickness
+                # grid_def = grid_mean-obj_thickness
+                # grid_def = grid_mean/max_depth
+                grid_def = (grid_mean-min_depth)/(min_depth)
             norm_means.append(grid_def) 
             #What if grid_def is negative?
             
     print("Means: ", means)
     print("Norm means: ", norm_means)
-
-    print("length: ", len(means))
-    print("length: ", len(norm_means))
-    
+    print("Mean means: ", sts.mean(means))
+    print("Mean norm means: ", sts.mean(norm_means))
     return means, norm_means
 
 def distan(metrics, n_div):
@@ -432,7 +452,7 @@ def distan(metrics, n_div):
     metrics = metrics.reshape(-1, 1)
     # hola = listofzeros = [0] * n_div*n_div
     # print(hola)
-    gt_matrix = np.zeros(n_div*n_div)
+    gt_matrix = 0.03*np.ones(n_div*n_div)
     gt_matrix = gt_matrix.reshape(-1, 1) 
     # print(type(metrics))
     # print(type(hola))
@@ -444,16 +464,16 @@ def distan(metrics, n_div):
 
     # Calculate the Frobenius norm of the difference
     dist_eucl = np.linalg.norm(metrics - gt_matrix, 'fro') #'fro' #Frobenius norm  #1 #1-norm #np.inf #infinity-norm
-    print("DIST: ", dist_eucl)
+    print("DIST EUCL: ", dist_eucl)
     distances.append(dist_eucl)
     dist_1 = np.linalg.norm(metrics - gt_matrix, 1) #'fro' #Frobenius norm  #1 #1-norm #np.inf #infinity-norm
-    print("DIST: ", dist_1)
+    print("DIST 1NORM: ", dist_1)
     distances.append(dist_1)
     dist_inf = np.linalg.norm(metrics - gt_matrix, np.inf) #'fro' #Frobenius norm  #1 #1-norm #np.inf #infinity-norm
-    print("DIST: ", dist_inf)
+    print("DIST INFNORM: ", dist_inf)
     distances.append(dist_inf)
 
-    print(distances)
+    # print(distances)
 
     return distances
 
@@ -473,14 +493,15 @@ if not all_files:
     ## ---Process data---
     obj_pcd = o3d.io.read_point_cloud(pcd_dir)
     obj_data = np.asarray(obj_pcd.points)
-    # filtered_sample = filter_sample(obj_data, raw_sample_filter_box) ##Remove noise points - necessary in placing?
-    transl_data, depth_mean = translate_data(obj_data) ##Move points to 0 (from table)
-    # norm_transl_data, norm_depth_mean = normalize_transl_data(transl_data)
+    filtered_sample = filter_sample(obj_data, raw_sample_filter_box) ##Remove noise points - necessary in placing?
+    transl_data, depth_mean = translate_data(filtered_sample) ##Move points to 0 (from table)
+    norm_transl_data, norm_depth_mean = normalize_transl_data(transl_data)
     # plot_raw_data(obj_data)
     # plot_raw_data(filtered_sample)
-    plot_raw_data(transl_data)
+    # plot_raw_data(transl_data)
     # plot_raw_data(norm_transl_data)
-    plot(transl_data, "TRANSL", plot_scale, plot_scale_color) ## Plot translated point cloud
+    # plot(transl_data, "TRANSL", plot_scale, plot_scale_color) ## Plot translated point cloud
+    # plot(norm_transl_data, "TRANSL", plot_scale, plot_scale_color) ## Plot translated point cloud
     
     ## ---Divide in grids---
     can_x_grid_divs, can_y_grid_divs, can_edges, obj_dimensions  = create_canonical(obj_name, n_divisions, gripper_position) #get grid divisions
@@ -495,6 +516,7 @@ if not all_files:
 
     ## Compute placing quality computing the distance of the grid metric to the gt metric (0 deformation)
     distan(mean_metrics, n_divisions)
+    distan(norm_mean_metrics, n_divisions)
 
     
 
