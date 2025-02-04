@@ -2,7 +2,7 @@
 
 ## SENSE Deformation class with ROS
 
-Provides a ROS Service ``/pick_n_place/sense_def_class`` of type ``GetDefClass`` that computes the grid metric and clusterizes it. It resturn the deformation cluster where it pertains.
+Provides a ROS Service ``/pick_n_place/sense_def_class`` of type ``SenseDefClass`` that computes the grid metric and clusterizes it. It resturn the deformation cluster where it pertains.
 <!-- ## Offline - Without the robot -->
 
 To compute the deformation cluster of a grasped object in real time (through ROS topic), execute:

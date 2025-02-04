@@ -29,7 +29,7 @@ find_package(catkin REQUIRED COMPONENTS rospy iri_base_algorithm iri_kinova_line
 ## Generate services in the 'srv' folder
 add_service_files(
   FILES
-  GetDefClass.srv
+  SenseDefClass.srv
   PredictDefClass.srv
 )
 

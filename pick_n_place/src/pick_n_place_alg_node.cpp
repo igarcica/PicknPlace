@@ -84,9 +84,12 @@ PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
 
   activate_publishing_client_ = this->private_node_handle_.serviceClient<kortex_driver::OnNotificationActionTopic>("/" + this->robot_name + "/base/activate_publishing_of_action_topic");
 
-  //Deformation class service
-  get_deformation_class_client_ = this->private_node_handle_.serviceClient<pick_n_place::GetDefClass>("/pick_n_place/get_def_class");
+  //Deformation class services
+  sense_deformation_class_client_ = this->private_node_handle_.serviceClient<pick_n_place::SenseDefClass>("/pick_n_place/sense_def_class");
   this->sensed_deformation_class = "A";
+  predict_deformation_class_client_ = this->private_node_handle_.serviceClient<pick_n_place::PredictDefClass>("/pick_n_place/predict_def_class");
+  this->predicted_def_class_nearest_edge = "A";
+  this->predicted_def_class_second_nearest_edge = "A";
 
   //ROSPlan services
   generate_problem_client_ = this->private_node_handle_.serviceClient<std_srvs::Empty>("/rosplan_problem_interface/problem_generation_server");
@@ -112,6 +115,7 @@ PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
   this->rotate=false;
   this->rotation=90;
   this->nearest_edge="long";
+  this->second_nearest_edge="short";
   this->workspace="grws";
 
   // [init action clients]
@@ -678,10 +682,10 @@ void PicknPlaceAlgNode::mainNodeThread(void)
 
       case CHECK_DEFORMATION: ROS_INFO("PicknPlaceAlgNode: state CHECK DEFORMATION");
                               {
-                                if(get_deformation_class_client_.call(get_deformation_class_srv_))
+                                if(sense_deformation_class_client_.call(sense_deformation_class_srv_))
                                 {
-                                  ROS_INFO("PicknPlace: Received deformation class: %s", get_deformation_class_srv_.response.output_response.c_str());
-                                  this->sensed_deformation_class = get_deformation_class_srv_.response.output_response;
+                                  ROS_INFO("PicknPlace: Received deformation class: %s", sense_deformation_class_srv_.response.output_response.c_str());
+                                  this->sensed_deformation_class = sense_deformation_class_srv_.response.output_response;
                                   if(this->pddl_demo)
                                   {
                                     // this->pddl_action_done=true; // End PDDL action
@@ -814,10 +818,10 @@ void PicknPlaceAlgNode::mainNodeThread(void)
 
       /*case CHOOSE_PLACING: ROS_DEBUG("PickPlacceAlgNode: state CHOOSE PLACING");
                            {
-                            if(get_deformation_class_client_.call(get_deformation_class_srv_))
+                            if(sense_deformation_class_client_.call(sense_deformation_class_srv_))
                             {
                               ROS_INFO("Deformation class: ");
-                              ROS_INFO("Sum: %ld", (long int)get_deformation_class_srv_.response.output_response);
+                              ROS_INFO("Sum: %ld", (long int)sense_deformation_class_srv_.response.output_response);
 			                        std::cout << this->placing_strategy << std::endl;
                               this->success = true;
                               if(this->placing_strategy==1)
@@ -1768,9 +1772,8 @@ rosplan_knowledge_msgs::KnowledgeUpdateServiceArray PicknPlaceAlgNode::updateKB_
     ROS_WARN("Update garment_at");
 
     for(size_t i=0; i<current_kb_state.size(); i++) {
-      // std::cout << "PicknPlace: Sense deformation class: " << this->sensed_deformation_class << std::endl;
+      //Remove previous workspace
       ROS_INFO("PicknPlace: REMOVING %s to %s", current_kb_state[i].values[1].value.c_str(), current_kb_state[i].values[0].value.c_str());
-      //Remove previous def class
       rosplan_knowledge_msgs::KnowledgeItem item;
       item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
       item.attribute_name = "garment_at";
@@ -1786,7 +1789,7 @@ rosplan_knowledge_msgs::KnowledgeUpdateServiceArray PicknPlaceAlgNode::updateKB_
       update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE);
 
       ROS_INFO("PicknPlace: ADDING %s to %s", this->workspace.c_str(), current_kb_state[i].values[0].value.c_str());
-      //Add sensed def class
+      //Add sensed workspace
       item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
       item.attribute_name = "garment_at";
       item.values.clear();
@@ -1812,9 +1815,8 @@ rosplan_knowledge_msgs::KnowledgeUpdateServiceArray PicknPlaceAlgNode::updateKB_
     ROS_WARN("Update at_pose");
 
     for(size_t i=0; i<current_kb_state.size(); i++) {
-      // std::cout << "PicknPlace: Sense deformation class: " << this->sensed_deformation_class << std::endl;
+      //Remove previous edge
       ROS_INFO("PicknPlace: REMOVING %s to %s", current_kb_state[i].values[1].value.c_str(), current_kb_state[i].values[0].value.c_str());
-      //Remove previous def class
       rosplan_knowledge_msgs::KnowledgeItem item;
       item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
       item.attribute_name = "at_pose";
@@ -1829,8 +1831,8 @@ rosplan_knowledge_msgs::KnowledgeUpdateServiceArray PicknPlaceAlgNode::updateKB_
       update_kb_srv_.request.knowledge.push_back(item);
       update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE);
 
+      //Add nearest edge
       ROS_INFO("PicknPlace: ADDING %s to %s", this->nearest_edge.c_str(), current_kb_state[i].values[0].value.c_str());
-      //Add sensed def class
       item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
       item.attribute_name = "at_pose";
       item.values.clear();
@@ -1842,6 +1844,69 @@ rosplan_knowledge_msgs::KnowledgeUpdateServiceArray PicknPlaceAlgNode::updateKB_
       item.values.push_back(pair);
       update_kb_srv_.request.knowledge.push_back(item);
       update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE);
+    }
+  }else
+      ROS_WARN("PicknPlaceAlgNode: Not possible to get current KB state");
+
+  //PREDICTED DEFORMATION CLASS - How to update both edges?
+  get_kb_state_srv_.request.predicate_name = "obj_grasp_class"; 
+  if(get_kb_state_client_.call(get_kb_state_srv_))
+  {
+    current_kb_state = get_kb_state_srv_.response.attributes;
+    ROS_WARN("Update obj_grasp_class");
+
+    for(size_t i=0; i<current_kb_state.size(); i++) {
+      ROS_INFO("PicknPlace: REMOVING %s to %s", current_kb_state[i].values[1].value.c_str(), current_kb_state[i].values[0].value.c_str());
+      //Remove previous def class
+      rosplan_knowledge_msgs::KnowledgeItem item;
+      item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
+      item.attribute_name = "obj_grasp_class";
+      item.values.clear();
+      diagnostic_msgs::KeyValue pair;
+      pair.key = "grasp";
+      pair.value = current_kb_state[i].values[0].value; //long or short
+      item.values.push_back(pair);
+      pair.key = "defclass";
+      pair.value = current_kb_state[i].values[1].value; //A, B or C
+      item.values.push_back(pair);
+      update_kb_srv_.request.knowledge.push_back(item);
+      update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE);
+
+      //UPDATE PREDICTED DEF CLASS FOR BOTH EDGES
+      if(current_kb_state[i].values[0].value == this->nearest_edge)
+      {
+        std::cout << "PicknPlace: Predicted deformation class: " << this->predicted_def_class_nearest_edge << std::endl;
+        ROS_INFO("PicknPlace: ADDING %s to %s", this->predicted_def_class_nearest_edge.c_str(), current_kb_state[i].values[0].value.c_str());
+        //Add predicted def class
+        item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
+        item.attribute_name = "obj_grasp_class";
+        item.values.clear();
+        pair.key = "grasp";
+        pair.value = current_kb_state[i].values[0].value; //short or long" 
+        item.values.push_back(pair);
+        pair.key = "defclass";
+        pair.value = this->predicted_def_class_nearest_edge; //this->predicted_deformation_class;
+        item.values.push_back(pair);
+        update_kb_srv_.request.knowledge.push_back(item);
+        update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE);
+      }
+      else if(current_kb_state[i].values[0].value == this->second_nearest_edge) //else or else if?
+      {
+        ROS_INFO("PicknPlace: ADDING %s to %s", this->predicted_def_class_second_nearest_edge.c_str(), current_kb_state[i].values[0].value.c_str());
+        //Add predicted def class
+        item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
+        item.attribute_name = "obj_grasp_class";
+        item.values.clear();
+        pair.key = "grasp";
+        pair.value = current_kb_state[i].values[0].value; //short or long" 
+        item.values.push_back(pair);
+        pair.key = "defclass";
+        pair.value = this->predicted_def_class_second_nearest_edge; //this->predicted_deformation_class;
+        item.values.push_back(pair);
+        update_kb_srv_.request.knowledge.push_back(item);
+        update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE);
+      }
+      
     }
   }else
       ROS_WARN("PicknPlaceAlgNode: Not possible to get current KB state");
@@ -2069,6 +2134,40 @@ rosplan_knowledge_msgs::KnowledgeUpdateServiceArray PicknPlaceAlgNode::updateKB_
 	update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE);
 
   return update_kb_srv_;
+}
+
+void PicknPlaceAlgNode::predict_deformation_class(void)
+{
+  // TO DO: Predict deformation class for nearest edge and second nearest edge, plan and get optimal plan (with less cost)
+  //PREDICT DEFORMATION CLASS for NEAREST EDGE
+  predict_deformation_class_srv_.request.layers = config_.layers; //"8l"; //reconfigure
+  predict_deformation_class_srv_.request.grasp = this->nearest_edge; //short or long
+  predict_deformation_class_srv_.request.nongraspedsize = this->not_grasped_edge_size;
+  predict_deformation_class_srv_.request.graspedsize = this->grasped_edge_size;
+  predict_deformation_class_srv_.request.area = this->grasped_edge_size * this->not_grasped_edge_size;
+  predict_deformation_class_srv_.request.stiffness = config_.stiffness; //reconfigure
+  predict_deformation_class_srv_.request.friction =  config_.friction; //reconfigure
+  if(predict_deformation_class_client_.call(predict_deformation_class_srv_))
+  {
+    std::cout << "Predicted deformation class grasping nearest edge: " << predict_deformation_class_srv_.response.output_response << std::endl;
+    this->predicted_def_class_nearest_edge = predict_deformation_class_srv_.response.output_response;
+  }
+
+  //PREDICT DEFORMATION CLASS for SECOND NEAREST EDGE
+  predict_deformation_class_srv_.request.layers = config_.layers; //"8l"; //reconfigure
+  predict_deformation_class_srv_.request.grasp = this->second_nearest_edge; //short or long
+  predict_deformation_class_srv_.request.nongraspedsize = this->grasped_edge_size;
+  predict_deformation_class_srv_.request.graspedsize = this->not_grasped_edge_size;
+  predict_deformation_class_srv_.request.area = this->grasped_edge_size * this->not_grasped_edge_size;
+  predict_deformation_class_srv_.request.stiffness = config_.stiffness; //reconfigure
+  predict_deformation_class_srv_.request.friction =  config_.friction; //reconfigure
+  if(predict_deformation_class_client_.call(predict_deformation_class_srv_))
+  {
+    std::cout << "Predicted deformation class grasping SECOND nearest edge: " << predict_deformation_class_srv_.response.output_response << std::endl;
+    this->predicted_def_class_second_nearest_edge = predict_deformation_class_srv_.response.output_response;
+  }
+  //Update KB, plan, and save resulting cost
+
 }
 
 /* PERCEPTION FUNCTIONS */
@@ -2463,9 +2562,11 @@ void PicknPlaceAlgNode::corners_callback(const visualization_msgs::MarkerArray::
     if(lengths[nearestIndex] < lengths[secondNearestIndex]) 
     {
       this->nearest_edge="short";
+      this->second_nearest_edge="long";
       ROS_WARN("PicknPlaceAlgNode: Nearest edge is SHORT");
     }else{
       this->nearest_edge="long";
+      this->second_nearest_edge="short";
       ROS_WARN("PicknPlaceAlgNode: Nearest edge is LONG");
     }
 
@@ -2494,13 +2595,17 @@ void PicknPlaceAlgNode::corners_callback(const visualization_msgs::MarkerArray::
     marker.pose.position.z=0.005;// pre_grasp_center.z;
     grasp_marker_publisher.publish(marker); //Publish grasping point marker - nearest edge center
 
+    //--- GET PILE HEIGHT AND OBJECT'S EDGE SIZES ---
     this->pile_height = 0.0;
     this->get_pile_height = true;
     //this->garment_edge_size = garment_edge.data;
+    this->grasped_edge_size = lengths[nearestIndex];
+    this->not_grasped_edge_size = lengths[secondNearestIndex];
     std::cout << "\033[1;36m Non grasped edge size --> \033[1;0m " <<  this->garment_edge_size << std::endl;
     std::cout << "\033[1;36m SENSED Non grasped edge size --> \033[1;0m " <<  lengths[secondNearestIndex] << std::endl;
     std::cout << "\033[1;36m SENSED Grasped edge size --> \033[1;0m " <<  lengths[nearestIndex] << std::endl;
 
+    // --- GET DRAGGOMG AND ROTATING POSES ---
     // Dragging pose is inclined orientation over garment
     // this->dragging_pose_garment = this->pre_grasp_center;
     this->dragging_pose_garment.x = garment_center.x; // + this->pre_grasp_distance.x;
@@ -2524,22 +2629,22 @@ void PicknPlaceAlgNode::corners_callback(const visualization_msgs::MarkerArray::
     marker.pose.position.z=0.005; //garment_center.z;
     garment_marker_publisher.publish(marker);
 
-    // Validate goal pose
-    ROS_INFO("Check grasp");
-    kortex_driver::Waypoint waypoint;
-    std::cout << "\033[1;36m GRASP pose --> x: " << this->pre_grasp_center.x << " y: " << this->pre_grasp_center.y << " z: " << this->pre_grasp_center.z << "\033[1;0m" << std::endl;
-    std::cout << "\033[1;36m GRASP pose --> x: " << this->pre_grasp_center.theta_x << " y: " << this->pre_grasp_center.theta_y << " z: " << this->pre_grasp_center.theta_z << "\033[1;0m" << std::endl;
-    waypoint = FillCartesianWaypoint(this->pre_grasp_center, 0);
-    bool valid = validate_waypoint(waypoint);
-    if(valid)
-      ROS_WARN("good");
-    ROS_INFO("Check rotate");
-    std::cout << "\033[1;36m DRAGGING pose --> x: " << this->dragging_pose_garment.x << " y: " << this->dragging_pose_garment.y << " z: " << this->dragging_pose_garment.z << "\033[1;0m" << std::endl;
-    std::cout << "\033[1;36m DRAGGING pose --> x: " << this->dragging_pose_garment.theta_x << " y: " << this->dragging_pose_garment.theta_y << " z: " << this->dragging_pose_garment.theta_z << "\033[1;0m" << std::endl;
-    waypoint = FillCartesianWaypoint(this->dragging_pose_garment, 0);
-    valid = validate_waypoint(waypoint);
-    if(valid)
-      ROS_WARN("good");
+    // // --- VALIDATE GOAL POSE ---
+    // ROS_INFO("Check grasp");
+    // kortex_driver::Waypoint waypoint;
+    // std::cout << "\033[1;36m GRASP pose --> x: " << this->pre_grasp_center.x << " y: " << this->pre_grasp_center.y << " z: " << this->pre_grasp_center.z << "\033[1;0m" << std::endl;
+    // std::cout << "\033[1;36m GRASP pose --> x: " << this->pre_grasp_center.theta_x << " y: " << this->pre_grasp_center.theta_y << " z: " << this->pre_grasp_center.theta_z << "\033[1;0m" << std::endl;
+    // waypoint = FillCartesianWaypoint(this->pre_grasp_center, 0);
+    // bool valid = validate_waypoint(waypoint);
+    // if(valid)
+    //   ROS_WARN("good");
+    // ROS_INFO("Check rotate");
+    // std::cout << "\033[1;36m DRAGGING pose --> x: " << this->dragging_pose_garment.x << " y: " << this->dragging_pose_garment.y << " z: " << this->dragging_pose_garment.z << "\033[1;0m" << std::endl;
+    // std::cout << "\033[1;36m DRAGGING pose --> x: " << this->dragging_pose_garment.theta_x << " y: " << this->dragging_pose_garment.theta_y << " z: " << this->dragging_pose_garment.theta_z << "\033[1;0m" << std::endl;
+    // waypoint = FillCartesianWaypoint(this->dragging_pose_garment, 0);
+    // valid = validate_waypoint(waypoint);
+    // if(valid)
+    //   ROS_WARN("good");
 
     if(this->pddl_demo)
     {
@@ -2547,6 +2652,7 @@ void PicknPlaceAlgNode::corners_callback(const visualization_msgs::MarkerArray::
       {
         check_worspaces(disGarmenCenter); //Get workspace based on distance of garment center
         this->get_garment_position=false;
+        predict_deformation_class(); //Predict deformation classes for both edges
         this->state=UPDATE_INIT_ROSPLAN_KB;
         // this->pddl_action_done=true; //End PDDL action
       }

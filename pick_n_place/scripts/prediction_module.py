@@ -56,7 +56,6 @@ def prepare_data(new_sample):
 
     return new_sample_processed
 
-
 def predict_def_class(new_sample):
 
     global_dir = "/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/placing_metric/"
@@ -78,7 +77,6 @@ def predict_def_class(new_sample):
     print(f"Predicted deformation class: {predicted_class[0]}")
 
     return predicted_class[0]
-
 
 def handle_service(req):
 

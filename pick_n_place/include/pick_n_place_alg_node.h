@@ -49,7 +49,8 @@
 #include <kortex_driver/SetCartesianReferenceFrame.h>
 #include <kortex_driver/Base_ClearFaults.h>
 #include <kortex_driver/OnNotificationActionTopic.h>
-#include <pick_n_place/GetDefClass.h> //Deformation class module
+#include <pick_n_place/SenseDefClass.h> //Deformation class module
+#include <pick_n_place/PredictDefClass.h> //Deformation class module
 #include <std_srvs/Empty.h> 
 //#include <rosplan_dispatch_msgs/DispatchService.h> //ROSPlan
 #include <rosplan_knowledge_msgs/KnowledgeUpdateServiceArray.h> //ROSPlan
@@ -155,8 +156,10 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     kortex_driver::Pose pre_rotating_pose_garment;
     kortex_driver::Pose rotating_pose_garment;
     kortex_driver::Pose dragging_pose_garment;
-    float garment_width;
-    float garment_edge_size;
+    float garment_width;     //para borrar
+    float garment_edge_size; //para borrar
+    float grasped_edge_size;
+    float not_grasped_edge_size;
     float pile_height;
     int cartesian_rf;
     bool diagonal_place;
@@ -249,9 +252,13 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     ros::ServiceClient activate_publishing_client_;
     kortex_driver::OnNotificationActionTopic activate_publishing_srv_;
 
-    ros::ServiceClient get_deformation_class_client_;
-    pick_n_place::GetDefClass get_deformation_class_srv_;
+    ros::ServiceClient sense_deformation_class_client_;
+    pick_n_place::SenseDefClass sense_deformation_class_srv_;
     std::string sensed_deformation_class;
+    ros::ServiceClient predict_deformation_class_client_;
+    pick_n_place::PredictDefClass predict_deformation_class_srv_;
+    std::string predicted_def_class_nearest_edge;
+    std::string predicted_def_class_second_nearest_edge;
 
     //ROSPlan services
     ros::ServiceClient generate_problem_client_;
@@ -274,6 +281,7 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     rosplan_knowledge_msgs::KnowledgeUpdateServiceArray updateKB_init(void);
     rosplan_knowledge_msgs::KnowledgeUpdateServiceArray updateKB_defstate(void);
     rosplan_knowledge_msgs::KnowledgeUpdateServiceArray updateKB_new_obj(void);
+    void predict_deformation_class(void);
 
     // PDDL variables
     bool plan_pddl_demo;
@@ -283,6 +291,7 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     bool rotate;
     double rotation;
     std::string nearest_edge;
+    std::string second_nearest_edge;
     std::string workspace;
     
 

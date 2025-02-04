@@ -4,7 +4,7 @@ import rospy
 import ros_numpy
 from sensor_msgs.msg import PointCloud2
 from std_msgs.msg import String
-from pick_n_place.srv import GetDefClass, GetDefClassResponse
+from pick_n_place.srv import SenseDefClass, SenseDefClassResponse
 
 import numpy as np
 import open3d as o3d
@@ -160,12 +160,12 @@ def handle_service(req):
     elif(int_def_class == 2):
         str_def_class = "C"
 
-    return GetDefClassResponse(str_def_class)
+    return SenseDefClassResponse(str_def_class)
 
 def main():
     rospy.init_node('deformation_clustering', anonymous=True)
     rospy.loginfo("Deformation_clustering: Node ready")
-    s = rospy.Service('/pick_n_place/get_def_class', GetDefClass, handle_service)
+    s = rospy.Service('/pick_n_place/sense_def_class', SenseDefClass, handle_service)
     rospy.spin()
 
 # def listener():

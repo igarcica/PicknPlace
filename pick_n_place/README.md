@@ -36,6 +36,8 @@ This will launch the RVIZ to visualize the perception system and rqt reconfigure
 The rqt_reconfigure includes the following variables:
 
 - ***Start SM:***
+  - **drag**: Executes the drag action after sensing object's pose.
+  - **rotate**: Executes the rotate action after sensing object's pose.
   - **get_grasp_point**: Confirm the grasp point selected (pink point in RVIZ). 
   - **start_demo**: Starts the state machine.
   - **start_experiments**: Starts the state machine from the placing state to obtain data.
@@ -65,11 +67,19 @@ To execute the pick and place demo:
 
 ## Execution using ROSPlan
 
-Compile the PDDL package that includes the action client (RPTutorial10.cpp):
+The rqt_reconfigure parameters related to the planner are:
+- ***Start SM:***
+  - **plan_pddl_demo**: Generates pddl problem based on current state of KB, 
+- ***Object's properties***:
+  - **layers**: Labels for the number of layers of the object (4l, 6l, 8l, 12l or 16l)
+  - **stiffness**: Stiffness value of the folded object.
+  - **friction**: Friction value of the folded object.
+
+0. Compile the PDDL package that includes the action client (RPTutorial10.cpp):
 
 ``catkin_make --only-pkg-with-deps rosplan_planning_system``
 
-After launching the previous launches, launch the the knowledge base, problem and planner interface to store the PDDL model and generate the problem and call the planner:
+1. After launching the previous launches, launch the the knowledge base, problem and planner interface to store the PDDL model and generate the problem and call the planner:
 
 ``cd PicknPlace/pnp_planner/launch``
 ``roslaunch rosplan_tutorial10.launch``
@@ -78,15 +88,18 @@ After launching the previous launches, launch the the knowledge base, problem an
 
 `` ./tutorial04.bash`` -->
 
-Start the demo generating and parsing the plan activating the boolean ``start_pddl_demo`` in the reconfigure.
+2. Start the demo generating and parsing the plan activating the boolean ``start_pddl_demo`` in the reconfigure.
 
-Check if the generated plan is ok:
+  2.1. Check if the generated plan is ok:
  
 ``rostopic echo /rosplan_planner_interface/planner_output -p -n 1``
 
-Dispatch plan:
+3. Dispatch plan:
 
 ``rosservice call /rosplan_plan_dispatcher/dispatch_plan``
 
-This will start the demo by executing the sections of the SM according to the parsed actions by ROSPLAN. When it gets to "check_corners" action, you must activate the boolean `ok` in the reconfigure to select the detected grasp point.
+4. This will start the demo by executing the sections of the SM according to the parsed actions by ROSPLAN. When it gets to "check_corners" action, you must activate the boolean `ok` in the reconfigure to select the detected grasp point.
 
+When the replanning is active based on object's pose, predicted deformation class and sensed deformation class, each time it goes to check_corners and check_deformation it will preempt the current plan, so steps 2 and 3 will have to be repeated to generate the new plan and disptach it.
+
+Note: Notice that the prediction module depends on object's properties, where number of layers, stiffness and friction cannot be infered through visual inspection. Therefore, these parameters are introduced through rqt_reconfigure.
