@@ -8,6 +8,30 @@ from pick_n_place.srv import PredictDefClass, PredictDefClassResponse
 
 # global global_dir = "/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/placing_metric/"
 
+def load_trained_model():
+
+    global_dir = "/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/placing_metric/"
+    trained_model_dir = global_dir + "random_forest_model.pkl"
+    # Feature columns
+    numerical_features = ["NonGraspedSize", "GraspedSize", "Area", "FoldStiffness"]  # Friction is not significant
+    categorical_features = ["Layers", "Grasp"] #Object and Edge are not significant
+    target_column = "DefClass"  
+
+    # Load the saved model
+    rf_model_loaded = joblib.load(trained_model_dir)
+    # print("Deformation Class Prediction: Model loaded successfully!")
+    rospy.loginfo("Deformation Class Prediction: Model loaded successfully")
+
+    # new_sample_processed = prepare_data(new_sample)
+
+    # # Predict deformation class
+    # predicted_class = rf_model_loaded.predict(new_sample_processed)
+
+    # print(f"Predicted deformation class: {predicted_class[0]}")
+
+    # return predicted_class[0]
+    return rf_model_loaded
+
 def prepare_data(new_sample):
     global_dir = "/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/placing_metric/"
 
@@ -56,27 +80,6 @@ def prepare_data(new_sample):
 
     return new_sample_processed
 
-def predict_def_class(new_sample):
-
-    global_dir = "/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/placing_metric/"
-    trained_model_dir = global_dir + "random_forest_model.pkl"
-    # Feature columns
-    numerical_features = ["NonGraspedSize", "GraspedSize", "Area", "FoldStiffness"]  # Friction is not significant
-    categorical_features = ["Layers", "Grasp"] #Object and Edge are not significant
-    target_column = "DefClass"  
-
-    # Load the saved model
-    rf_model_loaded = joblib.load(trained_model_dir)
-    print("Deformation Class Prediction: Model loaded successfully!")
-
-    new_sample_processed = prepare_data(new_sample)
-
-    # Predict deformation class
-    predicted_class = rf_model_loaded.predict(new_sample_processed)
-
-    print(f"Predicted deformation class: {predicted_class[0]}")
-
-    return predicted_class[0]
 
 def handle_service(req):
 
@@ -91,7 +94,14 @@ def handle_service(req):
         "Friction": [req.friction]
     })
 
-    int_def_class = predict_def_class(sample)
+    # int_def_class = predict_def_class(sample)
+    new_sample_processed = prepare_data(sample)
+
+    # Predict deformation class
+    int_def_class = trained_model.predict(new_sample_processed)
+
+    # print(f"Predicted deformation class: {int_def_class[0]}")
+    rospy.loginfo("Deformation Class Prediction: Predicted %i", int_def_class[0])
 
     #If class is 0 then send "A", etc
     if(int_def_class == 0):
@@ -107,6 +117,7 @@ if __name__ == '__main__':
     rospy.init_node('deformation_class_prediction', anonymous=True)
     rospy.loginfo("Deformation Class Prediction: Node ready")
     s = rospy.Service('/pick_n_place/predict_def_class', PredictDefClass, handle_service)
+    trained_model = load_trained_model()
     rospy.spin()
 
 

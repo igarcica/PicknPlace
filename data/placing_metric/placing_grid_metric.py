@@ -17,6 +17,8 @@ import open3d as o3d
 import statistics as sts
 import plotly.express as px
 import plotly.graph_objs as go
+from scipy.spatial.distance import cdist
+import math
 
 
 all_files = False
@@ -400,6 +402,7 @@ def def_metric(grids, obj_dims):
     obj_thickness = obj_dims[2] #obtained from CLOTH_SIZE
     means = []
     norm_means = []
+    dev_means = []
     ## For each section of the grid
     for l in range (len(grids)):
         length = len(grids[l])
@@ -407,8 +410,9 @@ def def_metric(grids, obj_dims):
         ## If there are no points in the grid, then the mean is max deformation
         if(length == 0):
             # means.append(-obj_dims[non_grasped_edge]+0.05/2) #Max depth (should be 1 when normalized). +5cm to give margin
-            means.append(-1)
-            norm_means.append(-1) 
+            means.append(1)
+            norm_means.append(1) 
+            dev_means.append(1)
         ## If the grid is not empty, compute mean of depth
         else:
             depth = grids[l][:,2]
@@ -416,6 +420,7 @@ def def_metric(grids, obj_dims):
             grid_mean = sts.mean(depth)
             print_info(activate_print, "Grid mean: ", grid_mean)
             means.append(grid_mean)
+            dev_means.append(np.std(depth))
     
             # #Instead of normalizing the data with the thickness (what will bias the data), we substract the thickness to the resulting metric
             # if piling:
@@ -435,48 +440,171 @@ def def_metric(grids, obj_dims):
             else:
                 # grid_def = grid_mean-obj_thickness
                 # grid_def = grid_mean/max_depth
-                grid_def = (grid_mean-min_depth)/(min_depth)
+                grid_def = (grid_mean-min_depth)/(max_depth-min_depth)
             norm_means.append(grid_def) 
             #What if grid_def is negative?
             
-    print("Means: ", means)
-    print("Norm means: ", norm_means)
-    print("Mean means: ", sts.mean(means))
-    print("Mean norm means: ", sts.mean(norm_means))
+
+            ###DEVIATION METRICS
+
+    # print("Means: ", means)
+    # print("Norm means: ", norm_means)
+    # print("Mean means: ", sts.mean(means))
+    # print("Mean norm means: ", sts.mean(norm_means))
+
     return means, norm_means
 
-def distan(metrics, n_div):
-    distances = []
+# def distan(metrics, n_div):
+#     distances = []
+
+#     metrics = np.array(metrics)
+#     metrics = metrics.reshape(-1, 1)
+#     # hola = listofzeros = [0] * n_div*n_div
+#     # print(hola)
+#     gt_matrix = 0.03*np.ones(n_div*n_div)
+#     gt_matrix = gt_matrix.reshape(-1, 1) 
+#     # print(type(metrics))
+#     # print(type(hola))
+#     # print(gt_matrix)
+#     # print(metrics)
+#     # dist2 = euclidean_distances(gt_matrix, metrics)
+#     # print("DIST: ", dist2)
+#     # dis = pairwise_distances(pts, metric='manhattan'
+
+#     # Calculate the Frobenius norm of the difference
+#     dist_eucl = np.linalg.norm(metrics - gt_matrix, 'fro') #'fro' #Frobenius norm  #1 #1-norm #np.inf #infinity-norm
+#     print("DIST EUCL: ", dist_eucl)
+#     distances.append(dist_eucl)
+#     dist_1 = np.linalg.norm(metrics - gt_matrix, 1) #'fro' #Frobenius norm  #1 #1-norm #np.inf #infinity-norm
+#     print("DIST 1NORM: ", dist_1)
+#     distances.append(dist_1)
+#     dist_inf = np.linalg.norm(metrics - gt_matrix, np.inf) #'fro' #Frobenius norm  #1 #1-norm #np.inf #infinity-norm
+#     print("DIST INFNORM: ", dist_inf)
+#     distances.append(dist_inf)
+
+
+#     ## FROBENIOS 
+#     M_d = np.array([[0.03, 0.03, 0.03], [0.02, 0.04, 0.03], [0.03, 0.03, 0.03]])  # Deformed cloth
+#     M_d = M_d.reshape(-1, 1)
+#     # Compute the Frobenius norm of the difference
+#     D = np.linalg.norm(metrics - gt_matrix, 'fro')
+
+#     # Normalize (optional: to express it as a percentage)
+#     D_norm = D / 0.03 #np.linalg.norm(gt_matrix, 'fro') * 100  # Normalize relative to the flat cloth
+
+#     print(np.linalg.norm(gt_matrix-gt_matrix, 'fro'))
+#     print("Frobenius norm distance:", D)
+#     print("Normalized deformation (%):", D_norm)
+
+#     ## PAIRWISE DISTANCES
+#      # Compute pairwise distance matrices
+#     D_f = cdist(gt_matrix, gt_matrix)  # Distances in flat cloth
+#     D_d = cdist(metrics, metrics)  # Distances in deformed cloth
+
+#     absolute_diff = np.abs(D_d - D_f)
+#     # For non-zero distances in the flat cloth, calculate relative change
+#     with np.errstate(divide='ignore', invalid='ignore'):
+#         relative_change = np.where(D_f > 1e-8, absolute_diff / D_f, absolute_diff)
+
+#     # Mean of relative changes (ignoring infinities and NaNs)
+#     mean_relative_change = np.nanmean(relative_change)
+    
+#     # Scale to percentage
+#     deformation_measure = mean_relative_change * 100
+#     print(f"Deformation measure: {deformation_measure:.2f}%")
+
+#     return distances
+
+def placing_qual(metrics, n_div, obj_dims):
+
+    # obj_thickness = obj_dims[2] #obtained from CLOTH_SIZE
+    min_depth = obj_dims[2] #Object's thickness should be 0 deformation
+    max_depth = obj_dims[0]/2
 
     metrics = np.array(metrics)
-    metrics = metrics.reshape(-1, 1)
-    # hola = listofzeros = [0] * n_div*n_div
-    # print(hola)
-    gt_matrix = 0.03*np.ones(n_div*n_div)
-    gt_matrix = gt_matrix.reshape(-1, 1) 
-    # print(type(metrics))
-    # print(type(hola))
-    # print(gt_matrix)
-    # print(metrics)
-    # dist2 = euclidean_distances(gt_matrix, metrics)
-    # print("DIST: ", dist2)
-    # dis = pairwise_distances(pts, metric='manhattan'
+    flat_placement = min_depth*np.ones(n_div*n_div)
+    bad_placement = np.array([[0.05, 0.1, 0.05], [0.05, 0.1, 0.05], [0.05, 0.1, 0.05]])
+    bad_placement = bad_placement.reshape(-1, 1)
+    # bad_placement = 0.1*np.ones(n_div*n_div)
 
-    # Calculate the Frobenius norm of the difference
-    dist_eucl = np.linalg.norm(metrics - gt_matrix, 'fro') #'fro' #Frobenius norm  #1 #1-norm #np.inf #infinity-norm
-    print("DIST EUCL: ", dist_eucl)
-    distances.append(dist_eucl)
-    dist_1 = np.linalg.norm(metrics - gt_matrix, 1) #'fro' #Frobenius norm  #1 #1-norm #np.inf #infinity-norm
-    print("DIST 1NORM: ", dist_1)
-    distances.append(dist_1)
-    dist_inf = np.linalg.norm(metrics - gt_matrix, np.inf) #'fro' #Frobenius norm  #1 #1-norm #np.inf #infinity-norm
-    print("DIST INFNORM: ", dist_inf)
-    distances.append(dist_inf)
+    max_dist = np.linalg.norm(bad_placement - flat_placement, 1) #Max distance to perfect placement - Used for normalization
+    dist = np.linalg.norm(metrics - flat_placement, 1) #Ditance of current sample to perfect placement
+    print("Max dist", max_dist)
+    print("Dist", dist)
+    placing_quality = (dist/max_dist)*100 # Normalize distance
+    print("Placing quality: ", round(placing_quality), "%")
 
-    # print(distances)
+    return placing_quality
+    
+# def tests():
 
-    return distances
+#     # gt_matrix = 0.03*np.ones(9)
+#     # gt_matrix = gt_matrix.reshape(-1, 1) 
+#     gt_matrix = np.array([[0.03, 0.03, 0.03], [0.03, 0.03, 0.03], [0.03, 0.03, 0.03]])
 
+#     flat = M_d = np.array([[0.03, 0.03, 0.03], [0.03, 0.03, 0.03], [0.03, 0.03, 0.03]])
+#     real_flat = M_d = np.array([[0.03, 0.03, 0.03], [0.02, 0.04, 0.03], [0.03, 0.03, 0.04]])
+#     real_deform = np.array([[0.05, 0.11, 0.03], [0.05, 0.2, 0.03], [0.05, 0.1, 0.03]])
+#     complete_deform = np.array([[0.15, 0.15, 0.15], [0.15, 0.15, 0.15], [0.15, 0.15, 0.15]])
+#     small_deform = np.array([[0.1, 0.07, 0.03], [0.07, 0.04, 0.03], [0.03, 0.03, 0.02]])
+
+#     flat_dists = []
+#     real_flat_dists = []
+#     real_deform_dists = []
+#     complete_deform_dists = []
+#     small_deform_dists = []
+
+#     dist_fro = np.linalg.norm(complete_deform - gt_matrix, 'fro') 
+#     complete_deform_dists.append(dist_fro)
+#     dist_1 = np.linalg.norm(complete_deform - gt_matrix, 1) #'fro' #Frobenius norm  #1 #1-norm #np.inf #infinity-norm
+#     complete_deform_dists.append(dist_1)
+#     dist_inf = np.linalg.norm(complete_deform - gt_matrix, np.inf) #'fro' #Frobenius norm  #1 #1-norm #np.inf #infinity-norm
+#     complete_deform_dists.append(dist_inf)
+#     print("MAX DEFORM: ", complete_deform_dists)
+
+#     dist = np.linalg.norm(flat - gt_matrix, 'fro') #'fro' #Frobenius norm  #1 #1-norm #np.inf #infinity-norm
+#     dist = (dist/dist_fro)*100
+#     flat_dists.append(dist)
+#     dist = np.linalg.norm(flat - gt_matrix, 1) #'fro' #Frobenius norm  #1 #1-norm #np.inf #infinity-norm
+#     dist = (dist/dist_1)*100
+#     flat_dists.append(dist)
+#     dist = np.linalg.norm(flat - gt_matrix, np.inf) #'fro' #Frobenius norm  #1 #1-norm #np.inf #infinity-norm
+#     dist = (dist/dist_inf)*100
+#     flat_dists.append(dist)
+#     print("FLAT:", flat_dists)
+
+#     dist = np.linalg.norm(real_flat - gt_matrix, 'fro') #'fro' #Frobenius norm  #1 #1-norm #np.inf #infinity-norm
+#     dist = (dist/dist_fro)*100
+#     real_flat_dists.append(dist)
+#     dist = np.linalg.norm(real_flat - gt_matrix, 1) #'fro' #Frobenius norm  #1 #1-norm #np.inf #infinity-norm
+#     dist = (dist/dist_1)*100
+#     real_flat_dists.append(dist)
+#     dist = np.linalg.norm(real_flat - gt_matrix, np.inf) #'fro' #Frobenius norm  #1 #1-norm #np.inf #infinity-norm
+#     dist = (dist/dist_inf)*100
+#     real_flat_dists.append(dist)
+#     print("REAL FLAT:", real_flat_dists)
+
+#     dist = np.linalg.norm(small_deform - gt_matrix, 'fro') #'fro' #Frobenius norm  #1 #1-norm #np.inf #infinity-norm
+#     dist = (dist/dist_fro)*100
+#     small_deform_dists.append(dist)
+#     dist = np.linalg.norm(small_deform - gt_matrix, 1) #'fro' #Frobenius norm  #1 #1-norm #np.inf #infinity-norm
+#     dist = (dist/dist_1)*100
+#     small_deform_dists.append(dist)
+#     dist = np.linalg.norm(small_deform - gt_matrix, np.inf) #'fro' #Frobenius norm  #1 #1-norm #np.inf #infinity-norm
+#     dist = (dist/dist_inf)*100
+#     small_deform_dists.append(dist)
+#     print("SMALL DEFORM:", small_deform_dists)
+
+#     dist = np.linalg.norm(real_deform - gt_matrix, 'fro') #'fro' #Frobenius norm  #1 #1-norm #np.inf #infinity-norm
+#     dist = (dist/dist_fro)*100
+#     real_deform_dists.append(dist)
+#     dist = np.linalg.norm(real_deform - gt_matrix, 1) #'fro' #Frobenius norm  #1 #1-norm #np.inf #infinity-norm
+#     dist = (dist/dist_1)*100
+#     real_deform_dists.append(dist)
+#     dist = np.linalg.norm(real_deform - gt_matrix, np.inf) #'fro' #Frobenius norm  #1 #1-norm #np.inf #infinity-norm
+#     dist = (dist/dist_inf)*100
+#     real_deform_dists.append(dist)
+#     print("REAL DEFORM:", real_deform_dists)
 
 ##################################################################################################
 ##################################################################################################
@@ -510,13 +638,16 @@ if not all_files:
 
     ## ---Compute metric---
     mean_metrics, norm_mean_metrics = def_metric(grids, obj_dimensions)
-    plot_with_info(transl_data, can_x_grid_divs, can_y_grid_divs, can_edges, pcd_file, plot_scale, plot_scale_color)
-    plot_metrics(pcd_file.replace(".pcd", ""), mean_metrics, plot_scale_color)
-    plot_metrics(pcd_file.replace(".pcd", ""), norm_mean_metrics, plot_scale_color)
+    # plot_with_info(transl_data, can_x_grid_divs, can_y_grid_divs, can_edges, pcd_file, plot_scale, plot_scale_color)
+    # plot_metrics(pcd_file.replace(".pcd", ""), mean_metrics, plot_scale_color)
+    # plot_metrics(pcd_file.replace(".pcd", ""), norm_mean_metrics, plot_scale_color)
 
     ## Compute placing quality computing the distance of the grid metric to the gt metric (0 deformation)
-    distan(mean_metrics, n_divisions)
-    distan(norm_mean_metrics, n_divisions)
+    # distan(mean_metrics, n_divisions)
+    # distan(norm_mean_metrics, n_divisions)
+
+    # tests()
+    placing_qual(mean_metrics, n_divisions, obj_dimensions)
 
     
 

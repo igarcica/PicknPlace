@@ -1,0 +1,120 @@
+#!/usr/bin/env python3
+import rospy
+import ros_numpy
+from sensor_msgs.msg import PointCloud2
+from pick_n_place.srv import GetPlacingQual, GetPlacingQualResponse
+import placing_grid_metric_ros as placing_grid_metric
+import numpy as np
+
+n_divisions = 3
+cam_to_table = 0.8 ## Used to move points from table (0) to deformation (>0)
+# piling = False
+
+raw_sample_filter_box = [[0, cam_to_table], [-0.2, 0.2], [0, 0.3]] # Box to filter sample removing noise points wrt camera axis
+gripper_position = [0.32, -0.025] ## Used to compute grid divisions (wrt ext_camera_link changing x-axis for z-axis)
+
+## In the case of the placing metric, the thickness of the objects plays a role
+CLOTH_SIZE = {
+    "towel": (0.23,0.25, 0.03),
+    "pillowc": (0.23,0.28, 0.01),
+    "towel_2l": (0.45,0.5),
+    "towel_4l": (0.25,0.45),
+    "towel_6l": (0.25, 0.3),
+    "towel_8l": (0.23,0.25, 0.05),
+    "towel_12l": (0.15,0.25),
+    "pillowc_2l": (0.44,0.54),
+    "pillowc_4l": (0.28,0.45),
+    "pillowc_6l": (0.23,0.37),
+    "pillowc_8l": (0.23,0.28),
+    "pillowc_12l": (0.15,0.28),
+    "pillowc_16l": (0.14,0.23),
+    "cotnap_2l": (0.25,0.5),
+    "cotnap_4l": (0.25,0.25),
+    "cotnap_6l": (0.17,0.25),
+    "cotnap_8l": (0.13,0.25),
+    "cotnap_12l": (0.09,0.25),
+    "cotnap_16l": (0.13,0.13),
+    "linenap_2l": (0.25,0.5),
+    "linenap_4l": (0.25,0.25),
+    "linenap_6l": (0.17,0.25),
+    "linenap_8l": (0.13,0.25),
+    "linenap_12l": (0.09,0.25),
+    "linenap_16l": (0.13,0.13),
+    "check_4l": (0.25,0.35),
+    "check_6l": (0.24,0.25),
+    "check_8l": (0.18,0.25),
+    "check_12l": (0.12,0.25),
+    "check_16l": (0.13,0.18),
+    "waffle_4l": (0.25,0.35),
+    "waffle_6l": (0.24,0.25),
+    "waffle_8l": (0.18,0.25),
+    "waffle_12l": (0.12,0.25),
+    "waffle_16l": (0.13,0.18)
+    }
+
+#default grasped and non-grasped value positions from CLOTH_SIZE
+
+
+# save_csv = False
+# activate_print = False
+
+# plot_scale = dict(xaxis=dict(range=[0, 0.4]), yaxis=dict(range=[0.2, -0.2]), zaxis=dict(range=[0, 0.3]), aspectratio=dict(x=1, y=1, z=1) ) #plot scale for grasped samples
+# # plot_scale_color = [0.0, 0.1] # plot depth color scale for grasped samples
+# plot_scale_color = [0.0, 1] # plot depth color scale for grasped samples
+
+
+def process_pointcloud(data, grasp_edge_size, nongrasp_edge_size, obj_thickness):
+
+    # print("\033[96m Deformation clustering: Received pointcloud message 033[0m")
+    rospy.loginfo("Placing_quality: Received pointcloud message")
+
+    # ---Read and process pointcloud---
+    cloud_array = ros_numpy.point_cloud2.pointcloud2_to_array(data) # Convert PointCloud2 to a numpy structured array
+    obj_data = np.stack((cloud_array['x'], cloud_array['y'], cloud_array['z']), axis=-1) # Extract 'x', 'y', and 'z' fields
+    obj_data = np.array(obj_data)
+
+    ## ---Process data---
+    filtered_sample = placing_grid_metric.filter_sample(obj_data, raw_sample_filter_box) ##Remove noise points - necessary in placing?
+    transl_data, depth_mean = placing_grid_metric.translate_data(filtered_sample, cam_to_table) ##Move points to 0 (from table)
+    
+    ## ---Divide in grids---
+    can_x_grid_divs, can_y_grid_divs, can_edges  = placing_grid_metric.create_canonical(grasp_edge_size, nongrasp_edge_size, n_divisions, gripper_position) #get grid divisions
+    grids = placing_grid_metric.grid_division(transl_data, can_x_grid_divs, can_y_grid_divs, n_divisions)
+
+    ## ---Compute metric---
+    mean_metrics = placing_grid_metric.def_metric(grids, grasp_edge_size, obj_thickness)
+    
+    return mean_metrics
+
+def handle_service(req):
+    
+    msg = rospy.wait_for_message('/segment_table/place', PointCloud2) # Get next message from the topic /segment_table/place (segmented pointcloud of the placed object)
+    
+    ## ---Get object dimensions for creating canonical---
+    obj_edge_size = CLOTH_SIZE.get(req.object_name, None)
+    object_thickness = obj_edge_size[2]
+    if(req.grasped_edge=="short"):
+        grasped_edge_size = obj_edge_size[0] # shortest edge is grasped
+        nongrasped_edge_size = obj_edge_size[1]
+    else:
+        grasped_edge_size = obj_edge_size[1] # longest edge is grasped
+        nongrasped_edge_size = obj_edge_size[0]
+
+    grid_metric = process_pointcloud(msg, grasped_edge_size, nongrasped_edge_size, object_thickness) # Grid metric
+    placing_quality = placing_grid_metric.placing_qual(grid_metric, n_divisions, grasped_edge_size, object_thickness) # Placing quality
+
+    return GetPlacingQualResponse(round(placing_quality))
+
+if __name__ == '__main__':
+    rospy.init_node('placing_quality', anonymous=True)
+    rospy.loginfo("Placing_quality: Node ready")
+    s = rospy.Service('/pick_n_place/get_placing_quality', GetPlacingQual, handle_service)
+    rospy.spin()
+
+### INFO
+## ROS node for sensing placing quality
+## Provides a ROS Service to measure the placing quality given a pointcloud using the grid metric
+
+### TO DO
+## Receive from service request: object dimensions (grasped_edge_size, nongrasped_edge_size, obj_thickness), pile_thickness
+## Future work: Use the sensed edge sizes and object thickness

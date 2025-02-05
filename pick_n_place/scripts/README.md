@@ -1,4 +1,5 @@
-# Compute deformation cluster with ROS
+<!-- # Compute deformation cluster with ROS -->
+# Deformation state estimation, Deformation class prediction and Placing state estimation modules
 
 ## SENSE Deformation class with ROS
 
@@ -10,7 +11,6 @@ To compute the deformation cluster of a grasped object in real time (through ROS
 ```
 roscore
 rosrun pick_n_place main.py 
-rosbag play grasped_object_sample.bag
 rosservice call /pick_n_place/get_deformation_class
 ```
 
@@ -43,3 +43,17 @@ rosservice call /pick_n_place/predict_def_class "{layers: '8l', grasp: 'short', 
 ```
 
 
+## Compute Placing quality
+
+Provides a ROS Service ``/pick_n_place/get_placing_quality`` of type ``GetPlacingQual`` that provides the placing quality of the placed object using the grid metric. It rquires the object name and the grasped edge to obtain the object dimensions to create the canonical and grid division.
+
+To measure the placing quality in real time (through ROS topic), execute:
+
+```
+roscore
+rosrun pick_n_place placing_quality.py 
+rosservice call /pick_n_place/get_placing_quality "object_name: 'towel' grasped_edge: 'short'"
+```
+
+When a point cloud message is published in the topic /segment_table/place, the node will process the point cloud to compute the grid metric and compute the placing quality.
+It can be run without the robot with ``rosbag play placed_object_sample.bag``

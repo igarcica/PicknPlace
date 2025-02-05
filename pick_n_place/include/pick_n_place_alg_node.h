@@ -49,8 +49,9 @@
 #include <kortex_driver/SetCartesianReferenceFrame.h>
 #include <kortex_driver/Base_ClearFaults.h>
 #include <kortex_driver/OnNotificationActionTopic.h>
-#include <pick_n_place/SenseDefClass.h> //Deformation class module
-#include <pick_n_place/PredictDefClass.h> //Deformation class module
+#include <pick_n_place/SenseDefClass.h> //Deformation clustering module
+#include <pick_n_place/PredictDefClass.h> //Prediction deformation class module
+#include <pick_n_place/GetPlacingQual.h> //Placing quality module
 #include <std_srvs/Empty.h> 
 //#include <rosplan_dispatch_msgs/DispatchService.h> //ROSPlan
 #include <rosplan_knowledge_msgs/KnowledgeUpdateServiceArray.h> //ROSPlan
@@ -127,6 +128,7 @@ typedef enum {IDLE,
               END_POSITION,
               WAIT_END_POSITION,
               GET_OBJECT_POSE,
+              CHECK_PLACING_QUAL,
               END} pick_place_states_t;
 
 /**
@@ -252,6 +254,7 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     ros::ServiceClient activate_publishing_client_;
     kortex_driver::OnNotificationActionTopic activate_publishing_srv_;
 
+    //Check deformation
     ros::ServiceClient sense_deformation_class_client_;
     pick_n_place::SenseDefClass sense_deformation_class_srv_;
     std::string sensed_deformation_class;
@@ -259,6 +262,10 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     pick_n_place::PredictDefClass predict_deformation_class_srv_;
     std::string predicted_def_class_nearest_edge;
     std::string predicted_def_class_second_nearest_edge;
+    //Check placing quality
+    ros::ServiceClient get_placing_quality_client_;
+    pick_n_place::GetPlacingQual get_placing_quality_srv_;
+    float placing_quality;
 
     //ROSPlan services
     ros::ServiceClient generate_problem_client_;

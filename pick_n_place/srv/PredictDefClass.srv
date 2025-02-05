@@ -1,3 +1,12 @@
+# Service to obtain the prediction of the deformation class of a cloth
+# layers can be "4l, 6l, 8l, 12l or 16l. Serves as a parameter for the prediction
+# grasp can be "short" or "long". Serves as a parameter for the prediction
+# nongraspededgesize is the size of the edge not to be grasped
+# graspededgesize is the size of the edge to grasp
+# area is the area of the folded cloth (graspededgesize * nongraspededgesize)
+# stiffness is the measured stiffness of the folded cloth
+# friction is the friction measured of the folded cloth 
+
 string layers
 string grasp
 float32 nongraspedsize
@@ -6,4 +15,4 @@ float32 area
 float32 stiffness
 float32 friction
 ---
-string output_response
+string predicted_def_class

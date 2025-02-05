@@ -31,6 +31,7 @@ add_service_files(
   FILES
   SenseDefClass.srv
   PredictDefClass.srv
+  GetPlacingQual.srv
 )
 
 ## Generate actions in the 'action' folder
@@ -85,6 +86,7 @@ add_executable(${PROJECT_NAME} src/pick_n_place_alg.cpp src/pick_n_place_alg_nod
 catkin_install_python(PROGRAMS
     scripts/main.py
     scripts/prediction_module.py
+    scripts/placing_quality.py
     DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

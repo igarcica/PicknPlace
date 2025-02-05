@@ -147,7 +147,7 @@ def clusterize_data(grid_metric, train_data_directory, n_clusts, n_div):
     return predicted_label
 
 def handle_service(req):
-
+    #TO DO: Receive object dims (grasped_edge_size, nongrasped_edge_size, obj_thickness)
     msg = rospy.wait_for_message('/segment_table/place', PointCloud2) # Get next message from the topis /segment_table/place (segmented pointcloud of the grasped object)
     grid_metric = process_pointcloud(msg) #Obtain grid metric
     def_class = clusterize_data(grid_metric, train_data_dir, n_clusters, n_divisions) #Obtain deformation cluster label
@@ -210,8 +210,9 @@ if __name__ == '__main__':
 # OK-Add clustering
 # Ensure that the created clustering labels correspond to my labels (i.e. 0 for A class quasi flat deformation)- How?
 # Check grid x position to do the division properly
-# Integrate with demo (new state in SM, launch file, tc)
+# OK- Integrate with demo (new state in SM, launch file, tc)
 # kmeans should be trained considering 9 separated features (in 3x3) or as 3 features (each horizonatl row of grid)?
+# Receive from service object dimensions for grid division
 
 
 ### REFS

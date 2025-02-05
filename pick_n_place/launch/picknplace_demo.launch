@@ -18,6 +18,8 @@
 
   <node name="predict_deformation_class" pkg="pick_n_place" type="prediction_module.py" output="screen" />
 
+  <node name="placing_quality" pkg="pick_n_place" type="placing_quality.py" output="screen" />
+
   <!-- <include file="$(find pnp_planner)/launch/rosplan_tutotial10.launch"> </include> -->
 
 </launch>

@@ -1,0 +1,8 @@
+# Service to obtain placing quality of a placed object
+# object_name serves must be from the list CLOTH_SIZE. Serves to get the object size
+# grasped_edge can be "short" or "long". Indicates the edge from which is grasped to create the canonical and grid divisions accordingly
+
+string object_name
+string grasped_edge
+---
+float32 placing_quality

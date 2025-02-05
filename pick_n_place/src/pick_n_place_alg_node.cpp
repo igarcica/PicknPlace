@@ -90,6 +90,8 @@ PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
   predict_deformation_class_client_ = this->private_node_handle_.serviceClient<pick_n_place::PredictDefClass>("/pick_n_place/predict_def_class");
   this->predicted_def_class_nearest_edge = "A";
   this->predicted_def_class_second_nearest_edge = "A";
+  get_placing_quality_client_ = this->private_node_handle_.serviceClient<pick_n_place::GetPlacingQual>("/pick_n_place/get_placing_quality");
+  float placing_quality=0;
 
   //ROSPlan services
   generate_problem_client_ = this->private_node_handle_.serviceClient<std_srvs::Empty>("/rosplan_problem_interface/problem_generation_server");
@@ -684,8 +686,8 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                               {
                                 if(sense_deformation_class_client_.call(sense_deformation_class_srv_))
                                 {
-                                  ROS_INFO("PicknPlace: Received deformation class: %s", sense_deformation_class_srv_.response.output_response.c_str());
-                                  this->sensed_deformation_class = sense_deformation_class_srv_.response.output_response;
+                                  ROS_INFO("PicknPlace: Received deformation class: %s", sense_deformation_class_srv_.response.sensed_def_class.c_str());
+                                  this->sensed_deformation_class = sense_deformation_class_srv_.response.sensed_def_class;
                                   if(this->pddl_demo)
                                   {
                                     // this->pddl_action_done=true; // End PDDL action
@@ -1281,13 +1283,14 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                                  else if(kinova_linear_move_state==actionlib::SimpleClientGoalState::SUCCEEDED)
                                  {
                                    this->success = true;
-                                   if(this->pddl_demo)
-                                   {
-                                     this->pddl_action_done=true; // End PDDL action
-                                     this->state=IDLE;
-                                   }
-                                   else // Continue SM
-                                     this->state=END;
+                                  //  if(this->pddl_demo)
+                                  //  {
+                                  //    this->pddl_action_done=true; // End PDDL action
+                                  //    this->state=IDLE;
+                                  //  }
+                                  //  else // Continue SM
+                                  //    this->state=CHECK_PLACING_QUAL;
+                                   this->state=CHECK_PLACING_QUAL;
                                    ros::Duration(0.5).sleep();
                                  }
                                }
@@ -1347,6 +1350,29 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                                 this->state=END;
                               }
                             }
+      break;
+
+
+      case CHECK_PLACING_QUAL: ROS_INFO("PicknPlaceAlgNode: state CHECK PLACING QUALITY");
+                              {
+                                get_placing_quality_srv_.request.object_name = config_.object_name; //obtain form reconfigure
+                                get_placing_quality_srv_.request.grasped_edge = this->nearest_edge;
+                                if(get_placing_quality_client_.call(get_placing_quality_srv_))
+                                {
+                                  ROS_INFO("PicknPlace: Placing quality: %f", get_placing_quality_srv_.response.placing_quality);
+                                  this->placing_quality = get_placing_quality_srv_.response.placing_quality;
+                                  if(this->pddl_demo)
+                                   {
+                                     this->pddl_action_done=true; // End PDDL action
+                                     this->state=IDLE;
+                                   }
+                                   else
+                                     this->state=END;
+                                }else{
+                                  ROS_WARN("PicknPlaceAlgNode (CHECK PLACING QUALITY): Unable to get placing quality");
+                                  this->state=END;
+                                }
+                              }
       break;
 
       case END: ROS_INFO("PicknPlaceAlgNode: state END");
@@ -2139,6 +2165,7 @@ rosplan_knowledge_msgs::KnowledgeUpdateServiceArray PicknPlaceAlgNode::updateKB_
 void PicknPlaceAlgNode::predict_deformation_class(void)
 {
   // TO DO: Predict deformation class for nearest edge and second nearest edge, plan and get optimal plan (with less cost)
+  ROS_INFO("PicknPlace: Predicting deformation class");
   //PREDICT DEFORMATION CLASS for NEAREST EDGE
   predict_deformation_class_srv_.request.layers = config_.layers; //"8l"; //reconfigure
   predict_deformation_class_srv_.request.grasp = this->nearest_edge; //short or long
@@ -2149,8 +2176,8 @@ void PicknPlaceAlgNode::predict_deformation_class(void)
   predict_deformation_class_srv_.request.friction =  config_.friction; //reconfigure
   if(predict_deformation_class_client_.call(predict_deformation_class_srv_))
   {
-    std::cout << "Predicted deformation class grasping nearest edge: " << predict_deformation_class_srv_.response.output_response << std::endl;
-    this->predicted_def_class_nearest_edge = predict_deformation_class_srv_.response.output_response;
+    std::cout << "Predicted deformation class grasping nearest edge: " << predict_deformation_class_srv_.response.predicted_def_class << std::endl;
+    this->predicted_def_class_nearest_edge = predict_deformation_class_srv_.response.predicted_def_class;
   }
 
   //PREDICT DEFORMATION CLASS for SECOND NEAREST EDGE
@@ -2163,8 +2190,8 @@ void PicknPlaceAlgNode::predict_deformation_class(void)
   predict_deformation_class_srv_.request.friction =  config_.friction; //reconfigure
   if(predict_deformation_class_client_.call(predict_deformation_class_srv_))
   {
-    std::cout << "Predicted deformation class grasping SECOND nearest edge: " << predict_deformation_class_srv_.response.output_response << std::endl;
-    this->predicted_def_class_second_nearest_edge = predict_deformation_class_srv_.response.output_response;
+    std::cout << "Predicted deformation class grasping SECOND nearest edge: " << predict_deformation_class_srv_.response.predicted_def_class << std::endl;
+    this->predicted_def_class_second_nearest_edge = predict_deformation_class_srv_.response.predicted_def_class;
   }
   //Update KB, plan, and save resulting cost
 

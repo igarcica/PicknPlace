@@ -1,3 +1,4 @@
+# Service to obtain the sensed deformation of the grasped cloth 
 
 ---
-string output_response
+string sensed_def_class
