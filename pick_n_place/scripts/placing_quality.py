@@ -65,7 +65,6 @@ CLOTH_SIZE = {
 
 def process_pointcloud(data, grasp_edge_size, nongrasp_edge_size, obj_thickness):
 
-    # print("\033[96m Deformation clustering: Received pointcloud message 033[0m")
     rospy.loginfo("Placing_quality: Received pointcloud message")
 
     # ---Read and process pointcloud---

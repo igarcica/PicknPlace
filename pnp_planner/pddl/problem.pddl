@@ -12,7 +12,7 @@
 (:init
     (garment_at towel rotws)
 
-    (at_pose towel short)
+    (at_pose towel long)
 
     (garment_state towel notgrasped)
 
@@ -28,8 +28,8 @@
 
 
 
-    (obj_grasp_class long a)
-    (obj_grasp_class short b)
+    (obj_grasp_class long A)
+    (obj_grasp_class short B)
 
     (= (time_cost) 0)
 
@@ -39,7 +39,7 @@
     (= (place_succ towel b placevert) 10)
     (= (place_succ towel c placevert) 60)
     (= (place_succ towel a placediag) 10)
-    (= (place_succ towel b placediag) 15)
+    (= (place_succ towel b placediag) 1)
     (= (place_succ towel c placediag) 31)
     (= (place_succ towel a placerot) 11)
     (= (place_succ towel b placerot) 20)

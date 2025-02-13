@@ -365,7 +365,7 @@ namespace pal {
   {
     if ( (cloud->width * cloud->height) == 0)
     {
-      ROS_INFO("SegmentPlace: Empty Cloud");
+      ROS_DEBUG("SegmentPlace: Empty Cloud");
       return;
     }
 
@@ -472,7 +472,7 @@ namespace pal {
 
     if ( (nonplaneCloud->width * nonplaneCloud->height) == 0)
     {
-      ROS_INFO("SegmentPlace: Empty nonplaneCloud");
+      ROS_DEBUG("SegmentPlace: Empty nonplaneCloud");
       return;
     }
 
@@ -837,7 +837,7 @@ namespace pal {
     ROS_DEBUG("SegmentPlace: placeCloud Callback");
     if ( (placeCloud->width * placeCloud->height) == 0)
     {
-      ROS_INFO("SegmentPlace: Empty placeCloud");
+      ROS_DEBUG("SegmentPlace: Empty placeCloud");
       return;
     }
 
@@ -881,7 +881,7 @@ namespace pal {
     // To get the segmented cloud in PCL XYZ format (instead of XYZRGB)
     if ( (pickCloud->width * pickCloud->height) == 0)
     {
-      ROS_INFO("SegmentPlace: Empty pickCloud");
+      ROS_DEBUG("SegmentPlace: Empty pickCloud");
       return;
     }
 

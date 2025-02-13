@@ -68,11 +68,14 @@
 #include <tf/transform_broadcaster.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <std_msgs/Float64.h>
+#include <std_msgs/String.h>
 #include <sensor_msgs/JointState.h>
 
 #include <ros/ros.h>
 #include <actionlib/server/simple_action_server.h>
 #include <pick_n_place/activateSMAction.h>
+
+#include <fstream> //Log info to text file
 
 typedef enum {IDLE,
               HOME,
@@ -158,6 +161,7 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     kortex_driver::Pose pre_rotating_pose_garment;
     kortex_driver::Pose rotating_pose_garment;
     kortex_driver::Pose dragging_pose_garment;
+    double end_dragging_pose;
     float garment_width;     //para borrar
     float garment_edge_size; //para borrar
     float grasped_edge_size;
@@ -226,6 +230,13 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     void action_topic_mutex_enter(void);
     void action_topic_mutex_exit(void);
 
+    //ROSPlan parsed plan topic
+    ros::Subscriber planner_topic_subscriber_;
+    void planner_topic_callback(const std_msgs::String::ConstPtr& msg);
+    // pthread_mutex_t planner_topic_mutex_;
+    // void action_topic_mutex_enter(void);
+    // void action_topic_mutex_exit(void);
+
 
     // [service attributes]
 
@@ -279,6 +290,7 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     rosplan_knowledge_msgs::GetAttributeService get_kb_state_srv_;
     ros::ServiceClient update_kb_client_;
     rosplan_knowledge_msgs::KnowledgeUpdateServiceArray update_kb_srv_;
+    // void testCallback(const boost::shared_ptr<const rosplan_dispatch_msgs::DispatchService::Response> &response);
 
     // [action server attributes]
     actionlib::SimpleActionServer<pick_n_place::activateSMAction> as_; 
@@ -310,7 +322,8 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     void kinova_linear_moveActive();
     void kinova_linear_moveFeedback(const iri_kinova_linear_movement::kinova_linear_movementFeedbackConstPtr& feedback);
 
-
+    // std::ofstream logfile("/home/userlab/Desktop/log_picknplace.txt", std::ios::app); 
+    std::ofstream logfile;
 
    /**
     * \brief config variable

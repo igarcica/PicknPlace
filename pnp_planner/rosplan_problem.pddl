@@ -20,7 +20,7 @@
 		(= (place_succ towel B placevert) 10)
 		(= (place_succ towel C placevert) 60)
 		(= (place_succ towel A placediag) 10)
-		(= (place_succ towel B placediag) 15)
+		(= (place_succ towel B placediag) 1)
 		(= (place_succ towel C placediag) 31)
 		(= (place_succ towel A placerot) 11)
 		(= (place_succ towel B placerot) 20)

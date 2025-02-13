@@ -15,6 +15,7 @@ import plotly.express as px
 from sklearn.metrics import confusion_matrix, accuracy_score
 import seaborn as sns #To plot confusion matrix with values
 
+import joblib
 
 directory="/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/complete_grasp_data_metric/train_test_3objs/"
 # csv_directory ="/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/complete_grasp_data_metric/3x3/means_data.csv"
@@ -26,7 +27,7 @@ print("GRID DIVISION: ", n_div)
 
 show_imgs = False
 save_imgs = False
-save_csv = True
+save_csv = False
 activate_print = False
 
 # write_directory = directory + str(n_div) + "x" + str(n_div) + "/clusters_raw/" + str(n_clusters) + "clusters/"
@@ -362,6 +363,10 @@ for n_clusters in range(3,4): ## Clusterize for all number of clusters (from 2 t
     train_clustering_probabilities = compute_clustering_probs(train_matrix_data)
 
     
+    # Save the clusterized model
+    model_filename = "kmeans_model.pkl"
+    joblib.dump(kmeans, model_filename)
+    print(f"Model saved as {model_filename}")
 
 
     # create_semantic_classes()

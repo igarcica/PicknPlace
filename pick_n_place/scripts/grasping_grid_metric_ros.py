@@ -9,13 +9,10 @@
 ## In process. Compute grid mean matrix distance to GT matrix (0 deformation) - Used to draw a plot of deformation for each object, fold case and grasp
 
 import numpy as np
-import os
-import csv
-import open3d as o3d
 import statistics as sts
 import plotly.express as px
 import plotly.graph_objs as go
-
+import rospy
 
 ##################################################################################################
 ## UTIL FUNCTIONS
@@ -210,8 +207,9 @@ def normalize_transl_data(transl_data, non_grasped_edge_size):
     return norm_transl_data, norm_metrics
 
 ## Obtain canoncial parameters to compute grid threshold
-def create_canonical(obj_name, n_div, gripper_position, grasped_edge_size, non_grasped_edge_size):
-    print("\033[96m Creating canonical for ", obj_name, " \033[0m")
+def create_canonical(grasped_edge_size, non_grasped_edge_size, n_div, gripper_position):
+    # print("\033[96m Creating canonical for ", obj_name, " \033[0m")
+    rospy.loginfo("Deformation_clustering: Creating canonical")
 
     xmin = xmax = ymin = ymax = 0
     x_thrs = []
@@ -275,7 +273,7 @@ def grid_division(data, x_thrs, y_thrs, n_div):
     return grids
 
 ## Computes mean of each grid section
-def def_metric(grids, obj_edge_size):
+def def_metric(grids):
 
     means = []
     ## For each section of the grid

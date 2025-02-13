@@ -16,11 +16,12 @@ import os, sys
 import grasping_grid_metric_ros as grid_metric
 import clustering_raw_traintest_ros as clustering
 
+import joblib
+
 ##################################################################################################
 ## PARAMS
 
 ############ GRID METRIC ############
-# def init_metric_params():
 n_divisions = 3
 cam_to_gripper = 0.35 ## Used in transl_data to define Minimum deformation (gripper point)
 gripper_position = [0.12, -0.025] ## Used to compute grid divisions
@@ -64,23 +65,23 @@ CLOTH_SIZE = {
     "waffle_12l": (0.12,0.25),
     "waffle_16l": (0.13,0.18)
     }
-obj_name = "towel_8l"
-#default grasped and non-grasped value positions from CLOTH_SIZE
-non_grasped_edge = 0 
-grasped_edge = 1 #longest edge is grasped
+# obj_name = "pillowc_8l"
+# #default grasped and non-grasped value positions from CLOTH_SIZE
+# non_grasped_edge = 0 
+# grasped_edge = 1 #longest edge is grasped
 
-obj_edge_size = CLOTH_SIZE.get(obj_name, None)
-non_grasped_edge_size = obj_edge_size[non_grasped_edge]
-grasped_edge_size = obj_edge_size[grasped_edge]
+# obj_edge_size = CLOTH_SIZE.get(obj_name, None)
+# non_grasped_edge_size = obj_edge_size[non_grasped_edge]
+# grasped_edge_size = obj_edge_size[grasped_edge]
 
-show_imgs = False
+show_imgs = True
 save_data = False
 
 ############ CLUSTERING ############
 n_clusters = 3
 # grid_div = 3
-directory = "/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/complete_grasp_data_metric/train_test_3objs/"
-train_data_dir = directory + str(n_divisions) + "x" + str(n_divisions) + "/metric/train_metrics.csv"
+# directory = "/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/complete_grasp_data_metric/train_test_3objs/"
+# train_data_dir = directory + str(n_divisions) + "x" + str(n_divisions) + "/metric/train_metrics.csv"
 
 
 ##################################################################################################
@@ -95,14 +96,25 @@ def show_save_figs(figure):
 
 def say_bye():
     print("Deformation_clustering: Shutting down")
-    
+
 ##################################################################################################
 ## ROS FUNCTIONS
 
-## Get the grid metrics of the sample - Calls functions from grasping_grid_metric
-def process_pointcloud(data):
+def load_clustering_model():
 
-    print("\033[96m Deformation clustering: Received pointcloud message 033[0m")
+    global_dir = "/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/placing_metric/"
+    clustering_model_dir = global_dir + "kmeans_model.pkl"
+
+    # Load the saved model
+    clustering_model_loaded = joblib.load(clustering_model_dir)
+    rospy.loginfo("Deformation_clustering: Model loaded successfully")
+
+    return clustering_model_loaded
+
+## Get the grid metrics of the sample - Calls functions from grasping_grid_metric
+def process_pointcloud(data, grasp_edge_size, non_grasp_edge_size):
+
+    rospy.loginfo("Deformation_clustering: Received pointcloud message")
 
     ## Read topic and obtain pointcloud
     cloud_array = ros_numpy.point_cloud2.pointcloud2_to_array(data) # Convert PointCloud2 to a numpy structured array
@@ -114,18 +126,18 @@ def process_pointcloud(data):
     ## ---Process data---
     filtered_sample = grid_metric.filter_sample(obj_data, raw_sample_filter_box) ## Remove table points
     transl_data, depth_mean = grid_metric.translate_data(filtered_sample, cam_to_gripper) ## Move points to 0 (from gripper)
-    norm_transl_data, norm_depth_mean = grid_metric.normalize_transl_data(transl_data, non_grasped_edge_size) ## Normalize points from 0 to -1 (max possible depth corresponding to non grasped edge sice)
+    norm_transl_data, norm_depth_mean = grid_metric.normalize_transl_data(transl_data, non_grasp_edge_size) ## Normalize points from 0 to -1 (max possible depth corresponding to non grasped edge sice)
     fig2 = grid_metric.plot(norm_transl_data, "Processed_pointcloud", plot_scale, plot_scale_color) ## Plot translated point cloud
     show_save_figs(fig2)
     
     ## ---Divide in grids---
-    can_x_grid_divs, can_y_grid_divs, can_edges  = grid_metric.create_canonical(obj_name, n_divisions, gripper_position, grasped_edge_size, non_grasped_edge_size) #get grid divisions
+    can_x_grid_divs, can_y_grid_divs, can_edges  = grid_metric.create_canonical(grasp_edge_size, non_grasp_edge_size, n_divisions, gripper_position) #get grid divisions
     grids = grid_metric.grid_division(norm_transl_data, can_x_grid_divs, can_y_grid_divs, n_divisions)
     fig3 = grid_metric.plot_with_info(norm_transl_data, can_x_grid_divs, can_y_grid_divs, can_edges, plot_scale, plot_scale_color)
     show_save_figs(fig3)
 
     ## ---Compute metric---
-    mean_metrics = grid_metric.def_metric(grids, obj_edge_size)
+    mean_metrics = grid_metric.def_metric(grids)
     fig4 = grid_metric.plot_metrics(mean_metrics, plot_scale_color)
     show_save_figs(fig4)
 
@@ -133,27 +145,32 @@ def process_pointcloud(data):
 
     return mean_metrics
 
-## Clusterizes the sample (through the grid metric) to a deformation class - Calls functions from clustering_raw_traintest
-def clusterize_data(grid_metric, train_data_directory, n_clusts, n_div):
+def handle_service(req):
+  
+    msg = rospy.wait_for_message('/segment_table/place', PointCloud2) # Get next message from the topis /segment_table/place (segmented pointcloud of the grasped object)
+    
+    ## ---Get object dimensions for creating canonical---
+    object_name = req.object_name + "_" + req.layers
+    obj_edge_size = CLOTH_SIZE.get(object_name, None)
+    # object_thickness = obj_edge_size[2]
+    if(req.grasped_edge=="short"):
+        grasped_edge_size = obj_edge_size[0] # shortest edge is grasped
+        nongrasped_edge_size = obj_edge_size[1]
+    else:
+        grasped_edge_size = obj_edge_size[1] # longest edge is grasped
+        nongrasped_edge_size = obj_edge_size[0]
+        
+    ## ---Obtain grid metric---
+    grid_metric = process_pointcloud(msg, grasped_edge_size, nongrasped_edge_size) 
 
-    ## ---Train kmeans model---
-    kmeans_model = clustering.train_kmeans(train_data_directory, n_clusts, n_div)
-
+    # def_class = clusterize_data(grid_metric, train_data_dir, n_clusters, n_divisions) 
     ## ---Predict deformation cluster of current sample---
     grid_metric = grid_metric.reshape(1, -1) # Contains a single sample with n_div*n_div features
     predicted_label = kmeans_model.predict(grid_metric) 
     print("Deformation_clustering: Predicted label ", predicted_label)
 
-    return predicted_label
-
-def handle_service(req):
-    #TO DO: Receive object dims (grasped_edge_size, nongrasped_edge_size, obj_thickness)
-    msg = rospy.wait_for_message('/segment_table/place', PointCloud2) # Get next message from the topis /segment_table/place (segmented pointcloud of the grasped object)
-    grid_metric = process_pointcloud(msg) #Obtain grid metric
-    def_class = clusterize_data(grid_metric, train_data_dir, n_clusters, n_divisions) #Obtain deformation cluster label
-    int_def_class = def_class.item()
-    #If class is 0 then send "A", etc
-    if(int_def_class == 0):
+    int_def_class = predicted_label.item()
+    if(int_def_class == 0): #If class is 0 then send "A", etc
         str_def_class = "B"
     elif(int_def_class == 1):
         str_def_class = "A"
@@ -162,36 +179,13 @@ def handle_service(req):
 
     return SenseDefClassResponse(str_def_class)
 
-def main():
+if __name__ == '__main__':
     rospy.init_node('deformation_clustering', anonymous=True)
     rospy.loginfo("Deformation_clustering: Node ready")
     s = rospy.Service('/pick_n_place/sense_def_class', SenseDefClass, handle_service)
+    kmeans_model = load_clustering_model()
     rospy.spin()
 
-# def listener():
-    # rospy.init_node('pointcloud_listener', anonymous=True)
-    # # rospy.Subscriber('/segment_table/place', PointCloud2, pointcloud_callback)
-    # rospy.loginfo("Node Ready")
-    # rospy.spin()
-
-##################################################################################################
-##################################################################################################
-
-# if __name__ == '__main__':
-#     # listener()
-#     rospy.init_node('grasping_deformation', anonymous=True)
-#     try:
-#         rospy.loginfo("Node Ready")
-#         msg = rospy.wait_for_message('/segment_table/place', PointCloud2) # Get next message from the topis /segment_table/place (segmented pointcloud of the grasped object)
-#         grid_metric = process_pointcloud(msg) #Obtain grid metric
-#         def_class = clusterize_data(grid_metric, train_data_dir, n_clusters, n_divisions) #Obtain deformation cluster label
-#     except rospy.ROSException as e:
-#         rospy.logerr(f"An error occurred: {e}")
-#     rospy.signal_shutdown("Message received and processed. Shutting down.")
-
-
-if __name__ == '__main__':
-    main()
 
 
 # #####
