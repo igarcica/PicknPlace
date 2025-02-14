@@ -24,7 +24,7 @@ import math
 all_files = False
 # data_directory ="/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/PCD_placing/"
 # pcd_file = "towel_me_r_1.pcd" #pillowc_se_v_1.pcd" #towel_me_r_1.pcd"
-data_directory ="/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/test/bad/"
+data_directory ="/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/test/short/piled_moved/"
 pcd_file = "towel.pcd"
 pcd_dir = data_directory+pcd_file
 write_dir = "/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/placing_metric/"
@@ -34,17 +34,20 @@ activate_print = False
 
 n_divisions = 3
 cam_to_table = 0.8 ## Used in 
-gripper_position = [0.32, -0.025] ## Used to compute grid divisions (wrt ext_camera_link changing x-axis for z-axis)
-piling = False
+# gripper_position = [0.32, -0.025] ## Used to compute grid divisions (wrt ext_camera_link changing x-axis for z-axis)
+gripper_position = [0.32, -0.04]
+# gripper_position = [0.27, -0.07]
+piling = True
+grasped_by = "short"
 
 raw_sample_filter_box = [[0, cam_to_table], [-0.2, 0.2], [0, 0.3]] #box to filter sample removing noise points wrt camera axis
-plot_scale = dict(xaxis=dict(range=[0, 0.4]), yaxis=dict(range=[0.2, -0.2]), zaxis=dict(range=[0, 0.3]), aspectratio=dict(x=1, y=1, z=1) ) #plot scale for grasped samples
+plot_scale = dict(xaxis=dict(range=[0, 0.4]), yaxis=dict(range=[0.2, -0.3]), zaxis=dict(range=[0, 0.3]), aspectratio=dict(x=1, y=1, z=1) ) #plot scale for grasped samples
 # plot_scale_color = [0.0, 0.1] # plot depth color scale for grasped samples
-plot_scale_color = [0.0, 1] # plot depth color scale for grasped samples
+plot_scale_color = [0.0, 0.2] # plot depth color scale for grasped samples
 
 ## In the case of the placing metric, the thickness of the objects plays a role
 CLOTH_SIZE = {
-    "towel": (0.23,0.25, 0.03),
+    "towel": (0.23,0.25, 0.04),
     "pillowc": (0.23,0.28, 0.01),
     "towel_2l": (0.45,0.5),
     "towel_4l": (0.25,0.45),
@@ -82,8 +85,8 @@ CLOTH_SIZE = {
     }
 
 #default grasped and non-grasped value positions from CLOTH_SIZE
-non_grasped_edge = 0 
-grasped_edge = 1 #longest edge is grasped
+# non_grasped_edge = 0
+# grasped_edge = 1 #longest edge is grasped
 
 ##################################################################################################
 ## UTIL FUNCTIONS
@@ -231,7 +234,7 @@ def filter_sample(data, filter_box):
     return filtered_sample
 
 ## Moves pointcloud to have points near the table 0
-def translate_data(data):
+def translate_data(data, cam_table):
     ## Traslate depth (0(gripper)-deformation)
     depth = data[:,0]
     transl_data = []
@@ -239,7 +242,7 @@ def translate_data(data):
     suma = 0
     for i in range(len(depth)):
         #point = (depth[i]-can_min_depth)/(1-can_min_depth)
-        point = cam_to_table - depth[i] # new points should positive from 0 to deformation
+        point = cam_table - depth[i] # new points should positive from 0 to deformation
         suma += point
         new_point=[data[i,2], data[i,1], point] #changed axis to have z as depth
         transl_data.append(new_point)
@@ -288,19 +291,24 @@ def normalize_transl_data(data):
     return norm_transl_data, norm_metrics
 
 ## Obtain canoncial parameters to compute grid threshold
-def create_canonical(obj_name, n_div, gripper_position):
-    print("\033[96m Creating canonical for ", obj_name, " \033[0m")
+def create_canonical(n_div, gripper_pos, grasp_edge_size, nongrasp_edge_size):
+    # print("\033[96m Creating canonical for ", obj_name, " \033[0m")
+    print("\033[96m Creating canonical \033[0m")
 
     xmin = xmax = ymin = ymax = 0
     x_thrs = []
     y_thrs = []
 
-    obj_edge_size = CLOTH_SIZE.get(obj_name, None)
+    # obj_edge_size = CLOTH_SIZE.get(obj_name, None)
     
-    ymin = gripper_position[1]-(obj_edge_size[grasped_edge]/2)
-    ymax = gripper_position[1]+(obj_edge_size[grasped_edge]/2)
-    xmax = gripper_position[0] 
-    xmin = gripper_position[0]-obj_edge_size[non_grasped_edge]
+    # ymin = gripper_position[1]-(obj_edge_size[grasped_edge]/2)
+    # ymax = gripper_position[1]+(obj_edge_size[grasped_edge]/2)
+    # xmax = gripper_position[0] 
+    # xmin = gripper_position[0]-obj_edge_size[non_grasped_edge]
+    ymin = gripper_pos[1]-(grasp_edge_size/2)
+    ymax = gripper_pos[1]+(grasp_edge_size/2)
+    xmax = gripper_pos[0] 
+    xmin = gripper_pos[0]-nongrasp_edge_size
 
     x_thr = (xmax - xmin)/n_div
     y_thr = (ymax - ymin)/n_div
@@ -319,11 +327,10 @@ def create_canonical(obj_name, n_div, gripper_position):
     x_thrs.append(xmax+1)
     y_thrs.append(ymax+1)
 
-    print("OBJ DIMS: ", obj_edge_size)
     print_info(activate_print, xmin, " / ", xmax, " / ", ymin, " / ", ymax)
     print_info(activate_print, x_thrs, " / ", y_thrs)
 
-    return x_thrs, y_thrs, canonical_edges, obj_edge_size
+    return x_thrs, y_thrs, canonical_edges
 
 ## Obtains grid point clouds of data
 def grid_division(data, x_thrs, y_thrs, n_div):
@@ -397,9 +404,10 @@ def divide_points_into_grid(data, x_min, x_max, y_min, y_max):
     return clusters
 
 ## Computes mean of each grid section
-def def_metric(grids, obj_dims):
+def def_metric(grids, grasp_edge_size):
 
-    obj_thickness = obj_dims[2] #obtained from CLOTH_SIZE
+    # obj_thickness = obj_dims[2] #obtained from CLOTH_SIZE
+    max_depth = grasp_edge_size/2
     means = []
     norm_means = []
     dev_means = []
@@ -410,7 +418,7 @@ def def_metric(grids, obj_dims):
         ## If there are no points in the grid, then the mean is max deformation
         if(length == 0):
             # means.append(-obj_dims[non_grasped_edge]+0.05/2) #Max depth (should be 1 when normalized). +5cm to give margin
-            means.append(1)
+            means.append(max_depth)
             norm_means.append(1) 
             dev_means.append(1)
         ## If the grid is not empty, compute mean of depth
@@ -422,27 +430,27 @@ def def_metric(grids, obj_dims):
             means.append(grid_mean)
             dev_means.append(np.std(depth))
     
+            # # #Instead of normalizing the data with the thickness (what will bias the data), we substract the thickness to the resulting metric
+            # # if piling:
+            # #     grid_def = grid_mean-(obj_thickness*2)
+            # # else:
+            # #     grid_def = grid_mean-obj_thickness
+            # # norm_means.append(grid_def) 
+            # # #What if grid_def is negative?
+
             # #Instead of normalizing the data with the thickness (what will bias the data), we substract the thickness to the resulting metric
+            # min_depth = obj_dims[2] #Object's thickness should be 0 deformation
+            # max_depth = obj_dims[0]/2 #half of the long edge (is unlikely to be placed vertically)
             # if piling:
-            #     grid_def = grid_mean-(obj_thickness*2)
+            #     # grid_def = grid_mean-(obj_thickness*2)
+            #     point = grid_mean/(max_depth+min_depth)
+            #     # grid_def = (grid_mean-(min_depth*2))/0.1
             # else:
-            #     grid_def = grid_mean-obj_thickness
+            #     # grid_def = grid_mean-obj_thickness
+            #     # grid_def = grid_mean/max_depth
+            #     grid_def = (grid_mean-min_depth)/(max_depth-min_depth)
             # norm_means.append(grid_def) 
             # #What if grid_def is negative?
-
-            #Instead of normalizing the data with the thickness (what will bias the data), we substract the thickness to the resulting metric
-            min_depth = obj_dims[2] #Object's thickness should be 0 deformation
-            max_depth = obj_dims[0]/2 #half of the long edge (is unlikely to be placed vertically)
-            if piling:
-                # grid_def = grid_mean-(obj_thickness*2)
-                point = grid_mean/(max_depth+min_depth)
-                # grid_def = (grid_mean-(min_depth*2))/0.1
-            else:
-                # grid_def = grid_mean-obj_thickness
-                # grid_def = grid_mean/max_depth
-                grid_def = (grid_mean-min_depth)/(max_depth-min_depth)
-            norm_means.append(grid_def) 
-            #What if grid_def is negative?
             
 
             ###DEVIATION METRICS
@@ -452,7 +460,7 @@ def def_metric(grids, obj_dims):
     # print("Mean means: ", sts.mean(means))
     # print("Mean norm means: ", sts.mean(norm_means))
 
-    return means, norm_means
+    return means
 
 # def distan(metrics, n_div):
 #     distances = []
@@ -515,23 +523,31 @@ def def_metric(grids, obj_dims):
 
 #     return distances
 
-def placing_qual(metrics, n_div, obj_dims):
+def placing_qual(metrics, n_div, grasp_edge_size, obj_thickness, n_objs):
 
-    # obj_thickness = obj_dims[2] #obtained from CLOTH_SIZE
-    min_depth = obj_dims[2] #Object's thickness should be 0 deformation
-    max_depth = obj_dims[0]/2
+    min_depth = obj_thickness *n_objs #Object/pile thickness should be 0 deformation
+    max_depth = (grasp_edge_size/2) + obj_thickness + 0.01
+    half_max_depth = min_depth+0.01 #max_depth/2
+    print("min depth: ", min_depth, " / max depth: ", max_depth)
 
     metrics = np.array(metrics)
     flat_placement = min_depth*np.ones(n_div*n_div)
-    bad_placement = np.array([[0.05, 0.1, 0.05], [0.05, 0.1, 0.05], [0.05, 0.1, 0.05]])
+    # bad_placement = np.array([[0.05, 0.1, 0.05], [0.05, 0.1, 0.05], [0.05, 0.1, 0.05]])
+    bad_placement = np.array([[half_max_depth, max_depth, half_max_depth], [half_max_depth, max_depth, half_max_depth], [half_max_depth, max_depth, half_max_depth]]) #to check which is the most representative
     bad_placement = bad_placement.reshape(-1, 1)
     # bad_placement = 0.1*np.ones(n_div*n_div)
+    print("Metrics: ", metrics)
+    print("GOOD matrix: ", flat_placement)
+    print("BAD matrix: ", bad_placement)
 
     max_dist = np.linalg.norm(bad_placement - flat_placement, 1) #Max distance to perfect placement - Used for normalization
-    dist = np.linalg.norm(metrics - flat_placement, 1) #Ditance of current sample to perfect placement
+    dist = np.linalg.norm(metrics - flat_placement, 1) #Distance of current sample to perfect placement
     print("Max dist", max_dist)
     print("Dist", dist)
-    placing_quality = (dist/max_dist)*100 # Normalize distance
+    # placing_error = (dist/max_dist)*100 # Normalize distance
+    placing_error = ((dist-min_depth)/(max_dist-min_depth))*100 # Normalize distance
+    # placing_error = (dist/0.23)*100 # Normalize distance
+    placing_quality = 100-placing_error # Get placing quality (not error)
     print("Placing quality: ", round(placing_quality), "%")
 
     return placing_quality
@@ -613,33 +629,44 @@ if not all_files:
     print("\033[94m Getting experiment file: \033[0m" + pcd_file)
     ## ---Get object name---
     for o_name in CLOTH_SIZE:
-        if o_name in pcd_file: #Get object name for canonical dimensions
+        if o_name in pcd_file: #Get object name and dims for canonical dimensions
             obj_name = o_name 
             print(pcd_file)
+            obj_edge_size = CLOTH_SIZE.get(obj_name, None)
+            object_thickness = obj_edge_size[2]
+            if(grasped_by=="short"):
+                nongrasped_edge_size = obj_edge_size[1]
+                grasped_edge_size = obj_edge_size[0] # shortest edge is grasped
+            else:
+                grasped_edge_size = obj_edge_size[1] # longest edge is grasped
+                nongrasped_edge_size = obj_edge_size[0]
+            if piling:
+                n_objects=2 #Used to multiply object thickness for placing quality (0 deformation)
+            else:
+                n_objects=1
             ## if piling
 
     ## ---Process data---
     obj_pcd = o3d.io.read_point_cloud(pcd_dir)
     obj_data = np.asarray(obj_pcd.points)
     filtered_sample = filter_sample(obj_data, raw_sample_filter_box) ##Remove noise points - necessary in placing?
-    transl_data, depth_mean = translate_data(filtered_sample) ##Move points to 0 (from table)
-    norm_transl_data, norm_depth_mean = normalize_transl_data(transl_data)
+    transl_data, depth_mean = translate_data(filtered_sample, cam_to_table) ##Move points to 0 (from table)
+    # norm_transl_data, norm_depth_mean = normalize_transl_data(transl_data)
     # plot_raw_data(obj_data)
     # plot_raw_data(filtered_sample)
     # plot_raw_data(transl_data)
     # plot_raw_data(norm_transl_data)
     # plot(transl_data, "TRANSL", plot_scale, plot_scale_color) ## Plot translated point cloud
-    # plot(norm_transl_data, "TRANSL", plot_scale, plot_scale_color) ## Plot translated point cloud
     
     ## ---Divide in grids---
-    can_x_grid_divs, can_y_grid_divs, can_edges, obj_dimensions  = create_canonical(obj_name, n_divisions, gripper_position) #get grid divisions
+    can_x_grid_divs, can_y_grid_divs, can_edges  = create_canonical(n_divisions, gripper_position, grasped_edge_size, nongrasped_edge_size) #get grid divisions
     grids = grid_division(transl_data, can_x_grid_divs, can_y_grid_divs, n_divisions)
     # plot(grids[0], "grid", plot_scale, plot_scale_color)
 
     ## ---Compute metric---
-    mean_metrics, norm_mean_metrics = def_metric(grids, obj_dimensions)
-    # plot_with_info(transl_data, can_x_grid_divs, can_y_grid_divs, can_edges, pcd_file, plot_scale, plot_scale_color)
-    # plot_metrics(pcd_file.replace(".pcd", ""), mean_metrics, plot_scale_color)
+    mean_metrics = def_metric(grids, grasped_edge_size)
+    plot_with_info(transl_data, can_x_grid_divs, can_y_grid_divs, can_edges, pcd_file, plot_scale, plot_scale_color)
+    plot_metrics(pcd_file.replace(".pcd", ""), mean_metrics, plot_scale_color)
     # plot_metrics(pcd_file.replace(".pcd", ""), norm_mean_metrics, plot_scale_color)
 
     ## Compute placing quality computing the distance of the grid metric to the gt metric (0 deformation)
@@ -647,7 +674,7 @@ if not all_files:
     # distan(norm_mean_metrics, n_divisions)
 
     # tests()
-    placing_qual(mean_metrics, n_divisions, obj_dimensions)
+    placing_qual(mean_metrics, n_divisions, grasped_edge_size, object_thickness, n_objects)
 
     
 

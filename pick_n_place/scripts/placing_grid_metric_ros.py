@@ -1,6 +1,6 @@
 ## This code measures grid metric of placed data
 
-## 1. Read PCD file of segmented placed cloth
+## 1. Subscribes to /segment_table/place topic to receive segmented placed cloth
 ## 2. Translates data to have the points near the table to 0 and the rest positive depth values
 ## 3. Computes grid metric
 ## 4. Substracts the object's thickness to the resulting grid metric tso it is agnostic to the object dimensions (otherwise towel will have larger values with less deformation)
@@ -15,8 +15,8 @@ import numpy as np
 # import csv
 # import open3d as o3d
 import statistics as sts
-# import plotly.express as px
-# import plotly.graph_objs as go
+import plotly.express as px
+import plotly.graph_objs as go
 # from scipy.spatial.distance import cdist
 # import math
 import rospy
@@ -47,7 +47,7 @@ def plot(data, file_name, scale, scale_color):
         fig.write_image(filename)
 
 ## Saves RGB images with the corresponding filename, GT class and metrics
-def plot_with_info(data, x_grid_divs, y_grid_divs, can_edges, filename, scale, scale_color):
+def plot_with_info(data, x_grid_divs, y_grid_divs, can_edges, obj_thickn, scale, scale_color):
     print("\033[94m Plotting with info... \033[0m")
     data = np.array(data)
     planes_x = []
@@ -58,8 +58,6 @@ def plot_with_info(data, x_grid_divs, y_grid_divs, can_edges, filename, scale, s
     z_data=data[:,2]
     bright_blue = [[0, '#7DF9FF'], [1, '#7DF9FF']]
     bright_pink = [[0, '#FF007F'], [1, '#FF007F']]
-    obj_edge_size = CLOTH_SIZE.get(obj_name, None) #Get object dimensions
-    obj_thickn=obj_edge_size[2]
 
     # Plot garment
     fig = px.scatter_3d(x=data[:,0], y=data[:,1], z=data[:,2], color=data[:,2])
@@ -95,26 +93,17 @@ def plot_with_info(data, x_grid_divs, y_grid_divs, can_edges, filename, scale, s
     fig.update_layout(scene=scale)
     fig.update_coloraxes(cmin=scale_color[0], cmax=scale_color[1])
 
-    if not all_files:
-        fig.show()
-    if save_csv:
-        filename = write_dir + filename + ".jpg"
-        fig.write_image(filename)
+    return fig
 
 ## Plot metrics in colored grid
-def plot_metrics(filename, metrics, scale_color):
+def plot_metrics(metrics, scale_color):
     metrics = np.array(metrics)
     div=int(np.sqrt(len(metrics)))
     metrics = metrics.reshape(div,div)
-    print(metrics)
     fig = px.imshow(metrics, text_auto=True, labels=dict(x='x', y='y'))
     fig.update_coloraxes(cmin=scale_color[0], cmax=scale_color[1])#cmax=0.08, cmin=0.0)
 
-    if not all_files:
-        fig.show()
-    if save_csv:
-        filename = write_dir + filename + ".jpg"
-        fig.write_image(filename)
+    return fig
 
 ## Plot raw point cloud
 def plot_raw_data(data):
@@ -215,7 +204,7 @@ def normalize_transl_data(data):
     return norm_transl_data, norm_metrics
 
 ## Obtain canoncial parameters to compute grid threshold
-def create_canonical(grasped_edge_size, nongrasped_edge_size, n_div, gripper_position):
+def create_canonical(n_div, gripper_position, grasped_edge_size, nongrasped_edge_size):
     # print("\033[96m Creating canonical \033[0m")
     rospy.loginfo("Placing_quality: Creating canonical")
 
@@ -345,24 +334,29 @@ def def_metric(grids, grasp_edge_size, obj_thickness):
 
     return means
 
-def placing_qual(metrics, n_div, grasp_edge_size, obj_thickness):
+def placing_qual(metrics, n_div, grasp_edge_size, obj_thickness, n_objs):
 
-    # obj_thickness = obj_dims[2] #obtained from CLOTH_SIZE
-    min_depth = obj_thickness #Object's thickness should be 0 deformation
-    # max_depth = grasp_edge_size/2
-    # half_max_depth = grasp_edge_size/2 #Max depth occurs when the cloth is folded by half (grasped edge size /2)
+    min_depth = obj_thickness * n_objs #Object/pile thickness should be 0 deformation
+    max_depth = grasp_edge_size/2 + obj_thickness + 0.01 #Max depth occurs when the cloth is folded by half (grasped edge size /2) + the piled object thickness
+    # half_max_depth = max_depth/2
+    half_max_depth = min_depth+0.01
+    print("min depth: ", min_depth, " / max depth: ", max_depth)
 
     metrics = np.array(metrics)
     flat_placement = min_depth*np.ones(n_div*n_div)
-    bad_placement = np.array([[0.05, 0.1, 0.05], [0.05, 0.1, 0.05], [0.05, 0.1, 0.05]]) #to check which is the most representative
-    # bad_placement = np.array([[half_max_depth, max_depth, half_max_depth], [half_max_depth, max_depth, half_max_depth], [half_max_depth, max_depth, half_max_depth]]) #to check which is the most representative
+    # bad_placement = np.array([[0.05, 0.1, 0.05], [0.05, 0.1, 0.05], [0.05, 0.1, 0.05]]) #to check which is the most representative
+    bad_placement = np.array([[half_max_depth, max_depth, half_max_depth], [half_max_depth, max_depth, half_max_depth], [half_max_depth, max_depth, half_max_depth]]) #to check which is the most representative
     bad_placement = bad_placement.reshape(-1, 1)
     # bad_placement = max_depth*np.ones(n_div*n_div)
 
-    max_dist = np.linalg.norm(bad_placement - flat_placement, 1) #Max distance to perfect placement - Used for normalization
+    max_dist = np.linalg.norm(bad_placement - flat_placement, 1) #Max distance from bad placement to perfect placement (100% error) - Used for normalization
+    print("BAD MATRIX: ", bad_placement)
+    print("Max distance: ", max_dist)
     dist = np.linalg.norm(metrics - flat_placement, 1) #Ditance of current sample to perfect placement
-    placing_quality = (dist/max_dist)*100 # Normalize distance
-    # print("Placing quality: ", round(placing_quality), "%")
+    print("Distance", dist)
+    # placing_error = (dist/max_dist)*100 # Normalize distance
+    placing_error = (dist-min_depth)/(max_dist-min_depth)*100 # Normalize distance
+    placing_quality = 100-placing_error # Get placing quality (not error)
     rospy.loginfo("Placing_quality: Placing quality %f ", placing_quality)
 
     return placing_quality

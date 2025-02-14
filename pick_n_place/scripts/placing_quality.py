@@ -11,11 +11,13 @@ cam_to_table = 0.8 ## Used to move points from table (0) to deformation (>0)
 # piling = False
 
 raw_sample_filter_box = [[0, cam_to_table], [-0.2, 0.2], [0, 0.3]] # Box to filter sample removing noise points wrt camera axis
-gripper_position = [0.32, -0.025] ## Used to compute grid divisions (wrt ext_camera_link changing x-axis for z-axis)
+# gripper_position = [0.32, -0.025] ## Used to compute grid divisions (wrt ext_camera_link changing x-axis for z-axis)
+# gripper_position = [0.27, -0.07]
+gripper_position = [0.32, -0.04]
 
 ## In the case of the placing metric, the thickness of the objects plays a role
 CLOTH_SIZE = {
-    "towel": (0.23,0.25, 0.03),
+    "towel": (0.23,0.25, 0.04),
     "pillowc": (0.23,0.28, 0.01),
     "towel_2l": (0.45,0.5),
     "towel_4l": (0.25,0.45),
@@ -52,7 +54,9 @@ CLOTH_SIZE = {
     "waffle_16l": (0.13,0.18)
     }
 
-#default grasped and non-grasped value positions from CLOTH_SIZE
+show_imgs = True
+plot_scale = dict(xaxis=dict(range=[0, 0.4]), yaxis=dict(range=[0.2, -0.3]), zaxis=dict(range=[0, 0.3]), aspectratio=dict(x=1, y=1, z=1) ) #plot scale for grasped samples
+plot_scale_color = [0.0, 0.2] # plot depth color scale for grasped samples
 
 
 # save_csv = False
@@ -61,6 +65,13 @@ CLOTH_SIZE = {
 # plot_scale = dict(xaxis=dict(range=[0, 0.4]), yaxis=dict(range=[0.2, -0.2]), zaxis=dict(range=[0, 0.3]), aspectratio=dict(x=1, y=1, z=1) ) #plot scale for grasped samples
 # # plot_scale_color = [0.0, 0.1] # plot depth color scale for grasped samples
 # plot_scale_color = [0.0, 1] # plot depth color scale for grasped samples
+
+def show_save_figs(figure):
+    if show_imgs:
+        figure.show()
+    # if save_data:
+    #     filename = write_dir + file_name + ".jpg"
+    #     figure.write_image(filename)
 
 
 def process_pointcloud(data, grasp_edge_size, nongrasp_edge_size, obj_thickness):
@@ -77,11 +88,17 @@ def process_pointcloud(data, grasp_edge_size, nongrasp_edge_size, obj_thickness)
     transl_data, depth_mean = placing_grid_metric.translate_data(filtered_sample, cam_to_table) ##Move points to 0 (from table)
     
     ## ---Divide in grids---
-    can_x_grid_divs, can_y_grid_divs, can_edges  = placing_grid_metric.create_canonical(grasp_edge_size, nongrasp_edge_size, n_divisions, gripper_position) #get grid divisions
+    can_x_grid_divs, can_y_grid_divs, can_edges  = placing_grid_metric.create_canonical(n_divisions, gripper_position, grasp_edge_size, nongrasp_edge_size) #get grid divisions
     grids = placing_grid_metric.grid_division(transl_data, can_x_grid_divs, can_y_grid_divs, n_divisions)
 
     ## ---Compute metric---
     mean_metrics = placing_grid_metric.def_metric(grids, grasp_edge_size, obj_thickness)
+
+    ## ---Plot---
+    fig = placing_grid_metric.plot_with_info(transl_data, can_x_grid_divs, can_y_grid_divs, can_edges, obj_thickness, plot_scale, plot_scale_color)
+    show_save_figs(fig)
+    fig2 = placing_grid_metric.plot_metrics(mean_metrics, plot_scale_color)
+    show_save_figs(fig2)
     
     return mean_metrics
 
@@ -92,16 +109,23 @@ def handle_service(req):
     ## ---Get object dimensions for creating canonical---
     obj_edge_size = CLOTH_SIZE.get(req.object_name, None)
     object_thickness = obj_edge_size[2]
+    if(req.piling):
+        n_objects = 2 #If piling, thickness will be multiplied by 2 (or more)
+        # object_thickness = obj_edge_size[2]*2 #Thickness is to two objects
+    else:
+        n_objects = 1
+        # object_thickness = obj_edge_size[2] # If it is first object placed
+
     if(req.grasped_edge=="short"):
-        grasped_edge_size = obj_edge_size[0] # shortest edge is grasped
         nongrasped_edge_size = obj_edge_size[1]
+        grasped_edge_size = obj_edge_size[0] # shortest edge is grasped
     else:
         grasped_edge_size = obj_edge_size[1] # longest edge is grasped
         nongrasped_edge_size = obj_edge_size[0]
 
     grid_metric = process_pointcloud(msg, grasped_edge_size, nongrasped_edge_size, object_thickness) # Grid metric
-    placing_quality = placing_grid_metric.placing_qual(grid_metric, n_divisions, grasped_edge_size, object_thickness) # Placing quality
 
+    placing_quality = placing_grid_metric.placing_qual(grid_metric, n_divisions, nongrasped_edge_size, object_thickness, n_objects) # Placing quality
     return GetPlacingQualResponse(round(placing_quality))
 
 if __name__ == '__main__':
