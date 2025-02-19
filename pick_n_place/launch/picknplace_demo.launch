@@ -3,9 +3,9 @@
 
 
 <!-- LINEAR MOVEMENT CONTROLLER -->
-  <include file="$(find iri_kinova_linear_movement)/launch/node.launch"> 
+  <!-- <include file="$(find iri_kinova_linear_movement)/launch/node.launch"> 
     <arg name="respawn" value="true" />
-  </include> 
+  </include>  -->
 
 <!-- IRI KINOVA DEMO -->
   <include file="$(find pick_n_place)/launch/node.launch"> </include>

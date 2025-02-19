@@ -304,7 +304,11 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                     {
                       ROS_INFO("PicknPlaceSM: Sending to PRE_DRAG position.");
                       this->logfile << "State: PRE_DRAG" << std::endl;
-                      this->dragging_pose_garment.z = 0.055; //Lower arm to cloth
+                      if(config_.object_name=="towel")
+                        this->dragging_pose_garment.z = 0.055;
+                      else if(config_.object_name=="pillowc")
+                        this->dragging_pose_garment.z = 0.035; 
+                      // this->dragging_pose_garment.z = 0.032; //this->object_thickness + 0.025; //0.055; //Lower arm to cloth
                       // std::cout << "\033[1;36m PRE_DRAG: -> \033[1;36m  x: " << this->dragging_pose_garment.x << ", y: " << this->dragging_pose_garment.y << ", z: " << this->dragging_pose_garment.z << std::endl;
                       this->success &= send_cartesian_pose(this->dragging_pose_garment);
                       if (this->success)
@@ -415,7 +419,11 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                       {
                         ROS_INFO("PicknPlaceSM: Sending to DRAG_ROTATE position.");
                         this->logfile << "State: ROTATE_POS" << std::endl;
-                        this->rotating_pose_garment.z = 0.07; //Lower arm to cloth
+                        if(config_.object_name=="towel") //Lower arm to cloth ->TODO: based on sensed object thickness, BUT putting a max limit
+                          this->rotating_pose_garment.z = 0.07;
+                        else if(config_.object_name=="pillowc")
+                          this->rotating_pose_garment.z = 0.057;
+                        // this->rotating_pose_garment.z = 0.07;  
                         // std::cout << "\033[1;36m DRAG_ROTATE_POS: -> \033[1;36m  x: " << this->rotating_pose_garment.x << ", y: " << this->rotating_pose_garment.y << ", z: " << this->rotating_pose_garment.z << std::endl;
                         this->success &= send_cartesian_pose(this->rotating_pose_garment);
                         if (this->success)
@@ -831,7 +839,6 @@ void PicknPlaceAlgNode::mainNodeThread(void)
       // Waits until it reaches the pre place position with linear movement controller
       case WAIT_GO_TO_PLACE: ROS_DEBUG("PicknPlaceAlgNode: state WAIT GO TO PLACE");
                              {
-                              this->logfile << "State: WAIT_GO_TO_PLACE" << std::endl;
                               actionlib::SimpleClientGoalState kinova_linear_move_state(actionlib::SimpleClientGoalState::PENDING);
                               // to get the state of the current goal
                               this->alg_.unlock();
@@ -1424,6 +1431,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                                 this->logfile << "Placing quality parameters --> object name: " << config_.object_name << ", nearest_edge: " << this->nearest_edge << std::endl;
                                 get_placing_quality_srv_.request.object_name = config_.object_name; //obtain form reconfigure
                                 get_placing_quality_srv_.request.grasped_edge = this->nearest_edge;
+                                get_placing_quality_srv_.request.piling = config_.piling;
                                 if(get_placing_quality_client_.call(get_placing_quality_srv_))
                                 {
                                   ROS_INFO("PicknPlace: Placing quality: %f", get_placing_quality_srv_.response.placing_quality);
@@ -2249,9 +2257,9 @@ void PicknPlaceAlgNode::predict_deformation_class(void)
   //PREDICT DEFORMATION CLASS for NEAREST EDGE
   predict_deformation_class_srv_.request.layers = config_.layers; //"8l"; //reconfigure
   predict_deformation_class_srv_.request.grasp = this->nearest_edge; //short or long
-  predict_deformation_class_srv_.request.nongraspedsize = this->not_grasped_edge_size;
-  predict_deformation_class_srv_.request.graspedsize = this->grasped_edge_size;
-  predict_deformation_class_srv_.request.area = this->grasped_edge_size * this->not_grasped_edge_size;
+  predict_deformation_class_srv_.request.nongraspedsize = this->not_grasped_edge_size*100;
+  predict_deformation_class_srv_.request.graspedsize = this->grasped_edge_size*100;
+  predict_deformation_class_srv_.request.area = (this->grasped_edge_size*100) * (this->not_grasped_edge_size*100); //Area in centimeters
   predict_deformation_class_srv_.request.stiffness = config_.stiffness; //reconfigure
   predict_deformation_class_srv_.request.friction =  config_.friction; //reconfigure
   if(predict_deformation_class_client_.call(predict_deformation_class_srv_))
@@ -2263,9 +2271,9 @@ void PicknPlaceAlgNode::predict_deformation_class(void)
   //PREDICT DEFORMATION CLASS for SECOND NEAREST EDGE
   predict_deformation_class_srv_.request.layers = config_.layers; //"8l"; //reconfigure
   predict_deformation_class_srv_.request.grasp = this->second_nearest_edge; //short or long
-  predict_deformation_class_srv_.request.nongraspedsize = this->grasped_edge_size;
-  predict_deformation_class_srv_.request.graspedsize = this->not_grasped_edge_size;
-  predict_deformation_class_srv_.request.area = this->grasped_edge_size * this->not_grasped_edge_size;
+  predict_deformation_class_srv_.request.nongraspedsize = this->grasped_edge_size*100;
+  predict_deformation_class_srv_.request.graspedsize = this->not_grasped_edge_size*100;
+  predict_deformation_class_srv_.request.area = (this->grasped_edge_size*100) * (this->not_grasped_edge_size*100); //Area in centimeters
   predict_deformation_class_srv_.request.stiffness = config_.stiffness; //reconfigure
   predict_deformation_class_srv_.request.friction =  config_.friction; //reconfigure
   if(predict_deformation_class_client_.call(predict_deformation_class_srv_))
@@ -2277,9 +2285,9 @@ void PicknPlaceAlgNode::predict_deformation_class(void)
 
   //Log info to text file
   this->logfile << "Predicted def class for nearest edge (" << this->nearest_edge << "): " << this->predicted_def_class_nearest_edge << std::endl;
-  this->logfile << "Preiction parameters -> Layers: " << config_.layers << ", Grasp: " << this->nearest_edge << ", nongraspedsize: " << this->not_grasped_edge_size << ", graspedsize: " << this->grasped_edge_size << ", area: " << this->grasped_edge_size * this->not_grasped_edge_size << ", stiffness: " << config_.stiffness << ", friction: " << config_.friction << std::endl;
+  this->logfile << "Preiction parameters -> Layers: " << config_.layers << ", Grasp: " << this->nearest_edge << ", nongraspedsize: " << this->not_grasped_edge_size*100 << ", graspedsize: " << this->grasped_edge_size*100 << ", area: " << (this->grasped_edge_size*100) * (this->not_grasped_edge_size*100) << ", stiffness: " << config_.stiffness << ", friction: " << config_.friction << std::endl;
   this->logfile << "Predicted def class for second nearest edge (" << this->second_nearest_edge << "): " << this->predicted_def_class_second_nearest_edge << std::endl;
-  this->logfile << "Preiction parameters -> Layers: " << config_.layers << ", Grasp: " << this->second_nearest_edge << ", nongraspedsize: " << this->grasped_edge_size << ", graspedsize: " << this->not_grasped_edge_size << ", area: " << this->grasped_edge_size * this->not_grasped_edge_size << ", stiffness: " << config_.stiffness << ", friction: " << config_.friction << std::endl;
+  this->logfile << "Preiction parameters -> Layers: " << config_.layers << ", Grasp: " << this->second_nearest_edge << ", nongraspedsize: " << this->grasped_edge_size*100 << ", graspedsize: " << this->not_grasped_edge_size*100 << ", area: " << (this->grasped_edge_size*100) * (this->not_grasped_edge_size*100) << ", stiffness: " << config_.stiffness << ", friction: " << config_.friction << std::endl;
 }
 
 /* PERCEPTION FUNCTIONS */
@@ -2531,6 +2539,10 @@ void PicknPlaceAlgNode::corners_callback(const visualization_msgs::MarkerArray::
     points.push_back(point_out);
   }
 
+  // ---GET OBJECT THICKNESS---
+  double max_z = std::max({points[0].point.z, points[1].point.z, points[2].point.z, points[3].point.z}); //Get the highest z value (wrt base_link)
+  // std::cout << "OBJECT THICKNESS: " << max_z << std::endl;
+
   // ---GET CORNERS NAMES---
   geometry_msgs::Point corner_ul, corner_dl, corner_ur, corner_dr, center; //Better format, as we dont have orientation
   // Identify bottom-right (smallest x, smallest y wrt base_link) and top-left (largest x, largest y wrt base_link)
@@ -2692,8 +2704,9 @@ void PicknPlaceAlgNode::corners_callback(const visualization_msgs::MarkerArray::
     this->pre_grasp_center.x = edge_centers[nearestIndex].x + 0.05 * cos(perpendicularAngle);
     this->pre_grasp_center.y = edge_centers[nearestIndex].y - 0.05 * sin(-perpendicularAngle);
     this->pre_grasp_distance.x = abs(0.05 * cos(perpendicularAngle));
-    this->pre_grasp_distance.y = abs(0.05 * sin(-perpendicularAngle));
-    // std::cout << "pre grasp dist: (" << this->pre_grasp_distance.x << ", " << this->pre_grasp_distance.y << ")" << std::endl;
+    this->pre_grasp_distance.y = 0.05 * sin(-perpendicularAngle);
+    std::cout << "\033[1;36m SECOND GRASP POINT -->  x: " <<  edge_centers[nearestIndex].x << " y: " << edge_centers[nearestIndex].y << "\033[1;0m" <<std::endl;
+    std::cout << "pre grasp dist: (" << this->pre_grasp_distance.x << ", " << this->pre_grasp_distance.y << ")" << std::endl;
     // std::cout << "pre grasp position: (" << this->pre_grasp_center.x << ", " << this->pre_grasp_center.y << ")" << std::endl;
 
     // this->pre_grasp_center.x = edge_centers[nearestIndex].x-this->pre_grasp_distance.x;
@@ -2723,10 +2736,10 @@ void PicknPlaceAlgNode::corners_callback(const visualization_msgs::MarkerArray::
     // this->dragging_pose_garment = this->pre_grasp_center;
     this->dragging_pose_garment.x = garment_center.x; // + this->pre_grasp_distance.x;
     this->dragging_pose_garment.y = garment_center.y; // - 0.05 * sin(-perpendicularAngle);
-    this->dragging_pose_garment.z = 0.10;
+    this->dragging_pose_garment.z = 0.10; //0.031
     this->dragging_pose_garment.theta_x = 125; //0; //this->pre_grasp_center.theta_x;
-    this->dragging_pose_garment.theta_y = 0; //-125; //this->pre_grasp_center.theta_x;
-    this->dragging_pose_garment.theta_z = 90; //180; //this->pre_grasp_center.theta_x;
+    this->dragging_pose_garment.theta_y = -1.6; //0; //-125; //this->pre_grasp_center.theta_x;
+    this->dragging_pose_garment.theta_z = 88.8; //90; //180; //this->pre_grasp_center.theta_x;
 
     if(edge_centers[nearestIndex].y < edge_centers[secondNearestIndex].y) //If the second nearest edge is further away than nearest corner:
     {
