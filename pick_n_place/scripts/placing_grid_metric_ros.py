@@ -47,7 +47,7 @@ def plot(data, file_name, scale, scale_color):
         fig.write_image(filename)
 
 ## Saves RGB images with the corresponding filename, GT class and metrics
-def plot_with_info(data, x_grid_divs, y_grid_divs, can_edges, obj_thickn, scale, scale_color):
+def plot_with_info(data, x_grid_divs, y_grid_divs, can_edges, obj_thickn, n_objs, scale, scale_color):
     print("\033[94m Plotting with info... \033[0m")
     data = np.array(data)
     planes_x = []
@@ -80,7 +80,7 @@ def plot_with_info(data, x_grid_divs, y_grid_divs, can_edges, obj_thickn, scale,
     # Plot Canonical plane
     x=np.linspace(can_edges[0],can_edges[1],100)
     y=np.linspace(can_edges[2],can_edges[3],50)
-    z=obj_thickn*np.ones(len(y_data))
+    z=(obj_thickn*n_objs)*np.ones(len(y_data))
     canonic = go.Surface(x=x, y=y, z=np.array([z]*len(x)).T, colorscale=bright_pink, opacity=0.4)
     canonic_plane.append(canonic)
 
@@ -337,9 +337,10 @@ def def_metric(grids, grasp_edge_size, obj_thickness):
 def placing_qual(metrics, n_div, grasp_edge_size, obj_thickness, n_objs):
 
     min_depth = obj_thickness * n_objs #Object/pile thickness should be 0 deformation
-    max_depth = grasp_edge_size/2 + obj_thickness + 0.01 #Max depth occurs when the cloth is folded by half (grasped edge size /2) + the piled object thickness
+    # max_depth = grasp_edge_size/2 + (min_depth-obj_thickness) + 0.01 #Max depth occurs when the cloth is folded by half (grasped edge size /2) + the piled object thickness (0 for placed, obj thick for pile)
     # half_max_depth = max_depth/2
     half_max_depth = min_depth+0.01
+    max_depth = (obj_thickness*3) + (min_depth-obj_thickness)
     print("min depth: ", min_depth, " / max depth: ", max_depth)
 
     metrics = np.array(metrics)

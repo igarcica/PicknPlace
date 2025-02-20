@@ -54,7 +54,9 @@ CLOTH_SIZE = {
     "waffle_16l": (0.13,0.18)
     }
 
-show_imgs = True
+show_imgs = False
+save_imgs = False
+write_dir = write_dir = "/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/test_placing_towel/"
 plot_scale = dict(xaxis=dict(range=[0, 0.4]), yaxis=dict(range=[0.2, -0.3]), zaxis=dict(range=[0, 0.3]), aspectratio=dict(x=1, y=1, z=1) ) #plot scale for grasped samples
 plot_scale_color = [0.0, 0.2] # plot depth color scale for grasped samples
 
@@ -66,15 +68,15 @@ plot_scale_color = [0.0, 0.2] # plot depth color scale for grasped samples
 # # plot_scale_color = [0.0, 0.1] # plot depth color scale for grasped samples
 # plot_scale_color = [0.0, 1] # plot depth color scale for grasped samples
 
-def show_save_figs(figure):
+def show_save_figs(figure, name):
     if show_imgs:
         figure.show()
-    # if save_data:
-    #     filename = write_dir + file_name + ".jpg"
-    #     figure.write_image(filename)
+    if save_imgs:
+        filename = write_dir + name + ".jpg"
+        figure.write_image(filename)
 
 
-def process_pointcloud(data, grasp_edge_size, nongrasp_edge_size, obj_thickness):
+def process_pointcloud(data, grasp_edge_size, nongrasp_edge_size, obj_thickness, n_objs):
 
     rospy.loginfo("Placing_quality: Received pointcloud message")
 
@@ -95,16 +97,17 @@ def process_pointcloud(data, grasp_edge_size, nongrasp_edge_size, obj_thickness)
     mean_metrics = placing_grid_metric.def_metric(grids, grasp_edge_size, obj_thickness)
 
     ## ---Plot---
-    fig = placing_grid_metric.plot_with_info(transl_data, can_x_grid_divs, can_y_grid_divs, can_edges, obj_thickness, plot_scale, plot_scale_color)
-    show_save_figs(fig)
+    fig = placing_grid_metric.plot_with_info(transl_data, can_x_grid_divs, can_y_grid_divs, can_edges, obj_thickness, n_objs, plot_scale, plot_scale_color)
+    show_save_figs(fig, "plot")
     fig2 = placing_grid_metric.plot_metrics(mean_metrics, plot_scale_color)
-    show_save_figs(fig2)
+    show_save_figs(fig2, "metric")
     
     return mean_metrics
 
 def handle_service(req):
     
-    msg = rospy.wait_for_message('/segment_table/place', PointCloud2) # Get next message from the topic /segment_table/place (segmented pointcloud of the placed object)
+    # msg = rospy.wait_for_message('/segment_table/place', PointCloud2) # Get next message from the topic /segment_table/place (segmented pointcloud of the placed object)
+    msg = rospy.wait_for_message('/cloud_pcd', PointCloud2) # Get next message from the topic /segment_table/place (segmented pointcloud of the placed object)
     
     ## ---Get object dimensions for creating canonical---
     obj_edge_size = CLOTH_SIZE.get(req.object_name, None)
@@ -123,7 +126,7 @@ def handle_service(req):
         grasped_edge_size = obj_edge_size[1] # longest edge is grasped
         nongrasped_edge_size = obj_edge_size[0]
 
-    grid_metric = process_pointcloud(msg, grasped_edge_size, nongrasped_edge_size, object_thickness) # Grid metric
+    grid_metric = process_pointcloud(msg, grasped_edge_size, nongrasped_edge_size, object_thickness, n_objects) # Grid metric
 
     placing_quality = placing_grid_metric.placing_qual(grid_metric, n_divisions, nongrasped_edge_size, object_thickness, n_objects) # Placing quality
     return GetPlacingQualResponse(round(placing_quality))

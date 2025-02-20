@@ -3,7 +3,7 @@
 
 ## SENSE Deformation class with ROS
 
-Provides a ROS Service ``/pick_n_place/sense_def_class`` of type ``SenseDefClass`` that computes the grid metric and clusterizes it. It resturn the deformation cluster where it pertains.
+Provides a ROS Service ``/pick_n_place/sense_def_class`` of type ``SenseDefClass`` that computes the grid metric and clusterizes it. It returns the deformation cluster where it pertains.
 <!-- ## Offline - Without the robot -->
 
 To compute the deformation cluster of a grasped object in real time (through ROS topic), execute:
@@ -45,15 +45,16 @@ rosservice call /pick_n_place/predict_def_class "{layers: '8l', grasp: 'short', 
 
 ## Compute Placing quality
 
-Provides a ROS Service ``/pick_n_place/get_placing_quality`` of type ``GetPlacingQual`` that provides the placing quality of the placed object using the grid metric. It rquires the object name and the grasped edge to obtain the object dimensions to create the canonical and grid division.
+Provides a ROS Service ``/pick_n_place/get_placing_quality`` of type ``GetPlacingQual`` that provides the placing quality of the placed or piled object using the grid metric. It requires the object name (for the object dimensions of the canonical to create the grid division), the grasped edge (to orientate the canonical) and wether the evaluation is of a pile or not (to know the expected minimum depth).
 
 To measure the placing quality in real time (through ROS topic), execute:
 
 ```
 roscore
 rosrun pick_n_place placing_quality.py 
-rosservice call /pick_n_place/get_placing_quality "object_name: 'towel' grasped_edge: 'short'"
+rosservice call /pick_n_place/get_placing_quality "object_name: 'towel' grasped_edge: 'short' pile: false"
 ```
 
 When a point cloud message is published in the topic /segment_table/place, the node will process the point cloud to compute the grid metric and compute the placing quality.
-It can be run without the robot with ``rosbag play placed_object_sample.bag``
+
+It can be run without the robot with ``rosbag play placed_object_sample.bag`` or with PCD files by changing the topic to /cloud_pcd and running ``rosrun pcl_ros pcd_to_pointcloud filename.pcd 0.1``
