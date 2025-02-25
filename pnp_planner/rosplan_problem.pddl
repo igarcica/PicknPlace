@@ -12,37 +12,27 @@
 
 (:init (garment_state towel notgrasped) (not (corners_pos_known towel)) (defstate towel flat)
 		(not (known_obj towel2))
-		(robot_at else) (robot_empty)
+		(robot_at high_pose) (robot_empty)
 		(= (time_cost) 0)
 		(= (place_qual) 0)
 		;;placing costs
-		(= (place_succ towel A placevert) 0)
-		(= (place_succ towel B placevert) 10)
-		(= (place_succ towel C placevert) 60)
-		(= (place_succ towel A placediag) 10)
-		(= (place_succ towel B placediag) 1)
-		(= (place_succ towel C placediag) 31)
-		(= (place_succ towel A placerot) 11)
-		(= (place_succ towel B placerot) 20)
-		(= (place_succ towel C placerot) 5)
+
+		(= (place_succ towel A placerot) 0)
+		(= (place_succ towel B placerot) 0)
+		(= (place_succ towel C placerot) 0)
 		;;piling costs
-		(= (place_succ towel2 A placevert) 100)
-		(= (place_succ towel2 B placevert) 10)
-		(= (place_succ towel2 C placevert) 60)
-		(= (place_succ towel2 A placediag) 100)
-		(= (place_succ towel2 B placediag) 15)
-		(= (place_succ towel2 C placediag) 31)
-		(= (place_succ towel2 A placerot) 110)
-		(= (place_succ towel2 B placerot) 0)
-		(= (place_succ towel2 C placerot) 5)
+		(= (place_succ towel2 A placevert) 0)
+		(= (place_succ towel2 B placevert) 0)
+		(= (place_succ towel2 C placevert) 0)
+
 		(obj_grasp_class long A) ;;towel grasped by multedges results in deformation class A
 		(obj_grasp_class short B) ;; It can be the same as with long, the second object will adapt to the first object's init pose
 		;;(def_class towel A)
 )
 
-(:goal (and (garment_state towel placed) ))
+;;(:goal (and (garment_state towel placed) ))
 ;;(:goal (and (on hola towel) (on teta hola) ))
-;;(:goal (and (on towel2 towel) ))
+(:goal (and (on towel2 towel) ))
 
 ;;(:metric minimize (time_cost))
 (:metric minimize (place_qual))

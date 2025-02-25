@@ -13,6 +13,7 @@ PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
   this->stop=false;
   double open_gripper = 0.35;
   double close_gripper = 0.97; //0.81;
+  this->piling=false;
 
   // Garment pose subscriber
   this->garment_pose_subscriber = this->public_node_handle_.subscribe("/segment_table/grasp_point",1,&PicknPlaceAlgNode::garment_pose_callback,this);
@@ -150,6 +151,7 @@ PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
   // this->logfile("/home/userlab/Desktop/log_picknplace.txt", std::ios::app); 
   // std::ofstream logfile("/home/userlab/Desktop/log_picknplace.txt", std::ios::app); 
   logfile.open("/home/userlab/iri-lab/iri_ws/src/PicknPlace/log_picknplace.txt", std::ios::app);
+  this->logfile << "---------------------------------------\n";
   this->logfile << "\nInitialized pick_n_place_alg_node\n";
   // logfile.close();
 }
@@ -279,6 +281,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                               }
       break;
 
+/////// DRAG and ROTATE actions
       case PRE_PRE_DRAG: ROS_DEBUG("PicknPlaceAlgNode: state PRE_PRE_DRAG");
                           {
                             // this->success &= send_gripper_command(this->close_gripper);
@@ -538,6 +541,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                                }
       break;
 
+/////// GRASP actions
       // PRE-GRASP POSITION
       case PRE_GRASP: ROS_DEBUG("PicknPlaceAlgNode: state PRE GRASP");
                       {
@@ -553,7 +557,6 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                         }
                       }
       break;
-
 
       // GRASP POSITION
       case GRASP: ROS_DEBUG("PicknPlaceAlgNode: state GRASP");
@@ -658,6 +661,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                             }
       break;
 
+/////// CHECK DEFORMATION actions
       case EXPERIMENTS1: ROS_DEBUG("PicknPlaceAlgNode: state EXPERIMENTS1");
                          {
                            this->logfile << "State: EXPERIMENTS1" << std::endl;
@@ -745,7 +749,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                                     this->state=UPDATE_ROSPLAN_KB;
                                   }
                                   else // Continue SM
-                                    this->state=CLOSE_GRIPPER2; //Change to CHOOSE_PLACING
+                                    this->state=CHOOSE_PLACING; //Change to CHOOSE_PLACING
                                 }else{
                                   ROS_WARN("PicknPlaceAlgNode (CHECK DEFORMATION): Unable to sense deformation class");
                                   this->state=END;
@@ -799,7 +803,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                               }
       break;
       */
-
+      /*
       case CLOSE_GRIPPER2: ROS_DEBUG("PicknPlaceAlgNode: state CLOSE GRIPPER2");
 			                     if(config_.close)
 			                     {
@@ -854,7 +858,9 @@ void PicknPlaceAlgNode::mainNodeThread(void)
 				                        this->state=CHOOSE_PLACING;
                              }
       break;
+      */
 
+/////// PLACE actions
       case CHOOSE_PLACING: ROS_DEBUG("PickPlacceAlgNode: state CHOOSE PLACING");
                            {
                              this->logfile << "State: CHOOSE_PLACING" << std::endl;
@@ -863,7 +869,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                              if(this->placing_strategy==1)
                                this->state=PRE_PLACE_DIAGONAL;
                              else if(this->placing_strategy==2)
-			                         this->state=PRE_PLACE_RECTO;
+			                         this->state=PRE_PLACE_VERTICAL;
 			                       else if(this->placing_strategy==3)
                                this->state=PRE_PLACE_ROTATING;
                              else if(this->placing_strategy==4)
@@ -871,30 +877,9 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                              ros::Duration(0.5).sleep();
                            }
 	    break;
-
-      /*case CHOOSE_PLACING: ROS_DEBUG("PickPlacceAlgNode: state CHOOSE PLACING");
-                           {
-                            if(sense_deformation_class_client_.call(sense_deformation_class_srv_))
-                            {
-                              ROS_INFO("Deformation class: ");
-                              ROS_INFO("Sum: %ld", (long int)sense_deformation_class_srv_.response.output_response);
-			                        std::cout << this->placing_strategy << std::endl;
-                              this->success = true;
-                              if(this->placing_strategy==1)
-                                this->state=PRE_PLACE_DIAGONAL;
-                              else if(this->placing_strategy==2)
-			                          this->state=PRE_PLACE_RECTO;
-			                        else if(this->placing_strategy==3)
-                                this->state=PRE_PLACE_ROTATING;
-                              else if(this->placing_strategy==4)
-                                this->state=OPEN_GRIPPER;
-                              ros::Duration(0.5).sleep();
-                            }else{
-                              ROS_INFO("No deformation class received");
-                            }
-                           }
-	    break;*/
       
+  // PLACE DIAGONAL !
+
       // ROTATE PRE-PLACE POSITION - CARTESIAN
       // Sets a slight rotation before the diagonal placement
       case PRE_PLACE_DIAGONAL: ROS_DEBUG("PicknPlaceAlgNode: state PRE PLACE DIAGONAL");
@@ -966,8 +951,6 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                                 }
       break;
 
-            // PLACE POSITION
-      // Sets the placing position so it performs a diagonal movement
       case PLACE_DIAGONAL2: ROS_DEBUG("PicknPlaceAlgNode: state PLACE DIAGONAL");
                            {
                                ROS_INFO("PicknPlaceSM: Sending to PLACE position.");
@@ -989,7 +972,6 @@ void PicknPlaceAlgNode::mainNodeThread(void)
       // Wait until it ends the diagonal movement (with linear movement controller)
       case WAIT_PLACE_DIAGONAL2: ROS_DEBUG("PicknPlaceAlgNode: state WAIT PLACE DIAGONAL");
                                 {
-                                  this->logfile << "State: WAIT_PLACE_DIAGONAL2" << std::endl;
                                   actionlib::SimpleClientGoalState kinova_linear_move_state(actionlib::SimpleClientGoalState::PENDING);
                                   // to get the state of the current goal
                                   this->alg_.unlock();
@@ -1011,6 +993,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                                 }
       break;
 
+  //PLACE ROTATING ! 
       //Place rotando
       // PRE PLACE2 - CARTESIAN
       // Sets a rotation so the garment stays vertical to the table (with cartesian controller)
@@ -1033,7 +1016,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                                  {
                                    ROS_INFO("Success PRE PLACE ROTATING");
                                    ros::Duration(0.5).sleep();
-				                           if(config_.piling)
+				                           if(this->piling)
 				                             this->state=PILING;
 				                           else
                                      this->state=PLACE_ROTATING;
@@ -1041,7 +1024,6 @@ void PicknPlaceAlgNode::mainNodeThread(void)
 			                           else
 			                             this->state=END;
                                }
-
       break;
 
       // PLACE2 - CARTESIAN
@@ -1136,26 +1118,25 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                       }
       break;
 
-
-      // PLACE RECTO!
+  // PLACE VERTICAL!
 
       // Sets the placing position to perform a straight placement (with linear movement controller)
-      case PRE_PLACE_RECTO: ROS_DEBUG("PicknPlaceAlgNode: state PRE PLACE RECTO");
+      case PRE_PLACE_VERTICAL: ROS_DEBUG("PicknPlaceAlgNode: state PRE PLACE VERTICAL");
                             {
                               ROS_INFO("PicknPlaceSM: Sending to PRE-place position.");
-                              this->logfile << "State: PRE_PLACE_RECTO" << std::endl;
+                              this->logfile << "State: PRE_PLACE_VERTICAL" << std::endl;
                               geometry_msgs::Pose desired_pose;
                               desired_pose.position.x = 0.12;
                               desired_pose.position.y = -0.28;
                               desired_pose.position.z = tool_pose.z;
                               // std::cout << "\033[1;36m PRE-PLACE: -> \033[1;36m  x: " << desired_pose.position.x << ", y: " <<  desired_pose.position.y << ", z: " << desired_pose.position.z << std::endl;
                               kinova_linear_moveMakeActionRequest(desired_pose, kortex_driver::CartesianReferenceFrame::CARTESIAN_REFERENCE_FRAME_MIXED, 0.08);
-                              this->state=WAIT_PRE_PLACE_RECTO;
+                              this->state=WAIT_PRE_PLACE_VERTICAL;
                             }
       break;
 
       // Waits until it places the garment vertically (linear)
-      case WAIT_PRE_PLACE_RECTO: ROS_DEBUG("PicknPlaceAlgNode: state WAIT PRE PLACE RECTO");
+      case WAIT_PRE_PLACE_VERTICAL: ROS_DEBUG("PicknPlaceAlgNode: state WAIT PRE PLACE VERTICAL");
                        {
                          actionlib::SimpleClientGoalState kinova_linear_move_state(actionlib::SimpleClientGoalState::PENDING);
                          // to get the state of the current goal
@@ -1172,17 +1153,17 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                          else if(kinova_linear_move_state==actionlib::SimpleClientGoalState::SUCCEEDED)
                          {
                            this->success = true;
-                           state=PLACE_RECTO;
+                           state=PLACE_VERTICAL;
                            ros::Duration(0.5).sleep();
                          }
                        }
       break;
 
       // Sets the placing position to perform a straight placement (with linear movement controller)
-      case PLACE_RECTO: ROS_DEBUG("PicknPlaceAlgNode: state PLACE RECTO");
+      case PLACE_VERTICAL: ROS_DEBUG("PicknPlaceAlgNode: state PLACE VERTICAL");
                         {
                           ROS_INFO("PicknPlaceSM: Sending to PLACE position.");
-                          this->logfile << "State: PLACE_RECTO" << std::endl;
+                          this->logfile << "State: PLACE_VERTICAL" << std::endl;
                           geometry_msgs::Pose desired_pose;
                           desired_pose.position.x = tool_pose.x;
                           desired_pose.position.y = tool_pose.y;
@@ -1192,12 +1173,12 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                           // std::cout << " y: current " << std::endl;
                           // std::cout << " z: pile (" << this->pile_height << ")+ table (" << config_.table_height << ")+0.05" << std::endl;
                           kinova_linear_moveMakeActionRequest(desired_pose, kortex_driver::CartesianReferenceFrame::CARTESIAN_REFERENCE_FRAME_MIXED, 0.08);
-                          this->state=WAIT_PLACE_RECTO;
+                          this->state=WAIT_PLACE_VERTICAL;
                         }
       break;
 
       // Waits until it places the garment vertically (linear)
-      case WAIT_PLACE_RECTO: ROS_DEBUG("PicknPlaceAlgNode: state WAIT PLACE RECTO");
+      case WAIT_PLACE_VERTICAL: ROS_DEBUG("PicknPlaceAlgNode: state WAIT PLACE VERTICAL");
                              {
                                actionlib::SimpleClientGoalState kinova_linear_move_state(actionlib::SimpleClientGoalState::PENDING);
                                // to get the state of the current goal
@@ -1400,6 +1381,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                                }
       break;
 
+      //State for ROSPlan
       case GET_OBJECT_POSE: ROS_DEBUG("PicknPlaceAlgnode: state GET OBJECT POSE");
                             {
                               this->logfile << "State: GET_OBJECT_POSE" << std::endl;
@@ -1428,14 +1410,15 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                               {
                                 // this->logfile << "State: CHECK_PLACING_QUAL" << std::endl;
                                 this->logfile << "--- PLACING QUALITY ESTIMATION ---" << std::endl;
-                                this->logfile << "Placing quality parameters --> object name: " << config_.object_name << ", nearest_edge: " << this->nearest_edge << std::endl;
+                                this->logfile << "Placing quality parameters --> object name: " << config_.object_name << ", nearest_edge: " << this->nearest_edge << ", piling: " << this->piling << std::endl;
                                 get_placing_quality_srv_.request.object_name = config_.object_name; //obtain form reconfigure
                                 get_placing_quality_srv_.request.grasped_edge = this->nearest_edge;
-                                get_placing_quality_srv_.request.piling = config_.piling;
+                                get_placing_quality_srv_.request.piling = this->piling;
                                 if(get_placing_quality_client_.call(get_placing_quality_srv_))
                                 {
                                   ROS_INFO("PicknPlace: Placing quality: %f", get_placing_quality_srv_.response.placing_quality);
                                   this->logfile << "Placing quality: " << get_placing_quality_srv_.response.placing_quality << std::endl;
+                                  this->logfile << "Placing error: " << 100-get_placing_quality_srv_.response.placing_quality << std::endl;
                                   this->placing_quality = get_placing_quality_srv_.response.placing_quality;
                                   if(this->pddl_demo)
                                    {
@@ -1569,7 +1552,10 @@ void PicknPlaceAlgNode::node_config_update(Config &config, uint32_t level)
     this->drag=false;
     this->rotate=true;
   }
-  
+  if(config.piling)
+  {
+    this->piling=true;
+  }
   //Start SM for demo (use 'towel' bool to change strategy for grasping and placing towel (less gripper closure + vertical place) or napkin (more gripper closure + place2)
   if(config.start_demo)// && !config.plan_pddl_demo)
   {
@@ -1785,8 +1771,10 @@ void PicknPlaceAlgNode::PDDLgoalCB()
   else if(0==goal->action_name.compare("new_object")) 
   {
     ROS_WARN("PicknPlace: NEW OBJECT action");
+    this->piling=true;
+    this->pddl_action_done=true;
     // this->get_garment_position=true;
-    this->state=GET_OBJECT_POSE;
+    // this->state=GET_OBJECT_POSE;
 
   }
   else
@@ -1956,7 +1944,7 @@ rosplan_knowledge_msgs::KnowledgeUpdateServiceArray PicknPlaceAlgNode::updateKB_
   }else
       ROS_WARN("PicknPlaceAlgNode: Not possible to get current KB state");
 
-  //PREDICTED DEFORMATION CLASS - How to update both edges?
+  //PREDICTED DEFORMATION CLASS - Udates both edgess
   get_kb_state_srv_.request.predicate_name = "obj_grasp_class"; 
   if(get_kb_state_client_.call(get_kb_state_srv_))
   {
@@ -2120,6 +2108,9 @@ rosplan_knowledge_msgs::KnowledgeUpdateServiceArray PicknPlaceAlgNode::updateKB_
 	//TO DO: Get predicates and params from current KB state
   this->logfile << "Updating KB: defstate\n";
 
+
+
+
   //Update deformation class in ROSPlan knowledge base to replan accordingly
 
   // //Add (known_obj hola)
@@ -2216,7 +2207,7 @@ rosplan_knowledge_msgs::KnowledgeUpdateServiceArray PicknPlaceAlgNode::updateKB_
   // update_kb_srv_.request.knowledge.push_back(item);
 	// update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE);
 
-  //Remove previous def class
+  /*//Remove previous def class
   rosplan_knowledge_msgs::KnowledgeItem item;
 	item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
 	item.attribute_name = "defstate";
@@ -2246,7 +2237,9 @@ rosplan_knowledge_msgs::KnowledgeUpdateServiceArray PicknPlaceAlgNode::updateKB_
   update_kb_srv_.request.knowledge.push_back(item);
 	update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE);
 
-  return update_kb_srv_;
+  return update_kb_srv_; */
+
+
 }
 
 void PicknPlaceAlgNode::predict_deformation_class(void)

@@ -111,10 +111,10 @@ typedef enum {IDLE,
               PLACE_ROTATING,
               PLACE22,
               PLACE222,
-              PRE_PLACE_RECTO,
-              WAIT_PRE_PLACE_RECTO,
-              PLACE_RECTO,
-              WAIT_PLACE_RECTO,
+              PRE_PLACE_VERTICAL,
+              WAIT_PRE_PLACE_VERTICAL,
+              PLACE_VERTICAL,
+              WAIT_PLACE_VERTICAL,
               OPEN_GRIPPER,
               POST_PLACE,
               WAIT_POST_PLACE,
@@ -153,6 +153,7 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     pick_place_states_t state;
     double close_gripper;
     double open_gripper;
+    bool piling;
 
     std::vector<double> pre_grasp_corner;
     kortex_driver::Pose home_pose;

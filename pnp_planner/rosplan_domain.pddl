@@ -47,7 +47,8 @@
 	:parameters (?edge - grasp ?ws - workspace)
 	:precondition (and
 				(garment_state towel placed)
-				(not (known_obj towel2)))
+				(not (known_obj towel2))
+				(robot_at high_pose))
 	:effect (and
 			(known_obj towel2) 
 			(garment_state towel2 notgrasped)
@@ -174,32 +175,18 @@
 			(increase (place_qual) 0))
 )
 
-(:action placevert
-	:parameters (?cloth ?tablecloth - garment ?edge - grasp ?class - defclass)
-	:precondition (and 
-				(at_pose ?tablecloth ?edge) ;;piledcloth is on placedcloth is in placed with edge
-				(at_pose ?cloth ?edge)
-				(garment_state ?cloth lifted)
-				(defstate ?cloth ?class))
-	:effect (and 
-			(robot_empty)
-			(on ?cloth ?tablecloth)
-			(garment_state ?cloth placed)
-			(not (garment_state ?cloth lifted))
-			(increase (time_cost) 10)
-			(increase (place_qual) (place_succ ?cloth ?class placevert)))
-)
+
 
 (:action placediag
-	:parameters (?cloth ?tablecloth - garment ?edge - grasp  ?class - defclass)
+	:parameters (?cloth ?placedcloth - garment ?edge - grasp  ?class - defclass)
 	:precondition (and
-				(at_pose ?tablecloth ?edge) ;;piledcloth is on placedcloth is in placed with edge
+				(at_pose ?placedcloth ?edge) ;;piledcloth is on placedcloth is in placed with edge
 				(at_pose ?cloth ?edge)
 				(garment_state ?cloth lifted)
 				(defstate ?cloth ?class))
 	:effect (and 
 			(robot_empty)
-			(on ?cloth ?tablecloth)
+			(on ?cloth ?placedcloth)
 			(garment_state ?cloth placed)
 			(not (garment_state ?cloth lifted))
 			(increase (time_cost) 15)
@@ -207,19 +194,34 @@
 )
 
 (:action placerot
-	:parameters (?cloth ?tablecloth - garment ?edge - grasp  ?class - defclass)
+	:parameters (?cloth ?placedcloth - garment ?edge - grasp  ?class - defclass)
 	:precondition (and
-				(at_pose ?tablecloth ?edge) ;;piledcloth is on placedcloth is in placed with edge
+				(at_pose ?placedcloth ?edge) ;;piledcloth is on placedcloth is in placed with edge
 				(at_pose ?cloth ?edge)
 				(garment_state ?cloth lifted)
 				(defstate ?cloth ?class))
 	:effect (and 
 			(robot_empty)
-			(on ?cloth ?tablecloth)
+			(on ?cloth ?placedcloth)
 			(garment_state ?cloth placed)
 			(not (garment_state ?cloth lifted))
 			(increase (time_cost) 20)
 			(increase (place_qual) (place_succ ?cloth ?class placerot)))
+)
+(:action placevert
+	:parameters (?cloth ?placedcloth - garment ?edge - grasp ?class - defclass)
+	:precondition (and 
+				(at_pose ?placedcloth ?edge) ;;piledcloth is on placedcloth is in placed with edge
+				(at_pose ?cloth ?edge)
+				(garment_state ?cloth lifted)
+				(defstate ?cloth ?class))
+	:effect (and 
+			(robot_empty)
+			(on ?cloth ?placedcloth)
+			(garment_state ?cloth placed)
+			(not (garment_state ?cloth lifted))
+			(increase (time_cost) 10)
+			(increase (place_qual) (place_succ ?cloth ?class placevert)))
 )
 
 )

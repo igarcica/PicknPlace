@@ -54,7 +54,7 @@ CLOTH_SIZE = {
     "waffle_16l": (0.13,0.18)
     }
 
-show_imgs = False
+show_imgs = True
 save_imgs = False
 write_dir = write_dir = "/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/test_placing_towel/"
 plot_scale = dict(xaxis=dict(range=[0, 0.4]), yaxis=dict(range=[0.2, -0.3]), zaxis=dict(range=[0, 0.3]), aspectratio=dict(x=1, y=1, z=1) ) #plot scale for grasped samples
@@ -106,8 +106,8 @@ def process_pointcloud(data, grasp_edge_size, nongrasp_edge_size, obj_thickness,
 
 def handle_service(req):
     
-    # msg = rospy.wait_for_message('/segment_table/place', PointCloud2) # Get next message from the topic /segment_table/place (segmented pointcloud of the placed object)
-    msg = rospy.wait_for_message('/cloud_pcd', PointCloud2) # Get next message from the topic /segment_table/place (segmented pointcloud of the placed object)
+    msg = rospy.wait_for_message('/segment_table/place', PointCloud2) # Get next message from the topic /segment_table/place (segmented pointcloud of the placed object)
+    # msg = rospy.wait_for_message('/cloud_pcd', PointCloud2) # Get next message from the topic /segment_table/place (segmented pointcloud of the placed object)
     
     ## ---Get object dimensions for creating canonical---
     obj_edge_size = CLOTH_SIZE.get(req.object_name, None)
@@ -129,7 +129,11 @@ def handle_service(req):
     grid_metric = process_pointcloud(msg, grasped_edge_size, nongrasped_edge_size, object_thickness, n_objects) # Grid metric
 
     placing_quality = placing_grid_metric.placing_qual(grid_metric, n_divisions, nongrasped_edge_size, object_thickness, n_objects) # Placing quality
-    return GetPlacingQualResponse(round(placing_quality))
+    placing_quality = round(placing_quality)
+    placing_quality = np.where(placing_quality < 0, 0, np.where(placing_quality>100, 100, placing_quality))
+    print("placing_quality dsfjoldkfs:", placing_quality)
+    
+    return GetPlacingQualResponse(placing_quality)
 
 if __name__ == '__main__':
     rospy.init_node('placing_quality', anonymous=True)
