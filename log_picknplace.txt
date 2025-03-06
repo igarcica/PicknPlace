@@ -1,106 +1,226 @@
+---------------------------------------
 
 Initialized pick_n_place_alg_node
 
 --- NEW PLAN RECEIVED --- 
 New plan: 0: (home)  [0.001]
 1: (go_high)  [0.001]
-2: (check_corners towel grws long)  [0.001]
-3: (home)  [0.001]
-4: (grasp towel long a)  [0.001]
-5: (check_deformation towel)  [0.001]
-6: (placevert towel towel long a)  [0.001]
+2: (new_object short rotws)  [0.001]
+3: (check_corners towel2 rotws long)  [0.001]
+4: (home)  [0.001]
+5: (grasp towel2 long c)  [0.001]
+6: (check_deformation towel2)  [0.001]
+7: (placediag towel2 towel long c)  [0.001]
 
-Replanned
 State: HOME
 State: CHECK_CORNERS_POSE
-Sending to: -> (0.577603, 0.0142251, 0.6) 
+Sending to: -> (0.577604, 0.0142317, 0.6) 
 
 ---OBJECT STATE INFO---
-Nearest edge size: 0.217933 / Second nearest edge size: 0.291979
-Nearest edge grasp point: (0.56596, 0.165643) with distance 0.589702
-Second nearest edge point: (0.654702, 0.318138) with distance 0.727905
-Garment center point: (0.693097, 0.221439) with distance 0.727612
-Grasp pose: (0.520817, 0.144147, 0.055, -178, -50, 25)
+Nearest edge size: 0.279577 / Second nearest edge size: 0.219765
+Nearest edge grasp point: (0.590674, 0.154501) with distance 0.610546
+Second nearest edge point: (0.700784, 0.0193226) with distance 0.70105
+Garment center point: (0.698333, 0.159367) with distance 0.716287
+Grasp pose: (0.540675, 0.154386, 0.055, -178, -50, 0)
+Grasp edge size: 0.25
+Pile height: 0
 
 --- PREDICTION OF DEFORMATION CLASS ---
-Predicted def class for nearest edge (short): B
-Preiction parameters -> Layers: 8l, Grasp: short, nongraspedsize: 0.291979, graspedsize: 0.217933, area: 0.0636318, stiffness: 99.9, friction: 80
-Predicted def class for second nearest edge (long): A
-Preiction parameters -> Layers: 8l, Grasp: long, nongraspedsize: 0.217933, graspedsize: 0.291979, area: 0.0636318, stiffness: 99.9, friction: 80
+Predicted def class for nearest edge (long): C
+Preiction parameters -> Layers: 8l, Grasp: long, nongraspedsize: 21.9765, graspedsize: 27.9577, area: 614.411, stiffness: 60.1, friction: 82.7
+Predicted def class for second nearest edge (short): B
+Preiction parameters -> Layers: 8l, Grasp: short, nongraspedsize: 27.9577, graspedsize: 21.9765, area: 614.411, stiffness: 60.1, friction: 82.7
 State: UPDATE_INIT_ROSPLAN_KB
 
 --- UPDATING KB: garment_at, at_pose, obj_grasp_class ---
-PicknPlace: REMOVING grws to towel
-PicknPlace: ADDING grws to towel
+PicknPlace: REMOVING rotws to towel2
+PicknPlace: ADDING grws to towel2
 PicknPlace: REMOVING long to towel
-PicknPlace: ADDING short to towel
-PicknPlace: REMOVING a to long
-PicknPlace: ADDING A to long
+PicknPlace: ADDING long to towel
+PicknPlace: REMOVING long to towel2
+PicknPlace: ADDING long to towel2
+PicknPlace: REMOVING c to long
+PicknPlace: ADDING C to long
 PicknPlace: REMOVING b to short
 PicknPlace: ADDING B to short
 
 --- NEW PLAN RECEIVED --- 
 New plan: 0: (home)  [0.001]
-1: (drag towel)  [0.001]
-2: (go_high)  [0.001]
-3: (check_corners towel grws long)  [0.001]
-4: (home)  [0.001]
-5: (grasp towel long a)  [0.001]
-6: (check_deformation towel)  [0.001]
-7: (placevert towel towel long a)  [0.001]
+1: (grasp towel2 long c)  [0.001]
+2: (check_deformation towel2)  [0.001]
+3: (placediag towel2 towel long c)  [0.001]
 
-Replanned
+Closing pick_n_place_alg_node
+---------------------------------------
+
+Initialized pick_n_place_alg_node
+
+--- NEW PLAN RECEIVED --- 
+New plan: 0: (home)  [0.001]
+1: (go_high)  [0.001]
+2: (check_corners towel rotws long)  [0.001]
+3: (home)  [0.001]
+4: (grasp towel long c)  [0.001]
+5: (check_deformation towel)  [0.001]
+6: (placerot towel towel long c)  [0.001]
+7: (home)  [0.001]
+8: (go_high)  [0.001]
+9: (new_object short rotws)  [0.001]
+10: (check_corners towel2 rotws long)  [0.001]
+11: (home)  [0.001]
+12: (grasp towel2 long c)  [0.001]
+13: (check_deformation towel2)  [0.001]
+14: (placediag towel2 towel long c)  [0.001]
+
 State: HOME
-State: PRE_PRE_DRAG
-Sending to: -> (0.693097, 0.221439, 0.1, 125, 0, 90)
-State: PRE_DRAG
-Sending to: -> (0.693097, 0.221439, 0.055, 125, 0, 90)
-State: DRAG
-Sending to: -> (0.5, 0, 0.055, 125, 0, 90)
-State: UP_DRAG
-Sending to: -> (0.5, 0, 0.2, 125, 0, 90)
-State: POST_DRAG_ROTATE
 State: CHECK_CORNERS_POSE
-Sending to: -> (0.577611, 0.0142239, 0.6) 
+Sending to: -> (0.577605, 0.0142087, 0.6) 
 
 ---OBJECT STATE INFO---
-Nearest edge size: 0.247006 / Second nearest edge size: 0.226939
-Nearest edge grasp point: (0.495078, 0.140458) with distance 0.514617
-Second nearest edge point: (0.52983, -0.0198262) with distance 0.530201
-Garment center point: (0.595337, 0.0853704) with distance 0.601427
-Grasp pose: (0.452441, 0.166576, 0.055, 0, -125, 149)
+Nearest edge size: 0.279366 / Second nearest edge size: 0.220028
+Nearest edge grasp point: (0.590404, 0.154521) with distance 0.61029
+Second nearest edge point: (0.700641, 0.0194589) with distance 0.700911
+Garment center point: (0.700509, 0.159383) with distance 0.718412
+Grasp pose: (0.540404, 0.154407, 0.055, -178, -50, 0)
+Grasp edge size: 0.25
+Pile height: 0
 
 --- PREDICTION OF DEFORMATION CLASS ---
-Predicted def class for nearest edge (long): A
-Preiction parameters -> Layers: 8l, Grasp: long, nongraspedsize: 0.226939, graspedsize: 0.247006, area: 0.0560553, stiffness: 99.9, friction: 80
+Predicted def class for nearest edge (long): C
+Preiction parameters -> Layers: 8l, Grasp: long, nongraspedsize: 22.0028, graspedsize: 27.9366, area: 614.684, stiffness: 60.1, friction: 82.7
 Predicted def class for second nearest edge (short): B
-Preiction parameters -> Layers: 8l, Grasp: short, nongraspedsize: 0.247006, graspedsize: 0.226939, area: 0.0560553, stiffness: 99.9, friction: 80
+Preiction parameters -> Layers: 8l, Grasp: short, nongraspedsize: 27.9366, graspedsize: 22.0028, area: 614.684, stiffness: 60.1, friction: 82.7
 State: UPDATE_INIT_ROSPLAN_KB
 
 --- UPDATING KB: garment_at, at_pose, obj_grasp_class ---
-PicknPlace: REMOVING grws to towel
-PicknPlace: ADDING rotws to towel
-PicknPlace: REMOVING short to towel
-PicknPlace: ADDING long to towel
+PicknPlace: REMOVING rotws to towel
+PicknPlace: ADDING grws to towel
 PicknPlace: REMOVING long to towel
 PicknPlace: ADDING long to towel
-PicknPlace: REMOVING A to long
-PicknPlace: ADDING A to long
-PicknPlace: REMOVING B to short
+PicknPlace: REMOVING c to long
+PicknPlace: ADDING C to long
+PicknPlace: REMOVING b to short
 PicknPlace: ADDING B to short
 
 --- NEW PLAN RECEIVED --- 
 New plan: 0: (home)  [0.001]
-1: (grasp towel long a)  [0.001]
+1: (grasp towel long c)  [0.001]
 2: (check_deformation towel)  [0.001]
-3: (placevert towel towel long a)  [0.001]
+3: (placerot towel towel long c)  [0.001]
+4: (home)  [0.001]
+5: (go_high)  [0.001]
+6: (new_object short rotws)  [0.001]
+7: (check_corners towel2 rotws long)  [0.001]
+8: (home)  [0.001]
+9: (grasp towel2 long c)  [0.001]
+10: (check_deformation towel2)  [0.001]
+11: (placediag towel2 towel long c)  [0.001]
 
-Replanned
 State: HOME
 State: PRE_GRASP
-Sending to: -> (0.452441, 0.166576, 0.055, 0, -125, 149)
+Sending to: -> (0.540404, 0.154407, 0.055, -178, -50, 0)
 State: GRASP
-Sending to: -> (0.495033, 0.192668, 0.054883) 
+Sending to: -> (0.590345, 0.154513, 0.0548601) 
 State: POST_GRASP
-Sending to: -> (0.494182, 0.192176, 0.3) 
+Sending to: -> (0.589472, 0.154562, 0.3) 
 State: EXPERIMENTS1
+---------------------------------------
+
+Initialized pick_n_place_alg_node
+State: EXPERIMENTS2
+Sending to: -> (0.28, -0.291512, 0.4) 
+--- DEFORMATION CLASS ESTIMATION ---
+Sensing def class parameters --> object name: pillowc, layers: 8l, nearest_edge: long
+Sensed deformation class: C
+State: CHOOSE_PLACING
+State: PRE_PLACE_VERTICAL
+Sending to: -> (0.12, -0.28, 0.400056) 
+State: PLACE_VERTICAL
+Sending to: -> (0.12082, -0.27984, 0.055) 
+Closing pick_n_place_alg_node
+---------------------------------------
+
+Initialized pick_n_place_alg_node
+
+--- NEW PLAN RECEIVED --- 
+New plan: 0: (home)  [0.001]
+1: (go_high)  [0.001]
+2: (check_corners towel rotws long)  [0.001]
+3: (home)  [0.001]
+4: (grasp towel long c)  [0.001]
+5: (check_deformation towel)  [0.001]
+6: (placerot towel towel long c)  [0.001]
+7: (home)  [0.001]
+8: (go_high)  [0.001]
+9: (new_object short rotws)  [0.001]
+10: (check_corners towel2 rotws long)  [0.001]
+11: (home)  [0.001]
+12: (grasp towel2 long c)  [0.001]
+13: (check_deformation towel2)  [0.001]
+14: (placediag towel2 towel long c)  [0.001]
+
+State: HOME
+State: CHECK_CORNERS_POSE
+Sending to: -> (0.5776, 0.0142148, 0.6) 
+
+---OBJECT STATE INFO---
+Nearest edge size: 0.272111 / Second nearest edge size: 0.212762
+Nearest edge grasp point: (0.59424, 0.168546) with distance 0.61768
+Second nearest edge point: (0.704545, 0.0333694) with distance 0.705335
+Garment center point: (0.702638, 0.186444) with distance 0.726953
+Grasp pose: (0.544261, 0.167103, 0.055, -178, -50, 2)
+Grasp edge size: 0.25
+Pile height: 0
+
+--- PREDICTION OF DEFORMATION CLASS ---
+Predicted def class for nearest edge (long): C
+Preiction parameters -> Layers: 8l, Grasp: long, nongraspedsize: 21.2762, graspedsize: 27.2111, area: 578.949, stiffness: 60.1, friction: 82.7
+Predicted def class for second nearest edge (short): B
+Preiction parameters -> Layers: 8l, Grasp: short, nongraspedsize: 27.2111, graspedsize: 21.2762, area: 578.949, stiffness: 60.1, friction: 82.7
+State: UPDATE_INIT_ROSPLAN_KB
+
+--- UPDATING KB: garment_at, at_pose, obj_grasp_class ---
+PicknPlace: REMOVING rotws to towel
+PicknPlace: ADDING grws to towel
+PicknPlace: REMOVING long to towel
+PicknPlace: ADDING long to towel
+PicknPlace: REMOVING c to long
+PicknPlace: ADDING C to long
+PicknPlace: REMOVING b to short
+PicknPlace: ADDING B to short
+
+--- NEW PLAN RECEIVED --- 
+New plan: 0: (home)  [0.001]
+1: (grasp towel long c)  [0.001]
+2: (check_deformation towel)  [0.001]
+3: (placerot towel towel long c)  [0.001]
+4: (home)  [0.001]
+5: (go_high)  [0.001]
+6: (new_object short rotws)  [0.001]
+7: (check_corners towel2 rotws long)  [0.001]
+8: (home)  [0.001]
+9: (grasp towel2 long c)  [0.001]
+10: (check_deformation towel2)  [0.001]
+11: (placediag towel2 towel long c)  [0.001]
+
+State: HOME
+State: PRE_GRASP
+Sending to: -> (0.544261, 0.167103, 0.055, -178, -50, 2)
+State: GRASP
+Sending to: -> (0.594193, 0.168514, 0.0548743) 
+State: POST_GRASP
+Sending to: -> (0.593176, 0.168522, 0.3) 
+State: EXPERIMENTS1
+---------------------------------------
+
+Initialized pick_n_place_alg_node
+State: EXPERIMENTS2
+Sending to: -> (0.28, -0.291513, 0.4) 
+--- DEFORMATION CLASS ESTIMATION ---
+Sensing def class parameters --> object name: pillowc, layers: 8l, nearest_edge: long
+Sensed deformation class: C
+State: CHOOSE_PLACING
+State: PRE_PLACE_ROTATING
+Sending to: -> (0.45, -0.28, 0.25, 0, 165, 179)
+State: PLACE_ROTATING
+Sending to: -> (0.22, -0.279992, 0.155, 0, -125.5, 180)

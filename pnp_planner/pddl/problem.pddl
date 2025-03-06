@@ -10,7 +10,7 @@
     flat a b c - defclass
 )
 (:init
-    (garment_at towel rotws)
+    (garment_at towel grws)
 
     (at_pose towel long)
 
@@ -28,35 +28,27 @@
 
 
 
-    (obj_grasp_class long A)
+    (obj_grasp_class long C)
     (obj_grasp_class short B)
 
     (= (time_cost) 0)
 
     (= (place_qual) 0)
 
-    (= (place_succ towel a placevert) 0)
-    (= (place_succ towel b placevert) 10)
-    (= (place_succ towel c placevert) 60)
-    (= (place_succ towel a placediag) 10)
-    (= (place_succ towel b placediag) 1)
-    (= (place_succ towel c placediag) 31)
-    (= (place_succ towel a placerot) 11)
-    (= (place_succ towel b placerot) 20)
-    (= (place_succ towel c placerot) 5)
+    (= (place_succ towel a placevert) 100)
+    (= (place_succ towel b placevert) 100)
+    (= (place_succ towel c placevert) 15)
+    (= (place_succ towel c placediag) 15)
+    (= (place_succ towel c placerot) 9)
     (= (place_succ towel2 a placevert) 100)
-    (= (place_succ towel2 b placevert) 10)
-    (= (place_succ towel2 c placevert) 60)
-    (= (place_succ towel2 a placediag) 100)
-    (= (place_succ towel2 b placediag) 15)
-    (= (place_succ towel2 c placediag) 31)
-    (= (place_succ towel2 a placerot) 110)
-    (= (place_succ towel2 b placerot) 0)
-    (= (place_succ towel2 c placerot) 5)
+    (= (place_succ towel2 b placevert) 100)
+    (= (place_succ towel2 c placevert) 45)
+    (= (place_succ towel2 c placediag) 30)
+    (= (place_succ towel2 c placerot) 43)
 
 )
 (:goal (and
-    (garment_state towel placed)
+    (on towel2 towel)
 ))
 (:metric minimize (place_qual))
 )

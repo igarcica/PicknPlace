@@ -58,3 +58,11 @@ rosservice call /pick_n_place/get_placing_quality "object_name: 'towel' grasped_
 When a point cloud message is published in the topic /segment_table/place, the node will process the point cloud to compute the grid metric and compute the placing quality.
 
 It can be run without the robot with ``rosbag play placed_object_sample.bag`` or with PCD files by changing the topic to /cloud_pcd and running ``rosrun pcl_ros pcd_to_pointcloud filename.pcd 0.1``
+
+## Update planning cost table
+
+Define the current cost table for placing and piling. Define the placing strategy, sensed deformation class and resulting placing error of the new observation with the parameters placing_strategy_pile, def_class_pile and placing_error_pile, respectively. Run the script to obtain the new cost table:
+
+```
+python3 placing_cost_update.py
+```

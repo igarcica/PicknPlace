@@ -74,8 +74,10 @@ CLOTH_SIZE = {
 # non_grasped_edge_size = obj_edge_size[non_grasped_edge]
 # grasped_edge_size = obj_edge_size[grasped_edge]
 
-show_imgs = True
-save_data = False
+show_imgs = False
+save_data = True
+
+write_dir = "/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/experiments_placing_update/"
 
 ############ CLUSTERING ############
 n_clusters = 3
@@ -87,11 +89,11 @@ n_clusters = 3
 ##################################################################################################
 ## UTIL FUNCTIONS
 
-def show_save_figs(figure):
+def show_save_figs(figure, name):
     if show_imgs:
         figure.show()
     if save_data:
-        filename = write_dir + file_name + ".jpg"
+        filename = write_dir + name + ".jpg"
         figure.write_image(filename)
 
 def say_bye():
@@ -121,25 +123,25 @@ def process_pointcloud(data, grasp_edge_size, non_grasp_edge_size):
     obj_data = np.stack((cloud_array['x'], cloud_array['y'], cloud_array['z']), axis=-1) # Extract 'x', 'y', and 'z' fields
     obj_data = np.array(obj_data)
     fig = grid_metric.plot_raw_data(obj_data)
-    show_save_figs(fig)
+    # show_save_figs(fig)
     
     ## ---Process data---
     filtered_sample = grid_metric.filter_sample(obj_data, raw_sample_filter_box) ## Remove table points
     transl_data, depth_mean = grid_metric.translate_data(filtered_sample, cam_to_gripper) ## Move points to 0 (from gripper)
     norm_transl_data, norm_depth_mean = grid_metric.normalize_transl_data(transl_data, non_grasp_edge_size) ## Normalize points from 0 to -1 (max possible depth corresponding to non grasped edge sice)
     fig2 = grid_metric.plot(norm_transl_data, "Processed_pointcloud", plot_scale, plot_scale_color) ## Plot translated point cloud
-    show_save_figs(fig2)
+    # show_save_figs(fig2)
     
     ## ---Divide in grids---
     can_x_grid_divs, can_y_grid_divs, can_edges  = grid_metric.create_canonical(grasp_edge_size, non_grasp_edge_size, n_divisions, gripper_position) #get grid divisions
     grids = grid_metric.grid_division(norm_transl_data, can_x_grid_divs, can_y_grid_divs, n_divisions)
     fig3 = grid_metric.plot_with_info(norm_transl_data, can_x_grid_divs, can_y_grid_divs, can_edges, plot_scale, plot_scale_color)
-    show_save_figs(fig3)
+    show_save_figs(fig3, "grasp_plot")
 
     ## ---Compute metric---
     mean_metrics = grid_metric.def_metric(grids)
     fig4 = grid_metric.plot_metrics(mean_metrics, plot_scale_color)
-    show_save_figs(fig4)
+    show_save_figs(fig4, "grasp_metric")
 
     mean_metrics = np.array(mean_metrics)
 

@@ -221,11 +221,12 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                    this->plan_pddl_demo=false;
                    ROS_WARN("PicknPlaneAlgNode: Waiting to dispatch plan");
                  }
-                 //else if(this->start_experiments)
-		             //{
-		             //  this->state=CHOOSE_PLACING;
-		             //  this->start_experiments=false;
-		             //}
+                 else if(this->start_experiments)
+		             {
+		              // this->state=CHOOSE_PLACING;
+                  this->state=EXPERIMENTS2;
+		              this->start_experiments=false;
+		             }
 		             else
                    this->state=IDLE;
       break;
@@ -929,7 +930,6 @@ void PicknPlaceAlgNode::mainNodeThread(void)
       // Wait until it ends the diagonal movement (with linear movement controller)
       case WAIT_PLACE_DIAGONAL1: ROS_DEBUG("PicknPlaceAlgNode: state WAIT PLACE DIAGONAL");
                                 {
-                                  this->logfile << "State: WAIT_PLACE_DIAGONAL1" << std::endl;
                                   actionlib::SimpleClientGoalState kinova_linear_move_state(actionlib::SimpleClientGoalState::PENDING);
                                   // to get the state of the current goal
                                   this->alg_.unlock();
@@ -1016,10 +1016,11 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                                  {
                                    ROS_INFO("Success PRE PLACE ROTATING");
                                    ros::Duration(0.5).sleep();
-				                           if(this->piling)
-				                             this->state=PILING;
-				                           else
-                                     this->state=PLACE_ROTATING;
+				                          //  if(this->piling)
+				                          //    this->state=PILING;
+				                          //  else
+                                  //    this->state=PLACE_ROTATING;
+                                  this->state=PLACE_ROTATING;
                                  }
 			                           else
 			                             this->state=END;
@@ -1203,7 +1204,8 @@ void PicknPlaceAlgNode::mainNodeThread(void)
 
       case PILING: ROS_DEBUG("PicknPlaceAlgNode: state PILING");
                    {
-                     ROS_INFO("Piling");
+                     ROS_INFO("PicknPlaceSM: Sending to PILING position.");
+                     this->logfile << "State: PILING" << std::endl;
                      this->pre_grasp_center.x = tool_pose.x-this->garment_edge_size;
                      this->pre_grasp_center.y = tool_pose.y;
                      this->pre_grasp_center.z = this->garment_edge_size;
@@ -1223,7 +1225,8 @@ void PicknPlaceAlgNode::mainNodeThread(void)
 
       case PILING2: ROS_DEBUG("PicknPlaceAlgNode: state PILING2");
                     {
-                      ROS_INFO("Ending piling");
+                      ROS_INFO("PicknPlaceSM: Sending to PILING2 position.");
+                      this->logfile << "State: PILING2" << std::endl;
                       this->pre_grasp_center.x = tool_pose.x-0.1; //minus the width of the already placed garment?? //so the gripper ends at the edge of this garment
                       this->pre_grasp_center.y = tool_pose.y;
                       this->pre_grasp_center.z = config_.table_height + 0.1; //Pile height
@@ -1244,7 +1247,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
 
       // OPEN GRIPPER
       case OPEN_GRIPPER:  ROS_DEBUG("PicknPlaceAlgNode: state OPEN GRIPPER");
-			                    if(config_.open)
+			                    if(config_.ok)
 			                    {
                             this->logfile << "State: OPEN_GRIPPER" << std::endl;
                             this->success &= send_gripper_command(this->open_gripper);
@@ -1556,6 +1559,11 @@ void PicknPlaceAlgNode::node_config_update(Config &config, uint32_t level)
   {
     this->piling=true;
   }
+  // if(config.object_name=="towel")
+  // {
+  //   config.stiffness = 
+  // }else if(config.object_name=="pillowc")
+
   //Start SM for demo (use 'towel' bool to change strategy for grasping and placing towel (less gripper closure + vertical place) or napkin (more gripper closure + place2)
   if(config.start_demo)// && !config.plan_pddl_demo)
   {
@@ -2789,6 +2797,8 @@ void PicknPlaceAlgNode::corners_callback(const visualization_msgs::MarkerArray::
         this->logfile << "Second nearest edge point: (" << edge_centers[secondNearestIndex].x << ", " << edge_centers[secondNearestIndex].y << ") with distance " << secondMinDistance << std::endl;
         this->logfile << "Garment center point: (" << garment_center.x << ", " << garment_center.y << ") with distance " << disGarmenCenter << std::endl;
         this->logfile << "Grasp pose: (" <<  pre_grasp_center.x << ", " << pre_grasp_center.y << ", " << pre_grasp_center.z << ", " << pre_grasp_center.theta_x << ", " << pre_grasp_center.theta_y << ", " << pre_grasp_center.theta_z << ")" << std::endl;
+        this->logfile << "Grasp edge size: " << this->garment_edge_size << std::endl;
+        this->logfile << "Pile height: " << this->pile_height << std::endl;
         // UPDATE workspace
         check_worspaces(disGarmenCenter); //Get workspace based on distance of garment center
         this->get_garment_position=false;
@@ -3326,8 +3336,7 @@ kortex_driver::Waypoint PicknPlaceAlgNode::FillCartesianWaypoint(const kortex_dr
   cartesianWaypoint.pose.theta_x = goal_pose.theta_x;
   cartesianWaypoint.pose.theta_y = goal_pose.theta_y;
   cartesianWaypoint.pose.theta_z = goal_pose.theta_z;
-  cartesianWaypoint.reference_frame =  kortex_driver::CartesianReferenceFrame::CARTESIAN_REFERENCE_FRAME_BASE;
-  std::cout << "REFERENCE FRAME" << kortex_driver::CartesianReferenceFrame::CARTESIAN_REFERENCE_FRAME_BASE << std::endl;
+  cartesianWaypoint.reference_frame =  kortex_driver::CartesianReferenceFrame::CARTESIAN_REFERENCE_FRAME_BASE; //3
   cartesianWaypoint.blending_radius = blending_radius;
 
   waypoint.oneof_type_of_waypoint.cartesian_waypoint.push_back(cartesianWaypoint);

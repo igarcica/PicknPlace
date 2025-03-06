@@ -54,9 +54,9 @@ CLOTH_SIZE = {
     "waffle_16l": (0.13,0.18)
     }
 
-show_imgs = True
-save_imgs = False
-write_dir = write_dir = "/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/test_placing_towel/"
+show_imgs = False
+save_imgs = True
+write_dir = "/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/experiments_placing_update/"
 plot_scale = dict(xaxis=dict(range=[0, 0.4]), yaxis=dict(range=[0.2, -0.3]), zaxis=dict(range=[0, 0.3]), aspectratio=dict(x=1, y=1, z=1) ) #plot scale for grasped samples
 plot_scale_color = [0.0, 0.2] # plot depth color scale for grasped samples
 
@@ -98,9 +98,9 @@ def process_pointcloud(data, grasp_edge_size, nongrasp_edge_size, obj_thickness,
 
     ## ---Plot---
     fig = placing_grid_metric.plot_with_info(transl_data, can_x_grid_divs, can_y_grid_divs, can_edges, obj_thickness, n_objs, plot_scale, plot_scale_color)
-    show_save_figs(fig, "plot")
+    show_save_figs(fig, "placing_plot")
     fig2 = placing_grid_metric.plot_metrics(mean_metrics, plot_scale_color)
-    show_save_figs(fig2, "metric")
+    show_save_figs(fig2, "placing_metric")
     
     return mean_metrics
 
@@ -131,7 +131,8 @@ def handle_service(req):
     placing_quality = placing_grid_metric.placing_qual(grid_metric, n_divisions, nongrasped_edge_size, object_thickness, n_objects) # Placing quality
     placing_quality = round(placing_quality)
     placing_quality = np.where(placing_quality < 0, 0, np.where(placing_quality>100, 100, placing_quality))
-    print("placing_quality dsfjoldkfs:", placing_quality)
+    print("placing quality:", placing_quality)
+    print("Placing error:", 100-placing_quality)
     
     return GetPlacingQualResponse(placing_quality)
 
