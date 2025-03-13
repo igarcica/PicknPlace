@@ -14,6 +14,12 @@ import plotly.express as px
 import plotly.graph_objs as go
 import rospy
 
+# colorscale = px.colors.sample_colorscale("jet", [0, 0.7], low=0, high=1)
+# colorscale = px.colors.sequential.Jet[int(len(px.colors.sequential.Jet) * 0.3):]
+colorscale = px.colors.sample_colorscale("jet", np.linspace(0.1, 0.95, 256))
+# colorscale = px.colors.sample_colorscale("hsv_r", np.linspace(0.3, 1, 256))
+
+
 ##################################################################################################
 ## UTIL FUNCTIONS
 
@@ -51,7 +57,8 @@ def plot_with_info(data, x_grid_divs, y_grid_divs, can_edges, scale, scale_color
     bright_pink = [[0, '#FF007F'], [1, '#FF007F']]
 
     # Plot garment
-    fig = px.scatter_3d(x=data[:,0], y=data[:,1], z=data[:,2], color=data[:,2])
+    
+    fig = px.scatter_3d(x=data[:,0], y=data[:,1], z=data[:,2], color=data[:,2], color_continuous_scale=colorscale)
 
     # Plot X axis divisions
     for n in range(1,len(x_grid_divs)-1):
@@ -92,8 +99,10 @@ def plot_metrics(metrics, scale_color):
     div=int(np.sqrt(len(metrics)))
     metrics = metrics.reshape(div,div)
     # print("Metrics: ", metrics)
-    fig = px.imshow(metrics, text_auto=True, labels=dict(x='x', y='y'))
+    # colorscale = px.colors.sample_colorscale("Viridis", [start, end])
+    fig = px.imshow(metrics, color_continuous_scale=colorscale) #text_auto=True, labels=dict(x='x', y='y'))
     fig.update_coloraxes(cmin=scale_color[0], cmax=scale_color[1])#cmax=0.08, cmin=0.0)
+    fig.update_layout(xaxis=dict(showticklabels=False), yaxis=dict(showticklabels=False))
     
     return fig
 

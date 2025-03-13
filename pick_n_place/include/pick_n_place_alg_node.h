@@ -186,6 +186,7 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     ros::Timer handeye_frame_pub_timer;
     void handeye_frame_pub(const ros::TimerEvent& event);
     geometry_msgs::PoseStamped grasp_pose;
+    bool process_grasp_pointcloud;
     bool get_garment_position;
     bool get_garment_angle;
     bool get_pile_height;

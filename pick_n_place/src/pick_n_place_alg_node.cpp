@@ -17,6 +17,7 @@ PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
 
   // Garment pose subscriber
   this->garment_pose_subscriber = this->public_node_handle_.subscribe("/segment_table/grasp_point",1,&PicknPlaceAlgNode::garment_pose_callback,this);
+  this->process_grasp_pointcloud = false;
   this->get_garment_position=false;
   this->get_garment_angle=false;
   this->get_garment_edge=false;
@@ -864,6 +865,8 @@ void PicknPlaceAlgNode::mainNodeThread(void)
 /////// PLACE actions
       case CHOOSE_PLACING: ROS_DEBUG("PickPlacceAlgNode: state CHOOSE PLACING");
                            {
+                            if(config_.ok)
+                            {
                              this->logfile << "State: CHOOSE_PLACING" << std::endl;
 			                       std::cout << this->placing_strategy << std::endl;
                              this->success = true;
@@ -876,6 +879,9 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                              else if(this->placing_strategy==4)
                                this->state=OPEN_GRIPPER;
                              ros::Duration(0.5).sleep();
+                             config_.ok=false;
+                            }else
+                              this->state=CHOOSE_PLACING;
                            }
 	    break;
       
@@ -1261,6 +1267,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                               ROS_INFO("PicknPlaceAlgNode: Failed to open gripper");
 			                        this->state=END;
 			                      }
+                            config_.ok=false;
 			                    }
 			                    else
 			                      this->state=OPEN_GRIPPER;
@@ -1530,6 +1537,7 @@ void PicknPlaceAlgNode::node_config_update(Config &config, uint32_t level)
 
   if(config.get_grasp_point)
   {
+    this->process_grasp_pointcloud=true;
     this->get_garment_position=true;
     //this->get_garment_angle=true;
     config.get_grasp_point=false;
@@ -1715,6 +1723,7 @@ void PicknPlaceAlgNode::PDDLgoalCB()
   {
     ROS_INFO("PicknPlace: PDDL Action %s received", goal->action_name.c_str());
     ROS_WARN("PicknPlace: Executing CHECK CORNERS section of the finite state machine");
+    this->process_grasp_pointcloud=true;
     this->get_garment_position=true;
   }
   else if(0==goal->action_name.compare("home")) 
@@ -2523,296 +2532,319 @@ void PicknPlaceAlgNode::handeye_frame_pub(const ros::TimerEvent& event)
 void PicknPlaceAlgNode::corners_callback(const visualization_msgs::MarkerArray::ConstPtr& msg)
 {
   ROS_DEBUG("PicknPlaceAlgNode: Pick corners callback");
-
-  //Get distances to base_link and set corresponding names (down_left, up_right, etc)
-  geometry_msgs::PointStamped point_in;
-  geometry_msgs::PointStamped point_out;
-  std::vector<geometry_msgs::PointStamped> points;
-
-  // Transform point to robot base_link reference frame
-  for(int i=0; i<msg->markers.size(); i++)
+  if(this->process_grasp_pointcloud)
   {
-    point_in.header.frame_id = msg->markers[i].header.frame_id;
-    point_in.header.stamp = msg->markers[i].header.stamp;
-    point_in.point = msg->markers[i].pose.position;
+    //Get distances to base_link and set corresponding names (down_left, up_right, etc)
+    geometry_msgs::PointStamped point_in;
+    geometry_msgs::PointStamped point_out;
+    std::vector<geometry_msgs::PointStamped> points;
 
-    this->listener.transformPoint("base_link", point_in, point_out);
-    points.push_back(point_out);
-  }
+    // Transform point to robot base_link reference frame
+    for(int i=0; i<msg->markers.size(); i++)
+    {
+      point_in.header.frame_id = msg->markers[i].header.frame_id;
+      point_in.header.stamp = msg->markers[i].header.stamp;
+      point_in.point = msg->markers[i].pose.position;
 
-  // ---GET OBJECT THICKNESS---
-  double max_z = std::max({points[0].point.z, points[1].point.z, points[2].point.z, points[3].point.z}); //Get the highest z value (wrt base_link)
-  // std::cout << "OBJECT THICKNESS: " << max_z << std::endl;
-
-  // ---GET CORNERS NAMES---
-  geometry_msgs::Point corner_ul, corner_dl, corner_ur, corner_dr, center; //Better format, as we dont have orientation
-  // Identify bottom-right (smallest x, smallest y wrt base_link) and top-left (largest x, largest y wrt base_link)
-  corner_dr = points[0].point;
-  corner_ul = points[0].point;
-  for (int i = 1; i < 4; i++) {
-    // if (points[i].point.x < corner_dr.x || (points[i].point.x == corner_dr.x && points[i].point.y < corner_dr.y))
-    if (points[i].point.x <= corner_dr.x && points[i].point.y <= corner_dr.y)
-        corner_dr = points[i].point;
-    // if (points[i].point.x > corner_ul.x || (points[i].point.x == corner_ul.x && points[i].point.y > corner_ul.y))
-    if (points[i].point.x >= corner_ul.x && points[i].point.y >= corner_ul.y)
-        corner_ul = points[i].point;
-  }
-  // Identify the remaining two points
-  geometry_msgs::Point remaining[2];
-  int idx = 0;
-  for (int i = 0; i < 4; i++) {
-    if (!(points[i].point.x == corner_dr.x && points[i].point.y == corner_dr.y) &&
-        !(points[i].point.x == corner_ul.x && points[i].point.y == corner_ul.y)) {
-        remaining[idx++] = points[i].point;
+      this->listener.transformPoint("base_link", point_in, point_out);
+      points.push_back(point_out);
     }
-  }
-  // Assign top-right and bottom-left based on y-values wrt base_link
-  if (remaining[0].y > remaining[1].y) {
-      corner_dl = remaining[0];
-      corner_ur = remaining[1];
-  } else {
-      corner_dl = remaining[1];
-      corner_ur = remaining[0];
-  }
-  ROS_DEBUG("PicknPlace: Identified corners:");
-  ROS_DEBUG("Bottom Left  (DL): (%f, %f)", corner_dl.x, corner_dl.y);
-  ROS_DEBUG("Bottom Right (DR): (%f, %f)", corner_dr.x, corner_dr.y);
-  ROS_DEBUG("Top Left     (UL): (%f, %f)", corner_ul.x, corner_ul.y);
-  ROS_DEBUG("Top Right    (UR): (%f, %f)", corner_ur.x, corner_ur.y);
-  // std::cout << "Identified Corners:\n";
-  // std::cout << "Bottom Left  (DL): (" << corner_dl.x << ", " << corner_dl.y << ")\n";
-  // std::cout << "Bottom Right (DR): (" << corner_dr.x << ", " << corner_dr.y << ")\n";
-  // std::cout << "Top Left     (UL): (" << corner_ul.x << ", " << corner_ul.y << ")\n";
-  // std::cout << "Top Right    (UR): (" << corner_ur.x << ", " << corner_ur.y << ")\n";
+    ROS_WARN("test1");
 
-  // ---COMPUTE EDGES LENGTH AND CENTERS---
-  // Define the edges 
-  std::pair<geometry_msgs::Point, geometry_msgs::Point> edges[4] = {
-      {corner_dl, corner_dr}, // Bottom edge
-      {corner_ul, corner_ur}, // Top edge
-      {corner_dl, corner_ul}, // Left edge
-      {corner_dr, corner_ur}  // Right edge
-  };
+    // ---GET OBJECT THICKNESS---
+    double max_z = std::max({points[0].point.z, points[1].point.z, points[2].point.z, points[3].point.z}); //Get the highest z value (wrt base_link)
+    // std::cout << "OBJECT THICKNESS: " << max_z << std::endl;
 
-  // Compute the edges lenth and their midpoints
-  double lengths[4];
-  geometry_msgs::Point edge_centers[4];
-  geometry_msgs::Point a, b;
-
-  for (int i = 0; i < 4; i++) {
-    a = edges[i].first;
-    b = edges[i].second;
-    lengths[i] = sqrt(pow(a.x - b.x, 2) + pow(a.y - b.y, 2));
-    edge_centers[i].x = (a.x + b.x) / 2.0;
-    edge_centers[i].y = (a.y + b.y) / 2.0;
-    ROS_DEBUG("Length: %d", lengths[i]);
-    ROS_DEBUG("Center: (%d, %d )", edge_centers[i].x, edge_centers[i].y);
-  }
-
-  // ---GET NEAREST EDGE---
-  // Find the nearest and second nearest center to the origin
-  int nearestIndex = -1, secondNearestIndex = -1;
-  double minDistance = 1000;
-  double secondMinDistance = 1000;
-  for (int i = 0; i < 4; i++) {
-      double d = sqrt(pow(edge_centers[i].x, 2) + pow(edge_centers[i].y, 2));
-      if (d < minDistance) {
-        secondMinDistance = minDistance; // Update second nearest before updating the nearest
-        secondNearestIndex = nearestIndex;
-        minDistance = d;
-        nearestIndex = i;
-      } else if (d < secondMinDistance) {
-        secondMinDistance = d;
-        secondNearestIndex = i;
+    // ---GET CORNERS NAMES---
+    geometry_msgs::Point corner_ul, corner_dl, corner_ur, corner_dr, center; //Better format, as we dont have orientation
+    // Identify bottom-right (smallest x, smallest y wrt base_link) and top-left (largest x, largest y wrt base_link)
+    corner_dr = points[0].point;
+    corner_ul = points[0].point;
+    for (int i = 1; i < 4; i++) {
+      // if (points[i].point.x < corner_dr.x || (points[i].point.x == corner_dr.x && points[i].point.y < corner_dr.y))
+      if (points[i].point.x <= corner_dr.x && points[i].point.y <= corner_dr.y)
+          corner_dr = points[i].point;
+      // if (points[i].point.x > corner_ul.x || (points[i].point.x == corner_ul.x && points[i].point.y > corner_ul.y))
+      if (points[i].point.x >= corner_ul.x && points[i].point.y >= corner_ul.y)
+          corner_ul = points[i].point;
+    }
+    // Identify the remaining two points
+    geometry_msgs::Point remaining[2];
+    int idx = 0;
+    for (int i = 0; i < 4; i++) {
+      if (!(points[i].point.x == corner_dr.x && points[i].point.y == corner_dr.y) &&
+          !(points[i].point.x == corner_ul.x && points[i].point.y == corner_ul.y)) {
+          remaining[idx++] = points[i].point;
       }
-  }
-  // std::cout << "Nearest center to origin: (" << edge_centers[nearestIndex].x << ", " << edge_centers[nearestIndex].y << ") with distance " << minDistance << std::endl;
-  // std::cout << "Second nearest center to origin: (" << edge_centers[secondNearestIndex].x << ", " << edge_centers[secondNearestIndex].y << ") with distance " << secondMinDistance << std::endl;
+    }
+    // Assign top-right and bottom-left based on y-values wrt base_link
+    if (remaining[0].y > remaining[1].y) {
+        corner_dl = remaining[0];
+        corner_ur = remaining[1];
+    } else {
+        corner_dl = remaining[1];
+        corner_ur = remaining[0];
+    }
+    ROS_DEBUG("PicknPlace: Identified corners:");
+    ROS_DEBUG("Bottom Left  (DL): (%f, %f)", corner_dl.x, corner_dl.y);
+    ROS_DEBUG("Bottom Right (DR): (%f, %f)", corner_dr.x, corner_dr.y);
+    ROS_DEBUG("Top Left     (UL): (%f, %f)", corner_ul.x, corner_ul.y);
+    ROS_DEBUG("Top Right    (UR): (%f, %f)", corner_ur.x, corner_ur.y);
+    // std::cout << "Identified Corners:\n";
+    // std::cout << "Bottom Left  (DL): (" << corner_dl.x << ", " << corner_dl.y << ")\n";
+    // std::cout << "Bottom Right (DR): (" << corner_dr.x << ", " << corner_dr.y << ")\n";
+    // std::cout << "Top Left     (UL): (" << corner_ul.x << ", " << corner_ul.y << ")\n";
+    // std::cout << "Top Right    (UR): (" << corner_ur.x << ", " << corner_ur.y << ")\n";
 
-  // ---COMPUTE THE GRASP ANGLE---
-   // Compute perpendicular angle for the nearest edge
-  double dx = edges[nearestIndex].first.x - edges[nearestIndex].second.x;
-  double dy = edges[nearestIndex].first.y - edges[nearestIndex].second.y;
-  double perpendicularAngle = std::atan2(dx, -dy); //Used to compute pregrasp distances
-  double grasp_angle = std::atan2(dx, dy) * 180 / M_PI; //Used to compute grasp orientation - Angle wrt x-axis of base_link. horizontal edge=0, edge vert=-90, clockwise>0, anticlockwise<0
-  // std::cout << "Grasping perpendicular angle (radians): " << perpendicularAngle << std::endl;
-  // std::cout << "Grasping perpendicular angle (degrees): " << perpendicularAngle * 180.0 / M_PI << std::endl;
-  // std::cout << "N: " << std::atan2(dx, dy) * 180.0 / M_PI << std::endl; //Angle wrt x-axis of base_link. horizontal edge=0, edge vert=-90, clockwise>0, anticlockwise<0
-  // std::cout << "A: " << std::atan2(dx, -dy) * 180.0 / M_PI << std::endl;
-  // std::cout << "B: " << std::atan2(-dx, dy) * 180.0 / M_PI << std::endl;
-  // std::cout << "AA: " << std::atan2(-dy, dx) * 180.0 / M_PI << std::endl;
-  // float cos_alpha = (abs(dy))/(sqrt(pow(dx,2)+pow(dy,2)));
-  // float alpha = acos(cos_alpha);
-  // std::cout << "alpha: " << alpha << std::endl;
-  // double grasp_angle = -std::atan2(-dy, dx);
-  // std::cout << "Grasping angle (radians): " << grasp_angle << std::endl;
-  // std::cout << "Grasping angle (degrees): " << grasp_angle * 180.0 / M_PI << std::endl;
+    // ---COMPUTE EDGES LENGTH AND CENTERS---
+    // Define the edges 
+    std::pair<geometry_msgs::Point, geometry_msgs::Point> edges[4] = {
+        {corner_dl, corner_dr}, // Bottom edge
+        {corner_ul, corner_ur}, // Top edge
+        {corner_dl, corner_ul}, // Left edge
+        {corner_dr, corner_ur}  // Right edge
+    };
 
-  // CENTER POINT OF GARMENT - computed averaging the coordinates of the corners
-  geometry_msgs::Point garment_center;
-  for (const auto& corner : points) { 
-      garment_center.x += corner.point.x;
-      garment_center.y += corner.point.y;
-      garment_center.z += corner.point.z; // Its not necessary
-  }
-  garment_center.x /= points.size();
-  garment_center.y /= points.size();
-  garment_center.z /= points.size();
-  double disGarmenCenter = sqrt(pow(garment_center.x, 2) + pow(garment_center.y, 2));
+    // Compute the edges lenth and their midpoints
+    double lengths[4];
+    geometry_msgs::Point edge_centers[4];
+    geometry_msgs::Point a, b;
 
-  // this->rotation=
+    for (int i = 0; i < 4; i++) {
+      a = edges[i].first;
+      b = edges[i].second;
+      lengths[i] = sqrt(pow(a.x - b.x, 2) + pow(a.y - b.y, 2));
+      edge_centers[i].x = (a.x + b.x) / 2.0;
+      edge_centers[i].y = (a.y + b.y) / 2.0;
+      ROS_DEBUG("Length: %d", lengths[i]);
+      ROS_DEBUG("Center: (%d, %d )", edge_centers[i].x, edge_centers[i].y);
+    }
 
-  //-------GRASPING POSITION-------
-  visualization_msgs::Marker marker;
-  marker.header.frame_id = "base_link";
-  marker.id = 0;
-  marker.type = visualization_msgs::Marker::SPHERE;
-  marker.scale.x=0.01;
-  marker.scale.y=0.01;
-  marker.scale.z=0.01;
-  marker.color.r = 1.0f;
-  marker.color.g = 0.0f;
-  marker.color.b = 1.0f;
-  marker.color.a = 1.0;
-  marker.lifetime = ros::Duration();
-  
-  if(this->get_garment_position)
-  {
-    std::cout << "------------------------------------------------" << std::endl;
-    std::cout << "Nearest center to origin: (" << edge_centers[nearestIndex].x << ", " << edge_centers[nearestIndex].y << ") with distance " << minDistance << std::endl;
-    std::cout << "Second nearest center to origin: (" << edge_centers[secondNearestIndex].x << ", " << edge_centers[secondNearestIndex].y << ") with distance " << secondMinDistance << std::endl;
-    std::cout << "Garment center: (" << disGarmenCenter << std::endl;
+    // ---GET NEAREST EDGE---
+    // Find the nearest and second nearest center to the origin
+    int nearestIndex = -1, secondNearestIndex = -1;
+    double minDistance = 1000;
+    double secondMinDistance = 1000;
+    for (int i = 0; i < 4; i++) {
+        double d = sqrt(pow(edge_centers[i].x, 2) + pow(edge_centers[i].y, 2));
+        if (d < minDistance) {
+          secondMinDistance = minDistance; // Update second nearest before updating the nearest
+          secondNearestIndex = nearestIndex;
+          minDistance = d;
+          nearestIndex = i;
+        } else if (d < secondMinDistance) {
+          secondMinDistance = d;
+          secondNearestIndex = i;
+        }
+    }
+    // std::cout << "Nearest center to origin: (" << edge_centers[nearestIndex].x << ", " << edge_centers[nearestIndex].y << ") with distance " << minDistance << std::endl;
+    // std::cout << "Second nearest center to origin: (" << edge_centers[secondNearestIndex].x << ", " << edge_centers[secondNearestIndex].y << ") with distance " << secondMinDistance << std::endl;
+
+
+
+    // CENTER POINT OF GARMENT - computed averaging the coordinates of the corners
+    geometry_msgs::Point garment_center;
+    for (const auto& corner : points) { 
+        garment_center.x += corner.point.x;
+        garment_center.y += corner.point.y;
+        garment_center.z += corner.point.z; // Its not necessary
+    }
+    garment_center.x /= points.size();
+    garment_center.y /= points.size();
+    garment_center.z /= points.size();
+    double disGarmenCenter = sqrt(pow(garment_center.x, 2) + pow(garment_center.y, 2));
+
+    // this->rotation=
+    ROS_WARN("test2");
+
+    
+    if(this->get_garment_position)
+    {
+      //-------GRASPING POSITION-------
+      visualization_msgs::Marker marker;
+      marker.header.frame_id = "base_link";
+      marker.id = 0;
+      marker.type = visualization_msgs::Marker::SPHERE;
+      marker.scale.x=0.01;
+      marker.scale.y=0.01;
+      marker.scale.z=0.01;
+      marker.color.r = 1.0f;
+      marker.color.g = 0.0f;
+      marker.color.b = 1.0f;
+      marker.color.a = 1.0;
+      marker.lifetime = ros::Duration();
+
+      std::cout << "------------------------------------------------" << std::endl;
+      std::cout << "Nearest center to origin: (" << edge_centers[nearestIndex].x << ", " << edge_centers[nearestIndex].y << ") with distance " << minDistance << std::endl;
+      std::cout << "Second nearest center to origin: (" << edge_centers[secondNearestIndex].x << ", " << edge_centers[secondNearestIndex].y << ") with distance " << secondMinDistance << std::endl;
+      std::cout << "Garment center: (" << disGarmenCenter << std::endl;
 
       // ---COMPUTE IF THE NEAREST EDGE IS LONG OR SHORT---
-    if(lengths[nearestIndex] < lengths[secondNearestIndex]) 
-    {
-      this->nearest_edge="short";
-      this->second_nearest_edge="long";
-      ROS_WARN("PicknPlaceAlgNode: Nearest edge is SHORT");
-    }else{
-      this->nearest_edge="long";
-      this->second_nearest_edge="short";
-      ROS_WARN("PicknPlaceAlgNode: Nearest edge is LONG");
-    }
-
-    // Get current grasp position
-    this->compute_grasp_angle(grasp_angle);
-    // std_msgs::Float64 hola;
-    // hola.data = 0;
-    // this->compute_grasp_angle(hola);
-
-    //---COMPUTE PRE GRASP POINT bsaed on perpendicular angle---
-    this->pre_grasp_center.x = edge_centers[nearestIndex].x + 0.05 * cos(perpendicularAngle);
-    this->pre_grasp_center.y = edge_centers[nearestIndex].y - 0.05 * sin(-perpendicularAngle);
-    this->pre_grasp_distance.x = abs(0.05 * cos(perpendicularAngle));
-    this->pre_grasp_distance.y = 0.05 * sin(-perpendicularAngle);
-    std::cout << "\033[1;36m SECOND GRASP POINT -->  x: " <<  edge_centers[nearestIndex].x << " y: " << edge_centers[nearestIndex].y << "\033[1;0m" <<std::endl;
-    std::cout << "pre grasp dist: (" << this->pre_grasp_distance.x << ", " << this->pre_grasp_distance.y << ")" << std::endl;
-    // std::cout << "pre grasp position: (" << this->pre_grasp_center.x << ", " << this->pre_grasp_center.y << ")" << std::endl;
-
-    // this->pre_grasp_center.x = edge_centers[nearestIndex].x-this->pre_grasp_distance.x;
-    // this->pre_grasp_center.y = edge_centers[nearestIndex].y-this->pre_grasp_distance.y;
-    this->pre_grasp_center.z = this->config_.table_height+0.05;
-    this->grasping_point_garment = this->pre_grasp_center;
-
-    std::cout << "\033[1;36m GRASP POINT -->  x: " <<  pre_grasp_center.x << " y: " << pre_grasp_center.y << " z: " << pre_grasp_center.z << "\033[1;0m" <<std::endl;
-    std::cout << "\033[1;36m SECOND GRASP POINT -->  x: " <<  edge_centers[secondNearestIndex].x << " y: " << edge_centers[secondNearestIndex].y << "\033[1;0m" <<std::endl;
-    marker.pose.position.x=pre_grasp_center.x;
-    marker.pose.position.y=pre_grasp_center.y;
-    marker.pose.position.z=0.005;// pre_grasp_center.z;
-    grasp_marker_publisher.publish(marker); //Publish grasping point marker - nearest edge center
-
-    //--- GET PILE HEIGHT AND OBJECT'S EDGE SIZES ---
-    this->pile_height = 0.0;
-    this->get_pile_height = true;
-    //this->garment_edge_size = garment_edge.data;
-    this->grasped_edge_size = lengths[nearestIndex];
-    this->not_grasped_edge_size = lengths[secondNearestIndex];
-    std::cout << "\033[1;36m Non grasped edge size --> \033[1;0m " <<  this->garment_edge_size << std::endl;
-    std::cout << "\033[1;36m SENSED Non grasped edge size --> \033[1;0m " <<  lengths[secondNearestIndex] << std::endl;
-    std::cout << "\033[1;36m SENSED Grasped edge size --> \033[1;0m " <<  lengths[nearestIndex] << std::endl;
-
-    // --- GET DRAGGING AND ROTATING POSES ---
-    // Dragging pose is inclined orientation over garment
-    // this->dragging_pose_garment = this->pre_grasp_center;
-    this->dragging_pose_garment.x = garment_center.x; // + this->pre_grasp_distance.x;
-    this->dragging_pose_garment.y = garment_center.y; // - 0.05 * sin(-perpendicularAngle);
-    this->dragging_pose_garment.z = 0.10; //0.031
-    this->dragging_pose_garment.theta_x = 125; //0; //this->pre_grasp_center.theta_x;
-    this->dragging_pose_garment.theta_y = -1.6; //0; //-125; //this->pre_grasp_center.theta_x;
-    this->dragging_pose_garment.theta_z = 88.8; //90; //180; //this->pre_grasp_center.theta_x;
-
-    if(edge_centers[nearestIndex].y < edge_centers[secondNearestIndex].y) //If the second nearest edge is further away than nearest corner:
-    {
-      ROS_INFO("nearest < second nearest");
-      std::cout << "nearest " << edge_centers[nearestIndex].y << " second: " << edge_centers[secondNearestIndex].y << std::endl;
-      this->end_dragging_pose = 0.0; //Drag to the right
-    }
-    else
-    {
-      ROS_INFO("nearest > second nearest");
-      std::cout << "nearest " << edge_centers[nearestIndex].y << " second: " << edge_centers[secondNearestIndex].y << std::endl;
-      this->end_dragging_pose = 0.3; // Drag to the left
-    }
-
-    // Rotating pose is vertical orientation over garment center
-    this->rotating_pose_garment.x = garment_center.x;
-    this->rotating_pose_garment.y = garment_center.y;
-    this->rotating_pose_garment.z = 0.20;
-    this->rotating_pose_garment.theta_x = 179; //-179.4
-    this->rotating_pose_garment.theta_y = 0; //1
-    this->rotating_pose_garment.theta_z = 90; //92.7
-    std::cout << "\033[1;36m ROTATING pose --> x: " << this->rotating_pose_garment.x << " y: " << this->rotating_pose_garment.y << " z: " << this->rotating_pose_garment.z << "\033[1;0m" << std::endl;
-
-    marker.pose.position.x=edge_centers[secondNearestIndex].x; //garment_center.x;
-    marker.pose.position.y=edge_centers[secondNearestIndex].y; //garment_center.y;
-    marker.pose.position.z=0.01; //garment_center.z;
-    garment_marker_publisher.publish(marker);
-
-    // --- VALIDATE GOAL POSE ---
-    ROS_INFO("Check grasp");
-    kortex_driver::Waypoint waypoint;
-    std::cout << "\033[1;36m GRASP pose --> x: " << this->pre_grasp_center.x << " y: " << this->pre_grasp_center.y << " z: " << this->pre_grasp_center.z << "\033[1;0m" << std::endl;
-    std::cout << "\033[1;36m GRASP pose --> x: " << this->pre_grasp_center.theta_x << " y: " << this->pre_grasp_center.theta_y << " z: " << this->pre_grasp_center.theta_z << "\033[1;0m" << std::endl;
-    waypoint = FillCartesianWaypoint(this->pre_grasp_center, 0);
-    bool valid = validate_waypoint(waypoint);
-    if(valid)
-      ROS_WARN("good");
-    ROS_INFO("Check rotate");
-    std::cout << "\033[1;36m DRAGGING pose --> x: " << this->dragging_pose_garment.x << " y: " << this->dragging_pose_garment.y << " z: " << this->dragging_pose_garment.z << "\033[1;0m" << std::endl;
-    std::cout << "\033[1;36m DRAGGING pose --> x: " << this->dragging_pose_garment.theta_x << " y: " << this->dragging_pose_garment.theta_y << " z: " << this->dragging_pose_garment.theta_z << "\033[1;0m" << std::endl;
-    waypoint = FillCartesianWaypoint(this->dragging_pose_garment, 0);
-    valid = validate_waypoint(waypoint);
-    if(valid)
-      ROS_WARN("good");
-
-    if(this->pddl_demo)
-    {
-      if(this->config_.ok)
+      if(lengths[nearestIndex] < lengths[secondNearestIndex]) 
       {
-        // --- LOG OBJECT INFO ---
-        this->logfile << "\n---OBJECT STATE INFO---" << std::endl;
-        this->logfile << "Nearest edge size: " << lengths[nearestIndex] << " / Second nearest edge size: " << lengths[secondNearestIndex] << std::endl;
-        this->logfile << "Nearest edge grasp point: (" << edge_centers[nearestIndex].x << ", " << edge_centers[nearestIndex].y << ") with distance " << minDistance << std::endl;
-        this->logfile << "Second nearest edge point: (" << edge_centers[secondNearestIndex].x << ", " << edge_centers[secondNearestIndex].y << ") with distance " << secondMinDistance << std::endl;
-        this->logfile << "Garment center point: (" << garment_center.x << ", " << garment_center.y << ") with distance " << disGarmenCenter << std::endl;
-        this->logfile << "Grasp pose: (" <<  pre_grasp_center.x << ", " << pre_grasp_center.y << ", " << pre_grasp_center.z << ", " << pre_grasp_center.theta_x << ", " << pre_grasp_center.theta_y << ", " << pre_grasp_center.theta_z << ")" << std::endl;
-        this->logfile << "Grasp edge size: " << this->garment_edge_size << std::endl;
-        this->logfile << "Pile height: " << this->pile_height << std::endl;
-        // UPDATE workspace
-        check_worspaces(disGarmenCenter); //Get workspace based on distance of garment center
+        this->nearest_edge="short";
+        this->second_nearest_edge="long";
+        ROS_WARN("PicknPlaceAlgNode: Nearest edge is SHORT");
+      }else{
+        this->nearest_edge="long";
+        this->second_nearest_edge="short";
+        ROS_WARN("PicknPlaceAlgNode: Nearest edge is LONG");
+      }
+
+      //Invertir edges si el planner indica que hay que coger el segundo edge y es reachable (ToDO. por ahora todo esto se hace con reconfigure)
+      if(config_.grasp_second_edge)
+      {
+        std::string temp = this->nearest_edge;
+        this->nearest_edge=this->second_nearest_edge;
+        this->second_nearest_edge=temp;
+        int temp2 = nearestIndex;
+        nearestIndex=secondNearestIndex;
+        secondNearestIndex=temp2;
+      }
+
+        // ---COMPUTE THE GRASP ANGLE---
+    // Compute perpendicular angle for the nearest edge
+      double dx = edges[nearestIndex].first.x - edges[nearestIndex].second.x;
+      double dy = edges[nearestIndex].first.y - edges[nearestIndex].second.y;
+      double perpendicularAngle = std::atan2(dx, -dy); //Used to compute pregrasp distances
+      double grasp_angle = std::atan2(dx, dy) * 180 / M_PI; //Used to compute grasp orientation - Angle wrt x-axis of base_link. horizontal edge=0, edge vert=-90, clockwise>0, anticlockwise<0
+      // std::cout << "Grasping perpendicular angle (radians): " << perpendicularAngle << std::endl;
+      // std::cout << "Grasping perpendicular angle (degrees): " << perpendicularAngle * 180.0 / M_PI << std::endl;
+      // std::cout << "N: " << std::atan2(dx, dy) * 180.0 / M_PI << std::endl; //Angle wrt x-axis of base_link. horizontal edge=0, edge vert=-90, clockwise>0, anticlockwise<0
+      // std::cout << "A: " << std::atan2(dx, -dy) * 180.0 / M_PI << std::endl;
+      // std::cout << "B: " << std::atan2(-dx, dy) * 180.0 / M_PI << std::endl;
+      // std::cout << "AA: " << std::atan2(-dy, dx) * 180.0 / M_PI << std::endl;
+      // float cos_alpha = (abs(dy))/(sqrt(pow(dx,2)+pow(dy,2)));
+      // float alpha = acos(cos_alpha);
+      // std::cout << "alpha: " << alpha << std::endl;
+      // double grasp_angle = -std::atan2(-dy, dx);
+      // std::cout << "Grasping angle (radians): " << grasp_angle << std::endl;
+      // std::cout << "Grasping angle (degrees): " << grasp_angle * 180.0 / M_PI << std::endl;
+    
+      // Get current grasp position
+      this->compute_grasp_angle(grasp_angle);
+      // std_msgs::Float64 hola;
+      // hola.data = 0;
+      // this->compute_grasp_angle(hola);
+
+      //---COMPUTE PRE GRASP POINT bsaed on perpendicular angle---
+      this->pre_grasp_center.x = edge_centers[nearestIndex].x + 0.05 * cos(perpendicularAngle);
+      this->pre_grasp_center.y = edge_centers[nearestIndex].y - 0.05 * sin(-perpendicularAngle);
+      this->pre_grasp_distance.x = abs(0.05 * cos(perpendicularAngle));
+      this->pre_grasp_distance.y = 0.05 * sin(-perpendicularAngle);
+      std::cout << "\033[1;36m SECOND GRASP POINT -->  x: " <<  edge_centers[nearestIndex].x << " y: " << edge_centers[nearestIndex].y << "\033[1;0m" <<std::endl;
+      std::cout << "pre grasp dist: (" << this->pre_grasp_distance.x << ", " << this->pre_grasp_distance.y << ")" << std::endl;
+      // std::cout << "pre grasp position: (" << this->pre_grasp_center.x << ", " << this->pre_grasp_center.y << ")" << std::endl;
+
+      // this->pre_grasp_center.x = edge_centers[nearestIndex].x-this->pre_grasp_distance.x;
+      // this->pre_grasp_center.y = edge_centers[nearestIndex].y-this->pre_grasp_distance.y;
+      this->pre_grasp_center.z = this->config_.table_height+0.05;
+      this->grasping_point_garment = this->pre_grasp_center;
+
+      std::cout << "\033[1;36m GRASP POINT -->  x: " <<  pre_grasp_center.x << " y: " << pre_grasp_center.y << " z: " << pre_grasp_center.z << "\033[1;0m" <<std::endl;
+      std::cout << "\033[1;36m SECOND GRASP POINT -->  x: " <<  edge_centers[secondNearestIndex].x << " y: " << edge_centers[secondNearestIndex].y << "\033[1;0m" <<std::endl;
+      marker.pose.position.x=pre_grasp_center.x;
+      marker.pose.position.y=pre_grasp_center.y;
+      marker.pose.position.z=0.005;// pre_grasp_center.z;
+      grasp_marker_publisher.publish(marker); //Publish grasping point marker - nearest edge center
+      ROS_WARN("test2");
+
+      //--- GET PILE HEIGHT AND OBJECT'S EDGE SIZES ---
+      this->pile_height = 0.0;
+      this->get_pile_height = true;
+      //this->garment_edge_size = garment_edge.data;
+      this->grasped_edge_size = lengths[nearestIndex];
+      this->not_grasped_edge_size = lengths[secondNearestIndex];
+      std::cout << "\033[1;36m Non grasped edge size --> \033[1;0m " <<  this->garment_edge_size << std::endl;
+      std::cout << "\033[1;36m SENSED Non grasped edge size --> \033[1;0m " <<  lengths[secondNearestIndex] << std::endl;
+      std::cout << "\033[1;36m SENSED Grasped edge size --> \033[1;0m " <<  lengths[nearestIndex] << std::endl;
+
+      // --- GET DRAGGING AND ROTATING POSES ---
+      // Dragging pose is inclined orientation over garment
+      // this->dragging_pose_garment = this->pre_grasp_center;
+      this->dragging_pose_garment.x = garment_center.x; // + this->pre_grasp_distance.x;
+      this->dragging_pose_garment.y = garment_center.y; // - 0.05 * sin(-perpendicularAngle);
+      this->dragging_pose_garment.z = 0.10; //0.031
+      this->dragging_pose_garment.theta_x = 125; //0; //this->pre_grasp_center.theta_x;
+      this->dragging_pose_garment.theta_y = -1.6; //0; //-125; //this->pre_grasp_center.theta_x;
+      this->dragging_pose_garment.theta_z = 88.8; //90; //180; //this->pre_grasp_center.theta_x;
+
+      if(edge_centers[nearestIndex].y < edge_centers[secondNearestIndex].y) //If the second nearest edge is further away than nearest corner:
+      {
+        ROS_INFO("nearest < second nearest");
+        std::cout << "nearest " << edge_centers[nearestIndex].y << " second: " << edge_centers[secondNearestIndex].y << std::endl;
+        this->end_dragging_pose = 0.0; //Drag to the right
+      }
+      else
+      {
+        ROS_INFO("nearest > second nearest");
+        std::cout << "nearest " << edge_centers[nearestIndex].y << " second: " << edge_centers[secondNearestIndex].y << std::endl;
+        this->end_dragging_pose = 0.3; // Drag to the left
+      }
+
+      // Rotating pose is vertical orientation over garment center
+      this->rotating_pose_garment.x = garment_center.x;
+      this->rotating_pose_garment.y = garment_center.y;
+      this->rotating_pose_garment.z = 0.20;
+      this->rotating_pose_garment.theta_x = 179; //-179.4
+      this->rotating_pose_garment.theta_y = 0; //1
+      this->rotating_pose_garment.theta_z = 90; //92.7
+      std::cout << "\033[1;36m ROTATING pose --> x: " << this->rotating_pose_garment.x << " y: " << this->rotating_pose_garment.y << " z: " << this->rotating_pose_garment.z << "\033[1;0m" << std::endl;
+
+      marker.pose.position.x=edge_centers[secondNearestIndex].x; //garment_center.x;
+      marker.pose.position.y=edge_centers[secondNearestIndex].y; //garment_center.y;
+      marker.pose.position.z=0.01; //garment_center.z;
+      garment_marker_publisher.publish(marker);
+      ROS_WARN("test3");
+
+      // --- VALIDATE GOAL POSE ---
+      ROS_INFO("Check grasp");
+      kortex_driver::Waypoint waypoint;
+      std::cout << "\033[1;36m GRASP pose --> x: " << this->pre_grasp_center.x << " y: " << this->pre_grasp_center.y << " z: " << this->pre_grasp_center.z << "\033[1;0m" << std::endl;
+      std::cout << "\033[1;36m GRASP pose --> x: " << this->pre_grasp_center.theta_x << " y: " << this->pre_grasp_center.theta_y << " z: " << this->pre_grasp_center.theta_z << "\033[1;0m" << std::endl;
+      waypoint = FillCartesianWaypoint(this->pre_grasp_center, 0);
+      bool valid = validate_waypoint(waypoint);
+      if(valid)
+        ROS_WARN("good");
+      ROS_INFO("Check rotate");
+      std::cout << "\033[1;36m DRAGGING pose --> x: " << this->dragging_pose_garment.x << " y: " << this->dragging_pose_garment.y << " z: " << this->dragging_pose_garment.z << "\033[1;0m" << std::endl;
+      std::cout << "\033[1;36m DRAGGING pose --> x: " << this->dragging_pose_garment.theta_x << " y: " << this->dragging_pose_garment.theta_y << " z: " << this->dragging_pose_garment.theta_z << "\033[1;0m" << std::endl;
+      waypoint = FillCartesianWaypoint(this->dragging_pose_garment, 0);
+      valid = validate_waypoint(waypoint);
+      if(valid)
+        ROS_WARN("good");
+
+      if(this->pddl_demo)
+      {
+        if(this->config_.ok)
+        {
+          // --- LOG OBJECT INFO ---
+          this->logfile << "\n---OBJECT STATE INFO---" << std::endl;
+          this->logfile << "Nearest edge size: " << lengths[nearestIndex] << " / Second nearest edge size: " << lengths[secondNearestIndex] << std::endl;
+          this->logfile << "Nearest edge grasp point: (" << edge_centers[nearestIndex].x << ", " << edge_centers[nearestIndex].y << ") with distance " << minDistance << std::endl;
+          this->logfile << "Second nearest edge point: (" << edge_centers[secondNearestIndex].x << ", " << edge_centers[secondNearestIndex].y << ") with distance " << secondMinDistance << std::endl;
+          this->logfile << "Garment center point: (" << garment_center.x << ", " << garment_center.y << ") with distance " << disGarmenCenter << std::endl;
+          this->logfile << "Grasp pose: (" <<  pre_grasp_center.x << ", " << pre_grasp_center.y << ", " << pre_grasp_center.z << ", " << pre_grasp_center.theta_x << ", " << pre_grasp_center.theta_y << ", " << pre_grasp_center.theta_z << ")" << std::endl;
+          this->logfile << "Grasp edge size: " << this->garment_edge_size << std::endl;
+          this->logfile << "Pile height: " << this->pile_height << std::endl;
+          // UPDATE workspace
+          check_worspaces(disGarmenCenter); //Get workspace based on distance of garment center
+          this->get_garment_position=false;
+          // PREDICT DEF CLASS
+          predict_deformation_class(); //Predict deformation classes for both edges
+          this->state=UPDATE_INIT_ROSPLAN_KB;
+          // this->pddl_action_done=true; //End PDDL action
+          this->config_.ok=false;
+          this->process_grasp_pointcloud=false;
+        }
+      }
+      else
+      {
+        this->process_grasp_pointcloud=false;
         this->get_garment_position=false;
-        // PREDICT DEF CLASS
-        predict_deformation_class(); //Predict deformation classes for both edges
-        this->state=UPDATE_INIT_ROSPLAN_KB;
-        // this->pddl_action_done=true; //End PDDL action
-        this->config_.ok=false;
       }
     }
-    else
-      this->get_garment_position=false;
   }
-
 }
 
 

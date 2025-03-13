@@ -74,7 +74,7 @@ CLOTH_SIZE = {
 # non_grasped_edge_size = obj_edge_size[non_grasped_edge]
 # grasped_edge_size = obj_edge_size[grasped_edge]
 
-show_imgs = False
+show_imgs = True
 save_data = True
 
 write_dir = "/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/experiments_placing_update/"
@@ -150,6 +150,7 @@ def process_pointcloud(data, grasp_edge_size, non_grasp_edge_size):
 def handle_service(req):
   
     msg = rospy.wait_for_message('/segment_table/place', PointCloud2) # Get next message from the topis /segment_table/place (segmented pointcloud of the grasped object)
+    # msg = rospy.wait_for_message('/cloud_pcd', PointCloud2)
     
     ## ---Get object dimensions for creating canonical---
     object_name = req.object_name + "_" + req.layers

@@ -54,7 +54,7 @@ CLOTH_SIZE = {
     "waffle_16l": (0.13,0.18)
     }
 
-show_imgs = False
+show_imgs = True
 save_imgs = True
 write_dir = "/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/experiments_placing_update/"
 plot_scale = dict(xaxis=dict(range=[0, 0.4]), yaxis=dict(range=[0.2, -0.3]), zaxis=dict(range=[0, 0.3]), aspectratio=dict(x=1, y=1, z=1) ) #plot scale for grasped samples
@@ -97,6 +97,8 @@ def process_pointcloud(data, grasp_edge_size, nongrasp_edge_size, obj_thickness,
     mean_metrics = placing_grid_metric.def_metric(grids, grasp_edge_size, obj_thickness)
 
     ## ---Plot---
+    # figx = placing_grid_metric.plot_raw_data(transl_data)
+    # show_save_figs(figx, "Raw")
     fig = placing_grid_metric.plot_with_info(transl_data, can_x_grid_divs, can_y_grid_divs, can_edges, obj_thickness, n_objs, plot_scale, plot_scale_color)
     show_save_figs(fig, "placing_plot")
     fig2 = placing_grid_metric.plot_metrics(mean_metrics, plot_scale_color)

@@ -116,11 +116,17 @@ def plot_raw_data(data):
     
     scale = dict(zaxis=dict(range=[z_min, z_max]), xaxis=dict(range=[x_min, x_max]), yaxis=dict(range=[y_min, y_max]), aspectratio=dict(x=1, y=1, z=1) )
     scale_color = [z_min, z_max]
-    plot(data, "raw", scale, scale_color)
+    # fig = plot(data, "raw", scale, scale_color)
+    data = np.array(data)
+    fig = px.scatter_3d(x=data[:,0], y=data[:,1], z=data[:,2], color=data[:,2])
+    fig.update_layout(scene=scale)
+    fig.update_coloraxes(cmin=scale_color[0], cmax=scale_color[1])
 
-    print_info(activate_print, "xmin: ", x_min, "xmax: ", x_max)
-    print_info(activate_print, "ymin: ", y_min, "ymax: ", y_max)
-    print_info(activate_print, "zmin: ", z_min, "zmax: ", z_max)
+    # print_info(activate_print, "xmin: ", x_min, "xmax: ", x_max)
+    # print_info(activate_print, "ymin: ", y_min, "ymax: ", y_max)
+    # print_info(activate_print, "zmin: ", z_min, "zmax: ", z_max)
+
+    return fig
 
 def save_data_values(exp_name, data_values, data_values2):
     print("\033[94m Writing deformation metric values... \033[0m")
