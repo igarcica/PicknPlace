@@ -55,41 +55,53 @@ def plot_with_info(data, x_grid_divs, y_grid_divs, can_edges, scale, scale_color
     z_data=data[:,2]
     bright_blue = [[0, '#7DF9FF'], [1, '#7DF9FF']]
     bright_pink = [[0, '#FF007F'], [1, '#FF007F']]
+    bright_orange = [[0, '#FFA500'], [1, '#FFA500']]
 
     # Plot garment
     
-    fig = px.scatter_3d(x=data[:,0], y=data[:,1], z=data[:,2], color=data[:,2], color_continuous_scale=colorscale)
+    fig = px.scatter_3d(x=data[:,0], y=data[:,1], z=data[:,2], color=data[:,2])#, color_continuous_scale=colorscale)
+    fig.update_traces(marker=dict(color="teal"))
+
+    # Plot Canonical plane
+    x_can = np.linspace(can_edges[0],can_edges[1],100)
+    y_can = np.linspace(can_edges[2],can_edges[3],50)
+    z_can = -0.02*np.ones(len(y_data))
+    canonic = go.Surface(x=x_can, y=y_can, z=np.array([z_can]*len(x_can)).T, colorscale=bright_pink, opacity=0.2)
+    canonic_plane.append(canonic)
 
     # Plot X axis divisions
     for n in range(1,len(x_grid_divs)-1):
-        x=x_grid_divs[n]*np.ones(len(x_data))
-        y=np.linspace(min(y_data),max(y_data),100)
+        x=x_grid_divs[n]*np.ones(len(x_can))
+        y=np.linspace(min(y_can),max(y_can),100)
         z=np.linspace(min(z_data)-0.01,max(z_data)+0.01,50)
-        plane = go.Surface(x=x, y=y, z=np.array([z]*len(x)), colorscale=bright_blue, opacity=0.4)
+        plane = go.Surface(x=x, y=y, z=np.array([z]*len(x)), colorscale=bright_orange, opacity=0.4)
         planes_x.append(plane)
     # Plot Y axis divisions
     for n in range(1,len(y_grid_divs)-1):
-        x=np.linspace(min(x_data),max(x_data),100)
-        y=y_grid_divs[n]*np.ones(len(y_data))
+        x=np.linspace(min(x_can),max(x_can),100)
+        y=y_grid_divs[n]*np.ones(len(y_can))
         z=np.linspace(min(z_data)-0.01,max(z_data)+0.01,50)
-        plane = go.Surface(x=x, y=y, z=np.array([z]*len(x)).T, colorscale=bright_blue, opacity=0.4)
+        plane = go.Surface(x=x, y=y, z=np.array([z]*len(x)).T, colorscale=bright_orange, opacity=0.4)
         planes_y.append(plane)
-
-    # Plot Canonical plane
-    x=np.linspace(can_edges[0],can_edges[1],100)
-    y=np.linspace(can_edges[2],can_edges[3],50)
-    z=-0.2*np.ones(len(y_data))
-    canonic = go.Surface(x=x, y=y, z=np.array([z]*len(x)).T, colorscale=bright_pink, opacity=0.4)
-    canonic_plane.append(canonic)
 
     # fig.add_traces(data)
     fig.add_traces(planes_x)
     fig.add_traces(planes_y)
     fig.add_traces(canonic_plane)
     # fig.update_layout(scene=dict(zaxis=dict(range=[0, 0.2]), xaxis=dict(range=[0.4, 0.05]), yaxis=dict(range=[0.2, -0.2]), aspectratio=dict(x=1, y=1, z=1) ))
+    fig.update_layout(scene=dict(zaxis=dict(range=[-1, 0]), xaxis=dict(range=[-0.1, 0.2]), yaxis=dict(range=[0.2, -0.2]), aspectratio=dict(x=1, y=1, z=1) ))
     # fig.update_coloraxes(cmax=0.12, cmin=0.0)
     fig.update_layout(scene=scale)
     fig.update_coloraxes(cmin=scale_color[0], cmax=scale_color[1])
+    fig.update_layout( # Increase font sizes
+    scene=dict(
+        xaxis=dict(title="X Axis", titlefont=dict(size=35), tickfont=dict(size=16)),  # Increase X labels
+        yaxis=dict(title="Y Axis", titlefont=dict(size=35), tickfont=dict(size=16)),  # Increase Y labels
+        zaxis=dict(title="Z Axis", titlefont=dict(size=35), tickfont=dict(size=16))   # Increase Z labels
+    ),
+    # font=dict(size=16)  # Increase general font size
+    )
+    
 
     return fig
 
@@ -98,9 +110,10 @@ def plot_metrics(metrics, scale_color):
     metrics = np.array(metrics)
     div=int(np.sqrt(len(metrics)))
     metrics = metrics.reshape(div,div)
+    flipped_matrix = metrics[::-1, ::-1] # Flip both rows and columns to see it in another perspective (from the front of the robot)
     # print("Metrics: ", metrics)
     # colorscale = px.colors.sample_colorscale("Viridis", [start, end])
-    fig = px.imshow(metrics, color_continuous_scale=colorscale) #text_auto=True, labels=dict(x='x', y='y'))
+    fig = px.imshow(flipped_matrix, text_auto=True, color_continuous_scale=colorscale) #text_auto=True, labels=dict(x='x', y='y'))
     fig.update_coloraxes(cmin=scale_color[0], cmax=scale_color[1])#cmax=0.08, cmin=0.0)
     fig.update_layout(xaxis=dict(showticklabels=False), yaxis=dict(showticklabels=False))
     

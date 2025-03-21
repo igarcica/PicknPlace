@@ -24,7 +24,8 @@ import joblib
 ############ GRID METRIC ############
 n_divisions = 3
 cam_to_gripper = 0.35 ## Used in transl_data to define Minimum deformation (gripper point)
-gripper_position = [0.12, -0.025] ## Used to compute grid divisions
+# gripper_position = [0.151, -0.025] ## Used to compute grid divisions
+gripper_position = [0.13, -0.025] ## Used to compute grid divisions
 
 raw_sample_filter_box = [[0.3, 0.7], [-0.2, 0.2], [-0.3, 0.3]] #box to filter sample removing noise points
 plot_scale = dict(xaxis=dict(range=[0.2, -0.2]), yaxis=dict(range=[0.2, -0.2]), zaxis=dict(range=[-1, 0]), aspectratio=dict(x=1, y=1, z=1) ) #plot scale for grasped samples

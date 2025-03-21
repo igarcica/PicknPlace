@@ -1,3 +1,8 @@
+
+####This script serves to plot the placing quality and cost evolution over time.
+## Costs values are obtained with placing_costs_update.py
+## SCRIPT TO DELETE, NEW VERSION IN main_cost_update.py
+
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import CubicSpline

@@ -1,4 +1,7 @@
 ### This scrpit implements an M-estimator using the Huber-like update rule
+## Serves to obtain the updated costs
+## It needs the placing errors
+## SCRIPT TO DELETE, NEW VERSION IN main_cost_update.py
 
 import numpy as np
 import statistics as sts
