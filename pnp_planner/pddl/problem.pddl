@@ -10,41 +10,49 @@
     flat a b c - defclass
 )
 (:init
-    (garment_at towel grws)
+    (garment_at towel2 rotws)
 
     (at_pose towel long)
+    (at_pose towel2 long)
 
-    (garment_state towel notgrasped)
+    (garment_state towel placed)
+    (garment_state towel2 lifted)
 
-    (corners_pos_known towel)
+    (corners_pos_known towel2)
 
-    (robot_at high_pose)
-
-    (robot_empty)
-
-    (not (known_obj towel2))
-
-    (defstate towel flat)
+    (robot_at else)
 
 
+    (known_obj towel2)
 
-    (obj_grasp_class long C)
+    (defstate towel2 A)
+
+
+
     (obj_grasp_class short B)
+    (obj_grasp_class long A)
 
     (= (time_cost) 0)
 
     (= (place_qual) 0)
 
-    (= (place_succ towel a placevert) 100)
-    (= (place_succ towel b placevert) 100)
-    (= (place_succ towel c placevert) 15)
-    (= (place_succ towel c placediag) 15)
-    (= (place_succ towel c placerot) 9)
-    (= (place_succ towel2 a placevert) 100)
-    (= (place_succ towel2 b placevert) 100)
-    (= (place_succ towel2 c placevert) 45)
+    (= (place_succ towel a placevert) 17)
+    (= (place_succ towel a placediag) 1)
+    (= (place_succ towel b placevert) 8)
+    (= (place_succ towel b placediag) 22)
+    (= (place_succ towel b placerot) 6)
+    (= (place_succ towel c placevert) 30)
+    (= (place_succ towel c placediag) 25)
+    (= (place_succ towel c placediag) 6)
+    (= (place_succ towel2 a placevert) 12)
+    (= (place_succ towel2 a placediag) 6)
+    (= (place_succ towel2 a placerot) 7)
+    (= (place_succ towel2 b placevert) 30)
+    (= (place_succ towel2 b placediag) 14)
+    (= (place_succ towel2 b placerot) 9)
+    (= (place_succ towel2 c placevert) 30)
     (= (place_succ towel2 c placediag) 30)
-    (= (place_succ towel2 c placerot) 43)
+    (= (place_succ towel2 c placerot) 30)
 
 )
 (:goal (and

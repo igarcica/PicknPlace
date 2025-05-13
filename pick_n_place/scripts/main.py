@@ -75,8 +75,8 @@ CLOTH_SIZE = {
 # non_grasped_edge_size = obj_edge_size[non_grasped_edge]
 # grasped_edge_size = obj_edge_size[grasped_edge]
 
-show_imgs = True
-save_data = True
+show_imgs = False
+save_data = False
 
 write_dir = "/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/experiments_placing_update/"
 

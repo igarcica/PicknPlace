@@ -14,6 +14,7 @@ raw_sample_filter_box = [[0, cam_to_table], [-0.2, 0.2], [0, 0.3]] # Box to filt
 # gripper_position = [0.32, -0.025] ## Used to compute grid divisions (wrt ext_camera_link changing x-axis for z-axis)
 # gripper_position = [0.27, -0.07]
 gripper_position = [0.32, -0.04]
+# gripper_position = [0.31, -0.025]
 
 ## In the case of the placing metric, the thickness of the objects plays a role
 CLOTH_SIZE = {
@@ -101,7 +102,8 @@ def process_pointcloud(data, grasp_edge_size, nongrasp_edge_size, obj_thickness,
     # show_save_figs(figx, "Raw")
     fig = placing_grid_metric.plot_with_info(transl_data, can_x_grid_divs, can_y_grid_divs, can_edges, obj_thickness, n_objs, plot_scale, plot_scale_color)
     show_save_figs(fig, "placing_plot")
-    fig2 = placing_grid_metric.plot_metrics(mean_metrics, plot_scale_color)
+    # fig2 = placing_grid_metric.plot_metrics(mean_metrics, plot_scale_color)
+    fig2 = placing_grid_metric.plot_metrics(mean_metrics, obj_thickness)
     show_save_figs(fig2, "placing_metric")
     
     return mean_metrics

@@ -3,7 +3,7 @@
 
   <arg name="node_name"     default="pick_n_place"/>
   <arg name="output"        default="screen"/>
-  <arg name="launch_prefix" default="gdb -ex run --args"/>
+  <arg name="launch_prefix" default=""/>
   <arg name="config_file"   default="$(find pick_n_place)/config/params.yaml"/>
   <!-- <arg name="topic_name"  default="new_topic_name"/> -->
   <arg name="diagonal_m" default="true"/>

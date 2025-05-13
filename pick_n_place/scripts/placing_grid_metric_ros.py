@@ -22,7 +22,7 @@ import plotly.graph_objs as go
 import rospy
 
 
-colorscale = px.colors.sample_colorscale("jet", np.linspace(0.1, 0.95, 256))
+colorscale = px.colors.sample_colorscale("jet_r", np.linspace(0, 0.3, 256))
 
 ##################################################################################################
 ## UTIL FUNCTIONS
@@ -61,59 +61,86 @@ def plot_with_info(data, x_grid_divs, y_grid_divs, can_edges, obj_thickn, n_objs
     bright_pink = [[0, '#FF007F'], [1, '#FF007F']]
     bright_orange = [[0, '#FFA500'], [1, '#FFA500']]
 
-    # Plot garment
-    fig = px.scatter_3d(x=data[:,0], y=data[:,1], z=data[:,2], color=data[:,2])
-    fig.update_traces(marker=dict(color="teal"))
+    # # Plot garment
+    # fig = px.scatter_3d(x=data[:,0], y=data[:,1], z=data[:,2], color=data[:,2])
+    # fig.update_traces(marker=dict(color="teal"))
 
-    # Plot X axis divisions
-    for n in range(1,len(x_grid_divs)-1):
-        x=x_grid_divs[n]*np.ones(len(x_data))
-        y=np.linspace(min(y_data),max(y_data),100)
-        z=np.linspace(min(z_data)-0.01,max(z_data)+0.01,50)
-        plane = go.Surface(x=x, y=y, z=np.array([z]*len(x)), colorscale=bright_orange, opacity=0.5)
-        planes_x.append(plane)
-    # Plot Y axis divisions
-    for n in range(1,len(y_grid_divs)-1):
-        x=np.linspace(min(x_data),max(x_data),100)
-        y=y_grid_divs[n]*np.ones(len(y_data))
-        z=np.linspace(min(z_data)-0.01,max(z_data)+0.01,50)
-        plane = go.Surface(x=x, y=y, z=np.array([z]*len(x)).T, colorscale=bright_orange, opacity=0.5)
-        planes_y.append(plane)
+    # # Plot X axis divisions
+    # for n in range(1,len(x_grid_divs)-1):
+    #     x=x_grid_divs[n]*np.ones(len(x_data))
+    #     y=np.linspace(min(y_data),max(y_data),100)
+    #     z=np.linspace(min(z_data)-0.01,max(z_data)+0.01,50)
+    #     plane = go.Surface(x=x, y=y, z=np.array([z]*len(x)), colorscale=bright_orange, opacity=0.5)
+    #     planes_x.append(plane)
+    # # Plot Y axis divisions
+    # for n in range(1,len(y_grid_divs)-1):
+    #     x=np.linspace(min(x_data),max(x_data),100)
+    #     y=y_grid_divs[n]*np.ones(len(y_data))
+    #     z=np.linspace(min(z_data)-0.01,max(z_data)+0.01,50)
+    #     plane = go.Surface(x=x, y=y, z=np.array([z]*len(x)).T, colorscale=bright_orange, opacity=0.5)
+    #     planes_y.append(plane)
 
-    # Plot Canonical plane
-    x=np.linspace(can_edges[0],can_edges[1],100)
-    y=np.linspace(can_edges[2],can_edges[3],50)
+    # # Plot Canonical plane
+    # x=np.linspace(can_edges[0],can_edges[1],100)
+    # y=np.linspace(can_edges[2],can_edges[3],50)
     # z=(obj_thickn*n_objs)*np.ones(len(y_data))
-    z=0.05*np.ones(len(y_data))
-    canonic = go.Surface(x=x, y=y, z=np.array([z]*len(x)).T, colorscale=bright_pink, opacity=0.3)
-    canonic_plane.append(canonic)
+    # # z=0.05*np.ones(len(y_data))
+    # canonic = go.Surface(x=x, y=y, z=np.array([z]*len(x)).T, colorscale=bright_pink, opacity=0.3)
+    # canonic_plane.append(canonic)
 
-    # fig.add_traces(data)
-    fig.add_traces(planes_x)
-    fig.add_traces(planes_y)
-    fig.add_traces(canonic_plane)
+    # # fig.add_traces(data)
+    # fig.add_traces(planes_x)
+    # fig.add_traces(planes_y)
+    # fig.add_traces(canonic_plane)
+    # fig.update_layout(scene=dict(zaxis=dict(range=[0, 0.2]), xaxis=dict(range=[0, 0.4]), yaxis=dict(range=[0.2, -0.25]), aspectratio=dict(x=1, y=1, z=1) ))
+    # # fig.update_coloraxes(cmax=0.12, cmin=0.0)
+    # # fig.update_layout(scene=scale)
+    # fig.update_coloraxes(cmin=scale_color[0], cmax=scale_color[1])
+    # fig.update_layout( # Increase font sizes
+    # scene=dict(
+    #     xaxis=dict(title="X Axis", titlefont=dict(size=35), tickfont=dict(size=16)),  # Increase X labels
+    #     yaxis=dict(title="Y Axis", titlefont=dict(size=35), tickfont=dict(size=16)),  # Increase Y labels
+    #     zaxis=dict(title="Z Axis", titlefont=dict(size=35), tickfont=dict(size=16))   # Increase Z labels
+    # ),
+    # # font=dict(size=16)  # Increase general font size
+    # )    
+
+    fig = go.Figure(data=[go.Scatter3d(
+    x=data[:,0], 
+    y=data[:,1],
+    z=data[:,2],
+    mode='markers',
+    marker=dict(
+        # size=12,
+        color=data[:,2],                # set color to an array/list of desired values
+        colorscale=colorscale,   # choose a colorscale
+        # opacity=0.8
+    )
+)])
     fig.update_layout(scene=dict(zaxis=dict(range=[0, 0.2]), xaxis=dict(range=[0, 0.4]), yaxis=dict(range=[0.2, -0.25]), aspectratio=dict(x=1, y=1, z=1) ))
-    # fig.update_coloraxes(cmax=0.12, cmin=0.0)
-    # fig.update_layout(scene=scale)
-    fig.update_coloraxes(cmin=scale_color[0], cmax=scale_color[1])
     fig.update_layout( # Increase font sizes
     scene=dict(
         xaxis=dict(title="X Axis", titlefont=dict(size=35), tickfont=dict(size=16)),  # Increase X labels
         yaxis=dict(title="Y Axis", titlefont=dict(size=35), tickfont=dict(size=16)),  # Increase Y labels
         zaxis=dict(title="Z Axis", titlefont=dict(size=35), tickfont=dict(size=16))   # Increase Z labels
-    ),
-    # font=dict(size=16)  # Increase general font size
-    )    
+    ))
+    
 
     return fig
 
 ## Plot metrics in colored grid
-def plot_metrics(metrics, scale_color):
+# def plot_metrics(metrics, scale_color):
+def plot_metrics(metrics, obj_thickn):
     metrics = np.array(metrics)
+    # metrics = [[0.08, 0.08, 0.08], [0.08, 0.08, 0.08], [0.08, 0.08, 0.08]]
+    # metrics = [[0.08, 0.08, 0.1], [0.096, 0.092, 0.08], [0.09, 0.1, 0.094]]
     div=int(np.sqrt(len(metrics)))
     metrics = metrics.reshape(div,div)
-    fig = px.imshow(metrics, text_auto=True, labels=dict(x='x', y='y'))
-    fig.update_coloraxes(cmin=scale_color[0], cmax=scale_color[1])#cmax=0.08, cmin=0.0)
+    # fig = px.imshow(metrics, text_auto=True, labels=dict(x='x', y='y'))
+    fig = px.imshow(metrics, text_auto=True, color_continuous_scale=colorscale) #text_auto=True, labels=dict(x='x', y='y'))
+    # fig.update_coloraxes(cmin=scale_color[0], cmax=scale_color[1])#cmax=0.08, cmin=0.0)
+    fig.update_coloraxes(cmin=0.08, cmax=0.2)
+    fig.update_layout(xaxis=dict(showticklabels=False), yaxis=dict(showticklabels=False))
 
     return fig
 
@@ -364,7 +391,8 @@ def placing_qual(metrics, n_div, grasp_edge_size, obj_thickness, n_objs):
     metrics = np.array(metrics)
     flat_placement = min_depth*np.ones(n_div*n_div)
     # bad_placement = np.array([[0.05, 0.1, 0.05], [0.05, 0.1, 0.05], [0.05, 0.1, 0.05]]) #to check which is the most representative
-    bad_placement = np.array([[half_max_depth, max_depth, half_max_depth], [half_max_depth, max_depth, half_max_depth], [half_max_depth, max_depth, half_max_depth]]) #to check which is the most representative
+    # bad_placement = np.array([[half_max_depth, max_depth, half_max_depth], [half_max_depth, max_depth, half_max_depth], [half_max_depth, max_depth, half_max_depth]]) #to check which is the most representative ##for pillowcase
+    bad_placement = 0.16*np.ones(n_div*n_div) #for towel
     bad_placement = bad_placement.reshape(-1, 1)
     # bad_placement = max_depth*np.ones(n_div*n_div)
 
