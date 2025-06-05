@@ -16,6 +16,34 @@ def print_info(activate, arg1, arg2="", arg3="", arg4="", arg5="", arg6=""):
 ####################################################################################
 ### INPUT DATA
 
+## ---- Placing cost table ----
+# Def clas | Vertical | Diagonal | Rotating
+#    A     |    0     |    0     |    0
+#    B     |    0     |    0     |    0
+#    C     |    0     |    0     |    0
+# place_initial_cost_table = np.array([ # Init cost table (placing error to minimize)
+#     [17, 0, 0],
+#     [8, 22, 6], 
+#     [30, 25, 6], 
+# ])  
+# pile_initial_cost_table = np.array([ # Init cost table (placing error to minimize)
+#     [0, 0, 0],
+#     [30, 14, 9], 
+#     [30, 30, 30], 
+# ]) 
+place_initial_cost_table = np.array([ # Init cost table (placing error to minimize)
+    [0, 0, 0],
+    [0, 0, 0], 
+    [0, 0, 0], 
+])  
+pile_initial_cost_table = np.array([ # Init cost table (placing error to minimize)
+    [0, 0, 0],
+    [0, 0, 0], 
+    [0, 0, 0], 
+])  
+
+####################################################################################
+
 #### PILLOWCASE ####
 # placed_quality_results = np.array([0, 13, 49, 88, 94, 65, 56, 94, 97, 91, 90, 95, 96, 83, 86, 89, 96,94,  88,  94, 92]) #exp31(t=10) bit changed
 # placing_errors = 100-placed_quality_results
@@ -56,20 +84,6 @@ def print_info(activate, arg1, arg2="", arg3="", arg4="", arg5="", arg6=""):
 
 # labels = np.array(["0", "dv", "rd", "rr", "dr", "rd", "dd", "dd", "dd", "dd"])
 
-######### PILLOWCASE + TOWEL #########
-placed_quality_results = np.array([0, 13, 49, 88, 94, 65, 56, 94, 97, 91, 90, 95, 96, 83, 86, 89, 96, 94, 88,  94, 92, 98, 99, 96, 99, 99, 98]) #exp31(t=10) bit changed
-placing_errors = 100-placed_quality_results
-placing_str = ["0", "v", "d", "r", "v", "v", "d", "r", "r", "r", "v", "r", "r", "r", "v", "v", "r", "r", "r", "r", "r", "d", "r", "r", "d", "d", "d", "d"]
-placing_def_classes = ["0", "C", "C", "C", "B", "A", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "A", "A", "A", "A", "A", "A", "A"]
-
-piled_quality_results = np.array([0, 0, 0, 8, 31, 81, 86, 78, 78, 93, 78, 79, 85, 93, 77, 88, 93, 91, 85, 92, 91, 76, 88, 91, 90, 94, 95]) #exp31(t=10) bit changed
-piling_errors = 100-piled_quality_results
-piling_str = ["0", "v", "d", "r", "v", "d", "r", "r", "d", "r", "r", "d", "r", "r", "r", "r", "r", "r", "r", "r", "r", "v", "d", "r", "r", "d", "d", "d"] 
-piling_def_classes = ["0", "C", "C", "C", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "A", "A", "A", "A", "A", "A", "A"]
-
-labels = np.array(["0", "vv", "dd", "rr", "vv", "vd", "dr", "rr", "rd", "rr", "vr", "rd", "rr", "rr", "vr", "vr", "rr", "rr", "rr", "rr", "rr", "dv", "rd", "rr", "dr", "rd", "dd", "dd", "dd"])
-
-
 ######### PILLOWCASE ONLY LONG EDGE #########
 # placed_quality_results = np.array([0, 13, 49, 88, 91, 83, 91,88, 78, 92]) 
 # placing_errors = 100-placed_quality_results
@@ -81,6 +95,52 @@ labels = np.array(["0", "vv", "dd", "rr", "vv", "vd", "dr", "rr", "rd", "rr", "v
 # piling_def_classes = ["0", "C", "C", "C", "C", "C", "C", "C", "C", "C"]
 # labels = np.array(["0", "vv", "dd", "rr", "rv", "rd", "rr", "rr", "rd", "rv"])
 
+
+################## SYSTEM'S ADAPTABILITY ##################
+######### PILLOWCASE + TOWEL #########
+# placed_quality_results = np.array([0, 13, 49, 88, 94, 65, 56, 94, 97, 91, 90, 95, 96, 83, 86, 89, 96, 94, 88,  94, 92, 98, 99, 96, 99, 99, 98]) #exp31(t=10) bit changed
+# placing_errors = 100-placed_quality_results
+# placing_str = ["0", "v", "d", "r", "v", "v", "d", "r", "r", "r", "v", "r", "r", "r", "v", "v", "r", "r", "r", "r", "r", "d", "r", "r", "d", "d", "d", "d"]
+# placing_def_classes = ["0", "C", "C", "C", "B", "A", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "A", "A", "A", "A", "A", "A", "A"]
+
+# piled_quality_results = np.array([0, 0, 0, 8, 31, 81, 86, 78, 78, 93, 78, 79, 85, 93, 77, 88, 93, 91, 85, 92, 91, 76, 88, 91, 90, 94, 95]) #exp31(t=10) bit changed
+# piling_errors = 100-piled_quality_results
+# piling_str = ["0", "v", "d", "r", "v", "d", "r", "r", "d", "r", "r", "d", "r", "r", "r", "r", "r", "r", "r", "r", "r", "v", "d", "r", "r", "d", "d", "d"] 
+# piling_def_classes = ["0", "C", "C", "C", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "A", "A", "A", "A", "A", "A", "A"]
+
+# labels = np.array(["0", "vv", "dd", "rr", "vv", "vd", "dr", "rr", "rd", "rr", "vr", "rd", "rr", "rr", "vr", "vr", "rr", "rr", "rr", "rr", "rr", "dv", "rd", "rr", "dr", "rd", "dd", "dd", "dd"])
+
+
+
+
+################## SYSTEM'S ADAPTABILITY ##################
+######### TOWEL 8l ######### - init cost table is previous learned one
+place_initial_cost_table = np.array([ # Init cost table (placing error to minimize)
+    [17, 0, 1],
+    [8, 22, 6], 
+    [30, 25, 6], 
+])  
+pile_initial_cost_table = np.array([ # Init cost table (placing error to minimize)
+    [7, 3, 4],
+    [30, 14, 9], 
+    [30, 30, 30], 
+])  
+
+#exps: 4.1 to 6.2 of system performance
+placed_quality_results = np.array([100, 100, 99]) 
+placing_errors = 100-placed_quality_results
+placing_str = ["d", "d", "d"]
+placing_def_classes = ["A", "A", "A"]
+
+piled_quality_results = np.array([95, 95, 99]) 
+piling_errors = 100-piled_quality_results
+piling_str = ["d", "d", "d"] 
+piling_def_classes = ["A", "A", "A"]
+
+labels = np.array(["dd", "dd", "dd"])
+
+
+##########################################
 errors = [placing_errors, piling_errors]
 strategies = [placing_str, piling_str]
 classes = [placing_def_classes, piling_def_classes]
@@ -252,31 +312,7 @@ class CostUpdater:
 ####################################################################################
 
 
-## ---- Placing cost table ----
-# Def clas | Vertical | Diagonal | Rotating
-#    A     |    0     |    0     |    0
-#    B     |    0     |    0     |    0
-#    C     |    0     |    0     |    0
-# place_initial_cost_table = np.array([ # Init cost table (placing error to minimize)
-#     [17, 0, 0],
-#     [8, 22, 6], 
-#     [30, 25, 6], 
-# ])  
-# pile_initial_cost_table = np.array([ # Init cost table (placing error to minimize)
-#     [0, 0, 0],
-#     [30, 14, 9], 
-#     [30, 30, 30], 
-# ]) 
-place_initial_cost_table = np.array([ # Init cost table (placing error to minimize)
-    [0, 0, 0],
-    [0, 0, 0], 
-    [0, 0, 0], 
-])  
-pile_initial_cost_table = np.array([ # Init cost table (placing error to minimize)
-    [0, 0, 0],
-    [0, 0, 0], 
-    [0, 0, 0], 
-])  
+
 cost_tables = [place_initial_cost_table, pile_initial_cost_table]
 costs_history = [[[[] for _ in range(3)] for _ in range(3)], [[[] for _ in range(3)] for _ in range(3)]]
 #

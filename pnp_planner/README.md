@@ -52,6 +52,13 @@ Generate the problem and the plan with the script:
 
 Use pddl_simple_plan_parser and dispatcher to send actions one by one. -->
 
+
+## Costs update
+
+At this time, costs are introduced manually in the planner in rosplan_problem.pddl. Set the cloth-to-table and cloth-to-cloth costs as (= (place_succ towel A placevert) 17).
+Costs are updated with the main_cost_update.py sccript in /pick_n_place/scripts. Check the related README file for obtaining the current and updated costs.
+
+
 ## Dependencies
 
 - Fast-Forward solver [1]

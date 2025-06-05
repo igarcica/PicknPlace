@@ -314,6 +314,8 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     std::string nearest_edge;
     std::string second_nearest_edge;
     std::string workspace;
+    double stiffness;
+    double friction;
     
 
     // [action client attributes]

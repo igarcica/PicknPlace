@@ -10,26 +10,28 @@
 	flat A B C - defclass
 )
 
-;;(:init (garment_state towel notgrasped) (not (corners_pos_known towel)) (defstate towel flat)
-(:init (garment_state towel placed) (defstate towel2 flat) (at_pose towel long)
+(:init (garment_state towel notgrasped) (not (corners_pos_known towel)) (defstate towel flat) ;;place object (cloth-to-table costs)
+;;(:init (garment_state towel placed) (defstate towel2 flat) (at_pose towel long) ;;pile object (cloth-to-cloth costs)
 		(not (known_obj towel2))
 		(robot_at else) (robot_empty)
 		(= (time_cost) 0)
 		(= (place_qual) 0)
-		;;placing costs
+
+		;;placing costs (cloth-to-table)
 		(= (place_succ towel A placevert) 17)
-		(= (place_succ towel A placediag) 1)
+		(= (place_succ towel A placediag) 0)
+		(= (place_succ towel A placerot) 1)
 		(= (place_succ towel B placevert) 8)
 		(= (place_succ towel B placediag) 22)
 		(= (place_succ towel B placerot) 6)
 		(= (place_succ towel C placevert) 30)
 		(= (place_succ towel C placediag) 25)
-		(= (place_succ towel C placediag) 6)
+		(= (place_succ towel C placerot) 6)
 
-		;;piling costs
-		(= (place_succ towel2 A placevert) 12)
-		(= (place_succ towel2 A placediag) 6)
-		(= (place_succ towel2 A placerot) 7)
+		;;piling costs (cloth-to-cloth)
+		(= (place_succ towel2 A placevert) 7)
+		(= (place_succ towel2 A placediag) 3)
+		(= (place_succ towel2 A placerot) 4)
 		(= (place_succ towel2 B placevert) 30)
 		(= (place_succ towel2 B placediag) 14)
 		(= (place_succ towel2 B placerot) 9)
@@ -42,7 +44,6 @@
 )
 
 ;;(:goal (and (garment_state towel placed) ))
-;;(:goal (and (on hola towel) (on teta hola) ))
 (:goal (and (on towel2 towel) ))
 
 ;;(:metric minimize (time_cost))

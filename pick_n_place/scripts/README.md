@@ -1,5 +1,31 @@
 <!-- # Compute deformation cluster with ROS -->
-# Deformation state estimation, Deformation class prediction and Placing state estimation modules
+# Getting started
+
+This folder contains python scripts for the modules necessary for the system (prediction and state estimation modules) as well as some useful scripts for plotting and updating the planning costs. The relevant files are:
+
+- prediction_module.py: ROS node with the service to predict the deformation class given the object properties and grasp location. Loads the trained model in ``/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/placing_metric/random_forest_model.pkl``
+- main.py: ROS node with the service to sense the current deformation class. Uses ``grasping_grid_metric_ros.py`` and ``clustering_raw_traintest_ros.py``
+    - grasping_grid_metric_ros.py: Contains the functions to process the pointcloud of the grasped cloth and obtain the grid-based metric.
+    - clustering_raw_traintest_ros.py: Contains the functions to classify the current grid-based metric in a deformation class. Loads the trained model in ``/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/placing_metric/kmeans_model.pkl``
+- placing_quality.py: ROS node with the service to compute the quality of the placed object or pile. Uses ``placing_grid_metric_ros.py``
+    - placing_grid_metric_ros.py: Contains the functions to process the pointcloud of the placed object and compute the metric for the placing quality.
+- main_cost_update.py: Given the placement qualities, placcing strtaegies and sensed deformation classes, it computes and plots the costs tables.
+
+
+#  Deformation class prediction, Deformation state estimation and Placing state estimation modules
+
+## PREDICT Deformation class with ROS
+
+Provides a ROS Service ``/pick_n_place/predict_def_class`` of type ``PredictDefClass`` that trains (or uses an already trained model) to predict deformation class based on categorical and numerical object properties such as layers, grasp, nongraspedsize, graspedsize, area, folded stiffness and friction.
+
+<!-- ## Offline - Without the robot -->
+To predict the deformation class of a new sample of object properties using a trained model, execute:
+
+```
+roscore
+rosrun pick_n_place prediction_module.py
+rosservice call /pick_n_place/predict_def_class "{layers: '8l', grasp: 'short', nongraspedsize: 26.0, graspedsize: 25.0, area: 650.0, stiffness: 100.0, friction: 80.0}"
+```
 
 ## SENSE Deformation class with ROS
 
@@ -29,21 +55,8 @@ rosrun pick_n_place main.py
 
 Start the demo with the rqt_reconfigure. When the object arrives to the CHOOSE_PLACING state, it will call the service and obtain a deformation class -->
 
-## PREDICT Deformation class with ROS
 
-Provides a ROS Service ``/pick_n_place/predict_def_class`` of type ``PredictDefClass`` that trains (or uses an already trained model) to predict deformation class based on categorical and numerical object properties such as layers, grasp, nongraspedsize, graspedsize, area, folded stiffness and friction.
-
-<!-- ## Offline - Without the robot -->
-To predict the deformation class of a new sample of object properties using a trained model, execute:
-
-```
-roscore
-rosrun pick_n_place prediction_module.py
-rosservice call /pick_n_place/predict_def_class "{layers: '8l', grasp: 'short', nongraspedsize: 26.0, graspedsize: 25.0, area: 650.0, stiffness: 100.0, friction: 80.0}"
-```
-
-
-## Compute Placing quality
+## Estimate Placing quality
 
 Provides a ROS Service ``/pick_n_place/get_placing_quality`` of type ``GetPlacingQual`` that provides the placing quality of the placed or piled object using the grid metric. It requires the object name (for the object dimensions of the canonical to create the grid division), the grasped edge (to orientate the canonical) and wether the evaluation is of a pile or not (to know the expected minimum depth).
 
@@ -59,10 +72,32 @@ When a point cloud message is published in the topic /segment_table/place, the n
 
 It can be run without the robot with ``rosbag play placed_object_sample.bag`` or with PCD files by changing the topic to /cloud_pcd and running ``rosrun pcl_ros pcd_to_pointcloud filename.pcd 0.1``
 
-## Update planning cost table
 
-Define the current cost table for placing and piling. Define the placing strategy, sensed deformation class and resulting placing error of the new observation with the parameters placing_strategy_pile, def_class_pile and placing_error_pile, respectively. Run the script to obtain the new cost table:
 
-```
+## Update planning cost tables
+
+<!--Define the current cost table for placing and piling. Define the placing strategy, sensed deformation class and resulting placing error of the new observation with the parameters placing_strategy_pile, def_class_pile and placing_error_pile, respectively. Run the script to obtain the updated cost tables:
+
+ ```
 python3 placing_cost_update.py
+``` -->
+
+Given the placing quality history, sensed deformation class and placing strategy, it computes the cost tables and plots the placing quality and costs evolution:
+
 ```
+python3 main_cost_update.py
+```
+
+
+<!-- # PLOT FIGURES
+
+## Plot placing quality and cost update
+
+Given the placing quality history, sensed deformation class and placing strategy, it computes the cost update tables and plots the placing quality and costs evolution:
+``python3 main_cost_update.py`` -->
+
+
+
+<!-- Para borrar?:
+python3 plot_placing_quality.py
+python3 placing_cost_update.py -->

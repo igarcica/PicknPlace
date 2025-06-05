@@ -29,24 +29,25 @@
 
 
 
-    (obj_grasp_class short B)
     (obj_grasp_class long A)
+    (obj_grasp_class short A)
 
     (= (time_cost) 0)
 
     (= (place_qual) 0)
 
     (= (place_succ towel a placevert) 17)
-    (= (place_succ towel a placediag) 1)
+    (= (place_succ towel a placediag) 0)
+    (= (place_succ towel a placerot) 1)
     (= (place_succ towel b placevert) 8)
     (= (place_succ towel b placediag) 22)
     (= (place_succ towel b placerot) 6)
     (= (place_succ towel c placevert) 30)
     (= (place_succ towel c placediag) 25)
     (= (place_succ towel c placediag) 6)
-    (= (place_succ towel2 a placevert) 12)
-    (= (place_succ towel2 a placediag) 6)
-    (= (place_succ towel2 a placerot) 7)
+    (= (place_succ towel2 a placevert) 7)
+    (= (place_succ towel2 a placediag) 3)
+    (= (place_succ towel2 a placerot) 4)
     (= (place_succ towel2 b placevert) 30)
     (= (place_succ towel2 b placediag) 14)
     (= (place_succ towel2 b placerot) 9)

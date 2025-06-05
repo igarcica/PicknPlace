@@ -23,6 +23,9 @@ This folder contains the following files:
 			- AxA/clusters: Metric images separated by clusters
 		- traintest_complete_grasp_data/: PCD files separated into train (towel, pillowcase, waffle and cotton napkin) and test (checkered and linen napkin)
 		- def/, PCD_placing/, placing_metric/: (to delete) previous data
+		- system_adaptability: Data of executions to show how the placement quality improves and the costs are updated based on the results. Piles of 2 objects. Towels and pillowcases used.
+		- system_scalability: Data of executions for proving the capability of the system to build piles of more objects (piles of 4). Towel
+		- system_performance: Data of executions for comparing a naive system (state machine grasping nearest edge + placing vertically) and whole system (planning with prediction and sensing). Several objects with several foldings
 
 
 ## How to save PnP executions
@@ -120,5 +123,9 @@ To clusterize separating into train/test data (obtain kmeans model with train an
 ```
 python3 clustering_raw_traintest.py
 ```
+
+### Using ROS nodes
+
+Check README from /pick_n_place/scripts for estimating the deformation class and placing quality of the grasped cloth and placed cloth data, using the ROS nodes used in the demo. 
 
 

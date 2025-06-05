@@ -57,7 +57,7 @@ CLOTH_SIZE = {
 
 show_imgs = True
 save_imgs = True
-write_dir = "/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/experiments_placing_update/"
+write_dir = "/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/system_performance/"
 plot_scale = dict(xaxis=dict(range=[0, 0.4]), yaxis=dict(range=[0.2, -0.3]), zaxis=dict(range=[0, 0.3]), aspectratio=dict(x=1, y=1, z=1) ) #plot scale for grasped samples
 plot_scale_color = [0.0, 0.2] # plot depth color scale for grasped samples
 

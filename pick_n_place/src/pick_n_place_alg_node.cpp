@@ -125,6 +125,8 @@ PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
   this->nearest_edge="long";
   this->second_nearest_edge="short";
   this->workspace="grws";
+  this->stiffness=0.0;
+  this->friction=0.0;
 
   // [init action clients]
 
@@ -153,7 +155,7 @@ PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
   // std::ofstream logfile("/home/userlab/Desktop/log_picknplace.txt", std::ios::app); 
   logfile.open("/home/userlab/iri-lab/iri_ws/src/PicknPlace/log_picknplace.txt", std::ios::app);
   this->logfile << "---------------------------------------\n";
-  this->logfile << "\nInitialized pick_n_place_alg_node\n";
+  this->logfile << "\n \e[1mInitialized pick_n_place_alg_node \e[0m \n"; 
   // logfile.close();
 }
 
@@ -742,7 +744,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                                 if(sense_deformation_class_client_.call(sense_deformation_class_srv_))
                                 {
                                   ROS_INFO("PicknPlace: Sensed deformation class: %s", sense_deformation_class_srv_.response.sensed_def_class.c_str());
-                                  this->logfile << "Sensed deformation class: " << sense_deformation_class_srv_.response.sensed_def_class.c_str() << std::endl;
+                                  this->logfile << "\e[1mSensed deformation class: " << sense_deformation_class_srv_.response.sensed_def_class.c_str() << "\e[0m" << std::endl;
                                   this->sensed_deformation_class = sense_deformation_class_srv_.response.sensed_def_class;
                                   if(this->pddl_demo)
                                   {
@@ -1427,7 +1429,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                                 if(get_placing_quality_client_.call(get_placing_quality_srv_))
                                 {
                                   ROS_INFO("PicknPlace: Placing quality: %f", get_placing_quality_srv_.response.placing_quality);
-                                  this->logfile << "Placing quality: " << get_placing_quality_srv_.response.placing_quality << std::endl;
+                                  this->logfile << "\e[1mPlacing quality: " << get_placing_quality_srv_.response.placing_quality << "\e[0m" << std::endl;
                                   this->logfile << "Placing error: " << 100-get_placing_quality_srv_.response.placing_quality << std::endl;
                                   this->placing_quality = get_placing_quality_srv_.response.placing_quality;
                                   if(this->pddl_demo)
@@ -1535,48 +1537,13 @@ void PicknPlaceAlgNode::node_config_update(Config &config, uint32_t level)
   if(config.rate!=this->getRate())
     this->setRate(config.rate);
 
-  if(config.get_grasp_point)
-  {
-    this->process_grasp_pointcloud=true;
-    this->get_garment_position=true;
-    //this->get_garment_angle=true;
-    config.get_grasp_point=false;
-    this->garment_edge_size=config.garment_edge_size;
-  }
-  // Execute sections of SM according to received PDDL actions
-  if(config.plan_pddl_demo)
-  {
-    ROS_WARN("PicknPlaceAlgNode: Activated PDDL SM management");
-    this->plan_pddl_demo=true;
-    config.plan_pddl_demo=false;
-    //this->pddl_demo=true;
-  }
-  if(config.drag)
-  {
-    //ROS_WARN("PicknPlaceAlgNode: Activated PDDL SM management");
-    this->drag=true;
-    this->rotate=false;
-  }
-  if(config.rotate)
-  {
-    //ROS_WARN("PicknPlaceAlgNode: Activated PDDL SM management");
-    this->drag=false;
-    this->rotate=true;
-  }
-  if(config.piling)
-  {
-    this->piling=true;
-  }
-  // if(config.object_name=="towel")
-  // {
-  //   config.stiffness = 
-  // }else if(config.object_name=="pillowc")
-
+  // ---NAIVE APPROACH PARAMS---
   //Start SM for demo (use 'towel' bool to change strategy for grasping and placing towel (less gripper closure + vertical place) or napkin (more gripper closure + place2)
   if(config.start_demo)// && !config.plan_pddl_demo)
   {
     this->pddl_demo=false;
     this->start_demo=true;
+    // Predefined demo for towel and pillowcase
     if(config.towel)
     {
       this->close_gripper=0.81;
@@ -1589,6 +1556,7 @@ void PicknPlaceAlgNode::node_config_update(Config &config, uint32_t level)
       this->placing_strategy=3;//place2
       ROS_INFO("PicknPlaceAlgNode: Starting demo for thin object with rotating placing");
     }
+    // Custom demo (selected gripper closing and placing strategy)
     else
     {
       ROS_INFO("PicknPlaceAlgNode: Starting demo with selected gripper apperture and placing strategy");
@@ -1621,8 +1589,61 @@ void PicknPlaceAlgNode::node_config_update(Config &config, uint32_t level)
     }
     config.start_demo=false;
   }
+  // Select grasping point
+  if(config.get_grasp_point)
+  {
+    this->process_grasp_pointcloud=true;
+    this->get_garment_position=true;
+    //this->get_garment_angle=true;
+    config.get_grasp_point=false;
+    this->garment_edge_size=config.garment_edge_size;
+  }
+// Execute Drag or Rotate actions before demo
+  if(config.drag)
+  {
+    //ROS_WARN("PicknPlaceAlgNode: Activated PDDL SM management");
+    this->drag=true;
+    this->rotate=false;
+  }
+  if(config.rotate)
+  {
+    //ROS_WARN("PicknPlaceAlgNode: Activated PDDL SM management");
+    this->drag=false;
+    this->rotate=true;
+  }
 
-  // Start SM for experiments (Starts from state X + Select placing strategy)
+  // ---PLANNER SYSTEM PARAMS---
+    // Execute sections of SM according to received PDDL actions
+  if(config.plan_pddl_demo)
+  {
+    ROS_WARN("PicknPlaceAlgNode: Activated PDDL SM management");
+    this->plan_pddl_demo=true;
+    config.plan_pddl_demo=false;
+    //this->pddl_demo=true;
+  }
+  // Indicate if there is a pile for computing placing quality metric
+  if(config.piling)
+  {
+    this->piling=true;
+  }
+  // Assign object properties for planner system (prediction, state estimation, etc)
+  if (config.object_name == "towel" && config.layers == "8l") {
+    this->stiffness = 99.9;
+    this->friction = 80;
+  } else if (config.object_name == "towel" && config.layers == "12l") {
+    this->stiffness = 100;
+    this->friction = 78;
+  } else if (config.object_name == "pillowc" && config.layers == "8l") {
+    this->stiffness = 60.1;
+    this->friction = 79; //82.7;
+  } else if (config.object_name == "pillowc" && config.layers == "12l") {
+    this->stiffness = 70;
+    this->friction = 76;
+  } else 
+    ROS_WARN("Onkown object properties for: %s + %s", config.object_name.c_str(), config.layers.c_str());
+
+  // ---OTHER PARAMS---
+  /*// Start SM for experiments (Starts from state X + Select placing strategy)
   else if(config.start_experiments)
   {
     this->start_experiments=true;
@@ -1656,7 +1677,7 @@ void PicknPlaceAlgNode::node_config_update(Config &config, uint32_t level)
     //this->pile_height=config.pile_height;
     //std::cout << "Pile height: " << pile_height << std::endl;
     std::cout << "Garment edge: " << garment_edge_size << std::endl;
-  }
+  }*/
 
   if(config.stop)
     this->stop=true;
@@ -2270,8 +2291,8 @@ void PicknPlaceAlgNode::predict_deformation_class(void)
   predict_deformation_class_srv_.request.nongraspedsize = this->not_grasped_edge_size*100;
   predict_deformation_class_srv_.request.graspedsize = this->grasped_edge_size*100;
   predict_deformation_class_srv_.request.area = (this->grasped_edge_size*100) * (this->not_grasped_edge_size*100); //Area in centimeters
-  predict_deformation_class_srv_.request.stiffness = config_.stiffness; //reconfigure
-  predict_deformation_class_srv_.request.friction =  config_.friction; //reconfigure
+  predict_deformation_class_srv_.request.stiffness = this->stiffness; //reconfigure
+  predict_deformation_class_srv_.request.friction =  this->friction; //reconfigure
   if(predict_deformation_class_client_.call(predict_deformation_class_srv_))
   {
     std::cout << "Predicted deformation class grasping nearest edge: " << predict_deformation_class_srv_.response.predicted_def_class << std::endl;
@@ -2284,8 +2305,8 @@ void PicknPlaceAlgNode::predict_deformation_class(void)
   predict_deformation_class_srv_.request.nongraspedsize = this->grasped_edge_size*100;
   predict_deformation_class_srv_.request.graspedsize = this->not_grasped_edge_size*100;
   predict_deformation_class_srv_.request.area = (this->grasped_edge_size*100) * (this->not_grasped_edge_size*100); //Area in centimeters
-  predict_deformation_class_srv_.request.stiffness = config_.stiffness; //reconfigure
-  predict_deformation_class_srv_.request.friction =  config_.friction; //reconfigure
+  predict_deformation_class_srv_.request.stiffness = this->stiffness; //reconfigure
+  predict_deformation_class_srv_.request.friction =  this->friction; //reconfigure
   if(predict_deformation_class_client_.call(predict_deformation_class_srv_))
   {
     std::cout << "Predicted deformation class grasping SECOND nearest edge: " << predict_deformation_class_srv_.response.predicted_def_class << std::endl;
@@ -2294,10 +2315,10 @@ void PicknPlaceAlgNode::predict_deformation_class(void)
   //TO DO: Update KB, plan, and save resulting cost
 
   //Log info to text file
-  this->logfile << "Predicted def class for nearest edge (" << this->nearest_edge << "): " << this->predicted_def_class_nearest_edge << std::endl;
-  this->logfile << "Preiction parameters -> Layers: " << config_.layers << ", Grasp: " << this->nearest_edge << ", nongraspedsize: " << this->not_grasped_edge_size*100 << ", graspedsize: " << this->grasped_edge_size*100 << ", area: " << (this->grasped_edge_size*100) * (this->not_grasped_edge_size*100) << ", stiffness: " << config_.stiffness << ", friction: " << config_.friction << std::endl;
-  this->logfile << "Predicted def class for second nearest edge (" << this->second_nearest_edge << "): " << this->predicted_def_class_second_nearest_edge << std::endl;
-  this->logfile << "Preiction parameters -> Layers: " << config_.layers << ", Grasp: " << this->second_nearest_edge << ", nongraspedsize: " << this->grasped_edge_size*100 << ", graspedsize: " << this->not_grasped_edge_size*100 << ", area: " << (this->grasped_edge_size*100) * (this->not_grasped_edge_size*100) << ", stiffness: " << config_.stiffness << ", friction: " << config_.friction << std::endl;
+  this->logfile << "\e[1mPredicted def class for nearest edge (" << this->nearest_edge << "): " << this->predicted_def_class_nearest_edge << "\e[0m" << std::endl;
+  this->logfile << "Preiction parameters -> Layers: " << config_.layers << ", Grasp: " << this->nearest_edge << ", nongraspedsize: " << this->not_grasped_edge_size*100 << ", graspedsize: " << this->grasped_edge_size*100 << ", area: " << (this->grasped_edge_size*100) * (this->not_grasped_edge_size*100) << ", stiffness: " << this->stiffness << ", friction: " << this->friction << std::endl;
+  this->logfile << "\e[1mPredicted def class for second nearest edge (" << this->second_nearest_edge << "): " << this->predicted_def_class_second_nearest_edge << "\e[0m" << std::endl;
+  this->logfile << "Preiction parameters -> Layers: " << config_.layers << ", Grasp: " << this->second_nearest_edge << ", nongraspedsize: " << this->grasped_edge_size*100 << ", graspedsize: " << this->not_grasped_edge_size*100 << ", area: " << (this->grasped_edge_size*100) * (this->not_grasped_edge_size*100) << ", stiffness: " << this->stiffness << ", friction: " << this->friction << std::endl;
 }
 
 /* PERCEPTION FUNCTIONS */
