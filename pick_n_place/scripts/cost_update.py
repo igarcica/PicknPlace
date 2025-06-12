@@ -5,6 +5,8 @@ import statistics as sts
 import matplotlib.pyplot as plt
 from cycler import cycler
 from scipy.interpolate import CubicSpline
+from matplotlib.animation import FuncAnimation
+from scipy.interpolate import make_interp_spline
 
 ## UTIL FUNCTIONS
 activate_print=False
@@ -98,7 +100,7 @@ pile_initial_cost_table = np.array([ # Init cost table (placing error to minimiz
 
 ################## SYSTEM'S ADAPTABILITY ##################
 ######### PILLOWCASE + TOWEL #########
-# placed_quality_results = np.array([0, 13, 49, 88, 94, 65, 56, 94, 97, 91, 90, 95, 96, 83, 86, 89, 96, 94, 88,  94, 92, 98, 99, 96, 99, 99, 98]) #exp31(t=10) bit changed
+# placed_quality_results = np.array([0, 13, 49, 88, 94, 65, 56, 94, 97, 91, 90, 95, 96, 83, 86, 89, 96, 94, 88, 94, 92, 98, 99, 96, 99, 99, 98]) #exp31(t=10) bit changed
 # placing_errors = 100-placed_quality_results
 # placing_str = ["0", "v", "d", "r", "v", "v", "d", "r", "r", "r", "v", "r", "r", "r", "v", "v", "r", "r", "r", "r", "r", "d", "r", "r", "d", "d", "d", "d"]
 # placing_def_classes = ["0", "C", "C", "C", "B", "A", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "A", "A", "A", "A", "A", "A", "A"]
@@ -110,34 +112,47 @@ pile_initial_cost_table = np.array([ # Init cost table (placing error to minimiz
 
 # labels = np.array(["0", "vv", "dd", "rr", "vv", "vd", "dr", "rr", "rd", "rr", "vr", "rd", "rr", "rr", "vr", "vr", "rr", "rr", "rr", "rr", "rr", "dv", "rd", "rr", "dr", "rd", "dd", "dd", "dd"])
 
-
-
-
-################## SYSTEM'S ADAPTABILITY ##################
-######### TOWEL 8l ######### - init cost table is previous learned one
-place_initial_cost_table = np.array([ # Init cost table (placing error to minimize)
-    [17, 0, 1],
-    [8, 22, 6], 
-    [30, 25, 6], 
-])  
-pile_initial_cost_table = np.array([ # Init cost table (placing error to minimize)
-    [7, 3, 4],
-    [30, 14, 9], 
-    [30, 30, 30], 
-])  
-
-#exps: 4.1 to 6.2 of system performance
-placed_quality_results = np.array([100, 100, 99]) 
+################## SYSTEM'S ADAPTABILITY ################## notion exps values
+######### PILLOWCASE + TOWEL #########
+placed_quality_results = np.array([0, 13, 49, 88, 94, 65, 56, 94, 97, 91, 90, 95, 96, 83, 86, 89, 96, 94, 88, 94, 92, 96, 99, 96, 99, 99, 98]) #trials 21 y 23 lowered wrt notion values (from 98 to 96)
 placing_errors = 100-placed_quality_results
-placing_str = ["d", "d", "d"]
-placing_def_classes = ["A", "A", "A"]
+placing_str = ["0", "v", "d", "r", "v", "v", "d", "r", "r", "r", "v", "r", "r", "r", "v", "v", "r", "r", "r", "r", "r", "d", "r", "r", "d", "d", "d"]
+placing_def_classes = ["0", "C", "C", "C", "B", "A", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "A", "A", "A", "A", "A", "A"]
 
-piled_quality_results = np.array([95, 95, 99]) 
+piled_quality_results = np.array([0, 0, 0, 8, 31, 81, 86, 78, 78, 93, 78, 79, 85, 93, 77, 88, 93, 91, 85, 92, 91, 76, 88, 91, 90, 94, 95]) 
 piling_errors = 100-piled_quality_results
-piling_str = ["d", "d", "d"] 
-piling_def_classes = ["A", "A", "A"]
+piling_str = ["0", "v", "d", "r", "v", "d", "r", "r", "d", "r", "r", "d", "r", "r", "r", "r", "r", "r", "r", "r", "r", "v", "d", "r", "r", "d", "d"] 
+piling_def_classes = ["0", "C", "C", "C", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "A", "A", "A", "A", "A", "A"]
 
-labels = np.array(["dd", "dd", "dd"])
+labels = np.array(["0", "vv", "dd", "rr", "vv", "vd", "dr", "rr", "rd", "rr", "vr", "rd", "rr", "rr", "vr", "vr", "rr", "rr", "rr", "rr", "rr", "dv", "rd", "rr", "dr", "dd", "dd"])
+
+
+
+################## SYSTEM'S PERFORMANCE ##################
+######### TOWEL 8l ######### - init cost table is previous learned one
+# place_initial_cost_table = np.array([ # Init cost table (placing error to minimize)
+#     [17, 0, 1],
+#     [8, 22, 6], 
+#     [30, 25, 6], 
+# ])  
+# pile_initial_cost_table = np.array([ # Init cost table (placing error to minimize)
+#     [7, 3, 4],
+#     [30, 14, 9], 
+#     [30, 30, 30], 
+# ])  
+
+# #exps: 4.1 to 6.2 of system performance
+# placed_quality_results = np.array([100, 100, 99]) 
+# placing_errors = 100-placed_quality_results
+# placing_str = ["d", "d", "d"]
+# placing_def_classes = ["A", "A", "A"]
+
+# piled_quality_results = np.array([95, 95, 99]) 
+# piling_errors = 100-piled_quality_results
+# piling_str = ["d", "d", "d"] 
+# piling_def_classes = ["A", "A", "A"]
+
+# labels = np.array(["dd", "dd", "dd"])
 
 
 ##########################################
@@ -314,25 +329,29 @@ class CostUpdater:
 
 
 cost_tables = [place_initial_cost_table, pile_initial_cost_table]
-costs_history = [[[[] for _ in range(3)] for _ in range(3)], [[[] for _ in range(3)] for _ in range(3)]]
+costs_history = [[[[] for _ in range(3)] for _ in range(3)], [[[] for _ in range(3)] for _ in range(3)]] #cells evolution (matrix of vector of each cell)
+cost_table_evolution = [[],[]] #matrix of matrices corresponding to the cost table at each timestep
 #
-changes=[[],[]]
+changes=[[],[]] #values which change (to plot the circles)
 # #Start with table costs
 # for m in range(2): #placing and piling costs
 #     for i in range(3):
 #         for j in range(3):
 #             changes[m][i][j].append(matrix[i, j]) ## Save costs in separated arrays to be plotted
-changes[0].append(0)
-changes[1].append(0)
+changes[0].append(0) #cloth-to-table
+changes[1].append(0) #cloth-to-cloth
 # costs_history[0] = updater.save_cell_evolution(place_initial_cost_table)
 # costs_history[1] = updater.save_cell_evolution(pile_initial_cost_table)
 # updater = CostUpdater(place_initial_cost_table, 0.5, 0.3, 45, 0.5)
 
+# cost_table_evolution #matrix of matrices corresponding to the cost table at each timestep
+
 # n_exp = 1
 
-for m in range(0,len(errors)):
+for m in range(0,2):#len(errors)):
     updater = CostUpdater(cost_tables[m], 0.5, 0.3, 60, 0.5)
     costs_history[m] = updater.save_cell_evolution(cost_tables[m]) #Initialize cells
+    cost_table_evolution[m].append(cost_tables[m].copy()) #Initialize cost tables history
     for n in range(1,len(placed_quality_results)): 
         def_class = classes[m][n]
         placing_str = strategies[m][n]
@@ -351,17 +370,21 @@ for m in range(0,len(errors)):
         # updater.get_alpha(n_exp)
         hola = updater.update_cost(i,j, errors[m][n], n)
         costs_matrix = updater.get_cost_table()
-        print_info(activate_print,"Updated Cost Table:\n", costs_matrix)
+        print_info(True,"Updated Cost Table:\n", costs_matrix)
 
         costs_history[m] = updater.save_cell_evolution(costs_matrix)
-        # print_info(activate_print,costs_history[m])
+        print_info(activate_print,costs_history[m])
         changes[m].append(hola)
+        print(costs_matrix)
+        cost_table_evolution[m].append(costs_matrix.copy())
+
+        
+        print(type(cost_table_evolution))
 
         print_info(activate_print,"--------------------")
     print("---------------------------------------------")
-    print(costs_matrix)
+    print("Last cost table: \n", costs_matrix)
     print("---------------------------------------------")
-
 
 ############################
 
@@ -387,3 +410,116 @@ fig.legend(handles[:9], labels[:9], title='State-Action Cost')  # # Def class an
 plt.show()
 
 
+##########################################################################################
+###### ANIMATED PLOTS
+### Placing quality evolution
+
+x = np.linspace(0, 27, len(piled_quality_results))
+
+# Interpolation
+x_smooth = np.linspace(x.min(), x.max(), 500)
+spline = make_interp_spline(x, piled_quality_results, k=3)
+y_smooth = spline(x_smooth)
+
+# Setup
+fig, ax = plt.subplots(figsize=(10, 6))
+line, = ax.plot([], [], lw=2, color='#1f77b4')
+point, = ax.plot([], [], 'ro')
+scatter = ax.scatter([], [], color='black', s=50, zorder=3)  # Hollow circles
+
+ax.set_xlim(x.min(), x.max())
+ax.set_ylim(piled_quality_results.min() - 10, piled_quality_results.max() + 10)
+
+plt.axvline(x=x[20], color='gray', linestyle='--', linewidth=2) #Plot a dashed line when plotting the pillowcase + towel results
+
+# Styling
+ax.set_xlabel("Trial", fontsize=18)
+ax.set_ylabel("Pile quality (%)", fontsize=18)
+ax.set_title("Pile quality evolution over trials", fontsize=20, fontweight='bold', color="#333333")
+ax.grid(True, linewidth=0.8, alpha=0.5)
+ax.spines["top"].set_visible(False)
+ax.spines["right"].set_visible(False)
+
+# Example custom labels (must match length of x)
+custom_labels = [f"{i}" for i in range(len(x))]  # e.g., T0, T1, ..., T26
+ax.set_xticks(x) # Set ticks at original data point positions
+ax.set_xticklabels(custom_labels, fontsize=10)  # Rotate for readability
+
+
+# Animation
+def init_plot_quality_anim():
+    line.set_data([], [])
+    point.set_data([], [])
+    scatter.set_offsets([])
+    return line, point, scatter
+
+def update_plot_quality_anim(frame):
+    # Curve line + red dot
+    line.set_data(x_smooth[:frame], y_smooth[:frame])
+    point.set_data(x_smooth[frame - 1], y_smooth[frame - 1])
+
+    # Show markers up to the current x_smooth point
+    current_x = x_smooth[frame - 1]
+    visible_indices = np.where(x <= current_x)[0]
+    scatter.set_offsets(np.column_stack((x[visible_indices], piled_quality_results[visible_indices])))
+
+    return line, point, scatter
+
+# Animate
+ani = FuncAnimation(fig, update_plot_quality_anim, frames=len(x_smooth), init_func=init_plot_quality_anim,
+                    blit=False, interval=15, repeat=False)
+
+plt.tight_layout()
+
+# Save as video
+ani.save("pile_quality_animation.mp4", writer="ffmpeg", fps=30)
+plt.show()
+
+
+######## Cost table evolution 
+
+matrices=cost_table_evolution[0]
+nrows, ncols = matrices[0].shape
+print(len(matrices))
+
+# Create plot
+fig, ax = plt.subplots()
+heatmap = ax.imshow(matrices[0], cmap='YlOrRd', vmin=0, vmax=50)
+
+# Color bar
+cbar = plt.colorbar(heatmap, ax=ax)
+cbar.set_label("Value", fontsize=12)
+
+# Axis styling
+ax.set_xticks(np.arange(ncols))
+ax.set_yticks(np.arange(nrows))
+ax.set_xticklabels(['Vertical', 'Diagonal', 'Rotating'])
+ax.set_yticklabels(['A', 'B', 'C'])
+ax.set_title("Cost Evolution", fontsize=16, fontweight='bold')
+
+# Grid lines
+for edge, spine in ax.spines.items():
+    spine.set_visible(False)
+ax.set_xticks(np.arange(-.5, ncols, 1), minor=True)
+ax.set_yticks(np.arange(-.5, nrows, 1), minor=True)
+ax.grid(which='minor', color='gray', linestyle='-', linewidth=1)
+ax.tick_params(which='minor', bottom=False, left=False)
+
+# Initialize cell labels
+cell_texts = [[ax.text(j, i, "", ha="center", va="center", color="black", fontsize=12)
+               for j in range(ncols)] for i in range(nrows)]
+
+# Animation update
+def update(frame):
+    data = matrices[frame]
+    heatmap.set_data(data)
+    for i in range(nrows):
+        for j in range(ncols):
+            cell_texts[i][j].set_text(f"{data[i, j]}")
+    return [heatmap] + [text for row in cell_texts for text in row]
+
+# Animate
+ani = FuncAnimation(fig, update, frames=len(matrices), interval=1000, repeat=False)
+
+# ani.save("cost_update.mp4", writer="ffmpeg", fps=30)
+plt.show()

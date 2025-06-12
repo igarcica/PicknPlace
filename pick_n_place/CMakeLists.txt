@@ -84,7 +84,7 @@ include_directories(${catkin_INCLUDE_DIRS})
 add_executable(${PROJECT_NAME} src/pick_n_place_alg.cpp src/pick_n_place_alg_node.cpp)
 
 catkin_install_python(PROGRAMS
-    scripts/main.py
+    scripts/sense_def_class.py
     scripts/prediction_module.py
     scripts/placing_quality.py
     DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}

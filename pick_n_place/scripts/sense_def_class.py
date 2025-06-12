@@ -154,8 +154,8 @@ def handle_service(req):
     # msg = rospy.wait_for_message('/cloud_pcd', PointCloud2)
     
     ## ---Get object dimensions for creating canonical---
-    object_name = req.object_name + "_" + req.layers
-    obj_edge_size = CLOTH_SIZE.get(object_name, None)
+    object_layers = req.object_name + "_" + req.layers
+    obj_edge_size = CLOTH_SIZE.get(object_layers, None)
     # object_thickness = obj_edge_size[2]
     if(req.grasped_edge=="short"):
         grasped_edge_size = obj_edge_size[0] # shortest edge is grasped
@@ -171,7 +171,7 @@ def handle_service(req):
     ## ---Predict deformation cluster of current sample---
     grid_metric = grid_metric.reshape(1, -1) # Contains a single sample with n_div*n_div features
     predicted_label = kmeans_model.predict(grid_metric) 
-    print("Deformation_clustering: Predicted label ", predicted_label)
+    print("Sensed def class: ", predicted_label)
 
     int_def_class = predicted_label.item()
     if(int_def_class == 0): #If class is 0 then send "A", etc
@@ -184,8 +184,8 @@ def handle_service(req):
     return SenseDefClassResponse(str_def_class)
 
 if __name__ == '__main__':
-    rospy.init_node('deformation_clustering', anonymous=True)
-    rospy.loginfo("Deformation_clustering: Node ready")
+    rospy.init_node('sense_def_class', anonymous=True)
+    rospy.loginfo("Sense_def_class: Node ready")
     s = rospy.Service('/pick_n_place/sense_def_class', SenseDefClass, handle_service)
     kmeans_model = load_clustering_model()
     rospy.spin()
@@ -193,8 +193,8 @@ if __name__ == '__main__':
 
 
 # #####
-# ROS Node to provide the deformation class through the pointcloud topic.
-# Description: It should work as a service that the SM calls when the PDDL plan action "check_deformation" occurs
+# ROS Node to sense the deformation class through the pointcloud topic.
+# Description: It works as a service that the SM calls when the PDDL plan action "check_deformation" occurs
 # Input: Grasped object pointcloud through topic /segment_table/place
 # Output: Deformation cluster class
 

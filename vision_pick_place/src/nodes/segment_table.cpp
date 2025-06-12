@@ -363,7 +363,7 @@ namespace pal {
 
   void SegmentPlane::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& cloud)
   {
-    if ( (cloud->width * cloud->height) == 0)
+    if ( (cloud->width * cloud->height) < 2)
     {
       ROS_DEBUG("SegmentPlace: Empty Cloud");
       return;

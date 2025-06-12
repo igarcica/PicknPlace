@@ -13,7 +13,7 @@
 <!-- TIAGO PCL TUTORIAL -->
   <include file="$(find vision_pick_place)/launch/picknplace.launch"> </include>
 
-  <node name="sense_deformation_class" pkg="pick_n_place" type="main.py" output="screen" />
+  <node name="sense_deformation_class" pkg="pick_n_place" type="sense_def_class.py" output="screen" />
   <!--<remap from="/different_topic" to="/needed_topic"/> -->
 
   <node name="predict_deformation_class" pkg="pick_n_place" type="prediction_module.py" output="screen" />

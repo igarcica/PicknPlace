@@ -10,10 +10,10 @@
     flat a b c - defclass
 )
 (:init
-    (garment_at towel2 rotws)
+    (garment_at towel2 grws)
 
-    (at_pose towel long)
-    (at_pose towel2 long)
+    (at_pose towel short)
+    (at_pose towel2 short)
 
     (garment_state towel placed)
     (garment_state towel2 lifted)
@@ -29,8 +29,8 @@
 
 
 
-    (obj_grasp_class long A)
-    (obj_grasp_class short A)
+    (obj_grasp_class long C)
+    (obj_grasp_class short B)
 
     (= (time_cost) 0)
 
@@ -44,7 +44,7 @@
     (= (place_succ towel b placerot) 6)
     (= (place_succ towel c placevert) 30)
     (= (place_succ towel c placediag) 25)
-    (= (place_succ towel c placediag) 6)
+    (= (place_succ towel c placerot) 6)
     (= (place_succ towel2 a placevert) 7)
     (= (place_succ towel2 a placediag) 3)
     (= (place_succ towel2 a placerot) 4)

@@ -155,7 +155,7 @@ PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
   // std::ofstream logfile("/home/userlab/Desktop/log_picknplace.txt", std::ios::app); 
   logfile.open("/home/userlab/iri-lab/iri_ws/src/PicknPlace/log_picknplace.txt", std::ios::app);
   this->logfile << "---------------------------------------\n";
-  this->logfile << "\n \e[1mInitialized pick_n_place_alg_node \e[0m \n"; 
+  this->logfile << "\n ======= Initialized pick_n_place_alg_node \n"; 
   // logfile.close();
 }
 
@@ -744,7 +744,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                                 if(sense_deformation_class_client_.call(sense_deformation_class_srv_))
                                 {
                                   ROS_INFO("PicknPlace: Sensed deformation class: %s", sense_deformation_class_srv_.response.sensed_def_class.c_str());
-                                  this->logfile << "\e[1mSensed deformation class: " << sense_deformation_class_srv_.response.sensed_def_class.c_str() << "\e[0m" << std::endl;
+                                  this->logfile << "======= Sensed deformation class: " << sense_deformation_class_srv_.response.sensed_def_class.c_str() << std::endl;
                                   this->sensed_deformation_class = sense_deformation_class_srv_.response.sensed_def_class;
                                   if(this->pddl_demo)
                                   {
@@ -1423,13 +1423,14 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                                 // this->logfile << "State: CHECK_PLACING_QUAL" << std::endl;
                                 this->logfile << "--- PLACING QUALITY ESTIMATION ---" << std::endl;
                                 this->logfile << "Placing quality parameters --> object name: " << config_.object_name << ", nearest_edge: " << this->nearest_edge << ", piling: " << this->piling << std::endl;
-                                get_placing_quality_srv_.request.object_name = config_.object_name; //obtain form reconfigure
+                                get_placing_quality_srv_.request.object_name = config_.object_name; //obtained form reconfigure
+                                get_placing_quality_srv_.request.layers = config_.layers; //obtained form reconfigure
                                 get_placing_quality_srv_.request.grasped_edge = this->nearest_edge;
                                 get_placing_quality_srv_.request.piling = this->piling;
                                 if(get_placing_quality_client_.call(get_placing_quality_srv_))
                                 {
                                   ROS_INFO("PicknPlace: Placing quality: %f", get_placing_quality_srv_.response.placing_quality);
-                                  this->logfile << "\e[1mPlacing quality: " << get_placing_quality_srv_.response.placing_quality << "\e[0m" << std::endl;
+                                  this->logfile << "======= Placing quality: " << get_placing_quality_srv_.response.placing_quality << std::endl;
                                   this->logfile << "Placing error: " << 100-get_placing_quality_srv_.response.placing_quality << std::endl;
                                   this->placing_quality = get_placing_quality_srv_.response.placing_quality;
                                   if(this->pddl_demo)
@@ -1639,6 +1640,12 @@ void PicknPlaceAlgNode::node_config_update(Config &config, uint32_t level)
   } else if (config.object_name == "pillowc" && config.layers == "12l") {
     this->stiffness = 70;
     this->friction = 76;
+  } else if (config.object_name == "cotnap" && config.layers == "4l") {
+    this->stiffness = 61.8;
+    this->friction = 80;
+  } else if (config.object_name == "linenap" && config.layers == "8l") {
+    this->stiffness = 74.5;
+    this->friction = 82;
   } else 
     ROS_WARN("Onkown object properties for: %s + %s", config.object_name.c_str(), config.layers.c_str());
 
@@ -2315,9 +2322,9 @@ void PicknPlaceAlgNode::predict_deformation_class(void)
   //TO DO: Update KB, plan, and save resulting cost
 
   //Log info to text file
-  this->logfile << "\e[1mPredicted def class for nearest edge (" << this->nearest_edge << "): " << this->predicted_def_class_nearest_edge << "\e[0m" << std::endl;
+  this->logfile << "======= Predicted def class for nearest edge (" << this->nearest_edge << "): " << this->predicted_def_class_nearest_edge << std::endl;
   this->logfile << "Preiction parameters -> Layers: " << config_.layers << ", Grasp: " << this->nearest_edge << ", nongraspedsize: " << this->not_grasped_edge_size*100 << ", graspedsize: " << this->grasped_edge_size*100 << ", area: " << (this->grasped_edge_size*100) * (this->not_grasped_edge_size*100) << ", stiffness: " << this->stiffness << ", friction: " << this->friction << std::endl;
-  this->logfile << "\e[1mPredicted def class for second nearest edge (" << this->second_nearest_edge << "): " << this->predicted_def_class_second_nearest_edge << "\e[0m" << std::endl;
+  this->logfile << "======= Predicted def class for second nearest edge (" << this->second_nearest_edge << "): " << this->predicted_def_class_second_nearest_edge << std::endl;
   this->logfile << "Preiction parameters -> Layers: " << config_.layers << ", Grasp: " << this->second_nearest_edge << ", nongraspedsize: " << this->grasped_edge_size*100 << ", graspedsize: " << this->not_grasped_edge_size*100 << ", area: " << (this->grasped_edge_size*100) * (this->not_grasped_edge_size*100) << ", stiffness: " << this->stiffness << ", friction: " << this->friction << std::endl;
 }
 

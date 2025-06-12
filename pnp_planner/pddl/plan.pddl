@@ -17,7 +17,7 @@ advancing to goal distance:    1
                                0
 
 ff: found legal plan as follows
-step    0: PLACEDIAG TOWEL2 TOWEL LONG A
+step    0: PLACEDIAG TOWEL2 TOWEL SHORT A
 plan cost: 3.000000
 
 time spent:    0.00 seconds instantiating 113 easy, 18 hard action templates

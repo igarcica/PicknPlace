@@ -4,6 +4,7 @@
 # piling indicates if the object is the first placed or it is being piled (on top of another object), necessary as reference for placing quality
 
 string object_name
+string layers
 string grasped_edge
 bool piling
 ---

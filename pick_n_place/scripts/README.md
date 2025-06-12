@@ -4,12 +4,12 @@
 This folder contains python scripts for the modules necessary for the system (prediction and state estimation modules) as well as some useful scripts for plotting and updating the planning costs. The relevant files are:
 
 - prediction_module.py: ROS node with the service to predict the deformation class given the object properties and grasp location. Loads the trained model in ``/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/placing_metric/random_forest_model.pkl``
-- main.py: ROS node with the service to sense the current deformation class. Uses ``grasping_grid_metric_ros.py`` and ``clustering_raw_traintest_ros.py``
+- sense_def_class.py: ROS node with the service to sense the current deformation class. Uses ``grasping_grid_metric_ros.py`` and ``clustering_raw_traintest_ros.py``
     - grasping_grid_metric_ros.py: Contains the functions to process the pointcloud of the grasped cloth and obtain the grid-based metric.
     - clustering_raw_traintest_ros.py: Contains the functions to classify the current grid-based metric in a deformation class. Loads the trained model in ``/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/placing_metric/kmeans_model.pkl``
 - placing_quality.py: ROS node with the service to compute the quality of the placed object or pile. Uses ``placing_grid_metric_ros.py``
     - placing_grid_metric_ros.py: Contains the functions to process the pointcloud of the placed object and compute the metric for the placing quality.
-- main_cost_update.py: Given the placement qualities, placcing strtaegies and sensed deformation classes, it computes and plots the costs tables.
+- cost_update.py: Given the placement qualities, placcing strtaegies and sensed deformation classes, it computes and plots the costs tables.
 
 
 #  Deformation class prediction, Deformation state estimation and Placing state estimation modules
@@ -36,7 +36,7 @@ To compute the deformation cluster of a grasped object in real time (through ROS
 
 ```
 roscore
-rosrun pick_n_place main.py 
+rosrun pick_n_place sense_def_class.py 
 rosservice call /pick_n_place/get_deformation_class
 ```
 

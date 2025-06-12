@@ -22,7 +22,8 @@ import plotly.graph_objs as go
 import rospy
 
 
-colorscale = px.colors.sample_colorscale("jet_r", np.linspace(0, 0.3, 256))
+# colorscale = px.colors.sample_colorscale("jet_r", np.linspace(0, 0.3, 256))
+colorscale = px.colors.sample_colorscale("jet", np.linspace(0.6, 1, 256)) # placed object
 
 ##################################################################################################
 ## UTIL FUNCTIONS
@@ -139,7 +140,7 @@ def plot_metrics(metrics, obj_thickn):
     # fig = px.imshow(metrics, text_auto=True, labels=dict(x='x', y='y'))
     fig = px.imshow(metrics, text_auto=True, color_continuous_scale=colorscale) #text_auto=True, labels=dict(x='x', y='y'))
     # fig.update_coloraxes(cmin=scale_color[0], cmax=scale_color[1])#cmax=0.08, cmin=0.0)
-    fig.update_coloraxes(cmin=0.08, cmax=0.2)
+    fig.update_coloraxes(cmin=0.0, cmax=0.1) #0.2
     fig.update_layout(xaxis=dict(showticklabels=False), yaxis=dict(showticklabels=False))
 
     return fig

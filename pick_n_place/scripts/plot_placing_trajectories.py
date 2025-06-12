@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from scipy.interpolate import CubicSpline
 
 # import matplotlib.cm as cm
-# import matplotlib.animation as animation
+import matplotlib.animation as animation
 
 garment_edge_size = 0.25
 pile_height = 0
@@ -227,7 +227,7 @@ def update(frame):
     robot_marker.set_data(x[frame], y[frame])
     return robot_marker,
 
-# # Create animation (robot moves waypoint by waypoint)
-# ani = animation.FuncAnimation(fig, update, frames=len(x), interval=500, blit=True)
+# Create animation (robot moves waypoint by waypoint)
+ani = animation.FuncAnimation(fig, update, frames=len(x), interval=500, blit=True)
 
 plt.show()
