@@ -13,7 +13,8 @@ PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
   this->stop=false;
   double open_gripper = 0.35;
   double close_gripper = 0.97; //0.81;
-  this->piling=false;
+  // this->piling=false;
+  this->n_objs_pile=1;
 
   // Garment pose subscriber
   this->garment_pose_subscriber = this->public_node_handle_.subscribe("/segment_table/grasp_point",1,&PicknPlaceAlgNode::garment_pose_callback,this);
@@ -1422,11 +1423,12 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                               {
                                 // this->logfile << "State: CHECK_PLACING_QUAL" << std::endl;
                                 this->logfile << "--- PLACING QUALITY ESTIMATION ---" << std::endl;
-                                this->logfile << "Placing quality parameters --> object name: " << config_.object_name << ", nearest_edge: " << this->nearest_edge << ", piling: " << this->piling << std::endl;
+                                this->logfile << "Placing quality parameters --> object name: " << config_.object_name << ", nearest_edge: " << this->nearest_edge << ", objs_in_pile: " << this->n_objs_pile << std::endl;
                                 get_placing_quality_srv_.request.object_name = config_.object_name; //obtained form reconfigure
                                 get_placing_quality_srv_.request.layers = config_.layers; //obtained form reconfigure
                                 get_placing_quality_srv_.request.grasped_edge = this->nearest_edge;
-                                get_placing_quality_srv_.request.piling = this->piling;
+                                // get_placing_quality_srv_.request.piling = this->piling;
+                                get_placing_quality_srv_.request.n_objs_pile = this->n_objs_pile;
                                 if(get_placing_quality_client_.call(get_placing_quality_srv_))
                                 {
                                   ROS_INFO("PicknPlace: Placing quality: %f", get_placing_quality_srv_.response.placing_quality);
@@ -1623,10 +1625,10 @@ void PicknPlaceAlgNode::node_config_update(Config &config, uint32_t level)
     //this->pddl_demo=true;
   }
   // Indicate if there is a pile for computing placing quality metric
-  if(config.piling)
-  {
-    this->piling=true;
-  }
+  // if(config.piling)
+  // {
+  //   this->piling=true;
+  // }
   // Assign object properties for planner system (prediction, state estimation, etc)
   if (config.object_name == "towel" && config.layers == "8l") {
     this->stiffness = 99.9;
@@ -1647,7 +1649,7 @@ void PicknPlaceAlgNode::node_config_update(Config &config, uint32_t level)
     this->stiffness = 74.5;
     this->friction = 82;
   } else 
-    ROS_WARN("Onkown object properties for: %s + %s", config.object_name.c_str(), config.layers.c_str());
+    ROS_WARN("Unkown object properties for: %s + %s", config.object_name.c_str(), config.layers.c_str());
 
   // ---OTHER PARAMS---
   /*// Start SM for experiments (Starts from state X + Select placing strategy)
@@ -1816,7 +1818,8 @@ void PicknPlaceAlgNode::PDDLgoalCB()
   else if(0==goal->action_name.compare("new_object")) 
   {
     ROS_WARN("PicknPlace: NEW OBJECT action");
-    this->piling=true;
+    // this->piling=true;
+    this->n_objs_pile+=1;
     this->pddl_action_done=true;
     // this->get_garment_position=true;
     // this->state=GET_OBJECT_POSE;

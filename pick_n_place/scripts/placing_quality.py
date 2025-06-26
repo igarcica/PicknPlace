@@ -103,7 +103,7 @@ def process_pointcloud(data, grasp_edge_size, nongrasp_edge_size, obj_thickness,
     fig = placing_grid_metric.plot_with_info(transl_data, can_x_grid_divs, can_y_grid_divs, can_edges, obj_thickness, n_objs, plot_scale, plot_scale_color)
     show_save_figs(fig, "placing_plot")
     # fig2 = placing_grid_metric.plot_metrics(mean_metrics, plot_scale_color)
-    fig2 = placing_grid_metric.plot_metrics(mean_metrics, obj_thickness)
+    fig2 = placing_grid_metric.plot_metrics(mean_metrics, obj_thickness, n_objs)
     show_save_figs(fig2, "placing_metric")
     
     return mean_metrics
@@ -118,12 +118,13 @@ def handle_service(req):
     obj_edge_size = CLOTH_SIZE.get(object_layers, None)
     # obj_edge_size = CLOTH_SIZE.get(req.object_name, None)
     object_thickness = obj_edge_size[2]
-    if(req.piling):
-        n_objects = 2 #If piling, thickness will be multiplied by 2 (or more)
-        # object_thickness = obj_edge_size[2]*2 #Thickness is to two objects
-    else:
-        n_objects = 1
-        # object_thickness = obj_edge_size[2] # If it is first object placed
+    # if(req.n_obj_pile):
+    #     n_objects = 2 #If piling, thickness will be multiplied by 2 (or more)
+    #     # object_thickness = obj_edge_size[2]*2 #Thickness is to two objects
+    # else:
+    #     n_objects = 1
+    #     # object_thickness = obj_edge_size[2] # If it is first object placed
+    n_objects = req.n_objs_pile #The pile quality depends on the number of objects in the pile (including the currently placed object), which assigns the pile thickness/height
 
     if(req.grasped_edge=="short"):
         nongrasped_edge_size = obj_edge_size[1]

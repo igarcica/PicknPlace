@@ -7,6 +7,7 @@ pick_n_place/scripts/__pycache__/
 data/save_data/system_adaptability
 data/save_data/system_scalability
 data/save_data/system_performance
+data/save_data/exps_slides
 data/save_data/experiments_placing_update/
 data/save_data/placing_data/
 data/save_data/test/
@@ -17,3 +18,5 @@ log_picknplace_piling_pillowc.txt
 log_picknplace_pillowc_plan.txt
 log_picknplace_pillowc_sm.txt
 log_picknplace_tests_placing.txt
+log_picknplace.txt
+notas

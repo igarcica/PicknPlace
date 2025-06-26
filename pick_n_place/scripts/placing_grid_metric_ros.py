@@ -23,7 +23,8 @@ import rospy
 
 
 # colorscale = px.colors.sample_colorscale("jet_r", np.linspace(0, 0.3, 256))
-colorscale = px.colors.sample_colorscale("jet", np.linspace(0.6, 1, 256)) # placed object
+# colorscale = px.colors.sample_colorscale("jet", np.linspace(0.6, 1, 256)) # placed object
+colorscale = px.colors.sample_colorscale("jet_r", np.linspace(0, 0.4, 256)) # pile
 
 ##################################################################################################
 ## UTIL FUNCTIONS
@@ -117,7 +118,7 @@ def plot_with_info(data, x_grid_divs, y_grid_divs, can_edges, obj_thickn, n_objs
         colorscale=colorscale,   # choose a colorscale
         # opacity=0.8
     )
-)])
+    )])
     fig.update_layout(scene=dict(zaxis=dict(range=[0, 0.2]), xaxis=dict(range=[0, 0.4]), yaxis=dict(range=[0.2, -0.25]), aspectratio=dict(x=1, y=1, z=1) ))
     fig.update_layout( # Increase font sizes
     scene=dict(
@@ -131,7 +132,7 @@ def plot_with_info(data, x_grid_divs, y_grid_divs, can_edges, obj_thickn, n_objs
 
 ## Plot metrics in colored grid
 # def plot_metrics(metrics, scale_color):
-def plot_metrics(metrics, obj_thickn):
+def plot_metrics(metrics, obj_thickn, n_objs):
     metrics = np.array(metrics)
     # metrics = [[0.08, 0.08, 0.08], [0.08, 0.08, 0.08], [0.08, 0.08, 0.08]]
     # metrics = [[0.08, 0.08, 0.1], [0.096, 0.092, 0.08], [0.09, 0.1, 0.094]]
@@ -140,7 +141,11 @@ def plot_metrics(metrics, obj_thickn):
     # fig = px.imshow(metrics, text_auto=True, labels=dict(x='x', y='y'))
     fig = px.imshow(metrics, text_auto=True, color_continuous_scale=colorscale) #text_auto=True, labels=dict(x='x', y='y'))
     # fig.update_coloraxes(cmin=scale_color[0], cmax=scale_color[1])#cmax=0.08, cmin=0.0)
-    fig.update_coloraxes(cmin=0.0, cmax=0.1) #0.2
+    # fig.update_coloraxes(cmin=0.0, cmax=0.1) #0.2
+
+    min_depth = obj_thickn * n_objs
+    max_depth = (obj_thickn*3) + (min_depth-obj_thickn)
+    fig.update_coloraxes(cmin=min_depth, cmax=max_depth) 
     fig.update_layout(xaxis=dict(showticklabels=False), yaxis=dict(showticklabels=False))
 
     return fig
@@ -393,9 +398,11 @@ def placing_qual(metrics, n_div, grasp_edge_size, obj_thickness, n_objs):
     flat_placement = min_depth*np.ones(n_div*n_div)
     # bad_placement = np.array([[0.05, 0.1, 0.05], [0.05, 0.1, 0.05], [0.05, 0.1, 0.05]]) #to check which is the most representative
     # bad_placement = np.array([[half_max_depth, max_depth, half_max_depth], [half_max_depth, max_depth, half_max_depth], [half_max_depth, max_depth, half_max_depth]]) #to check which is the most representative ##for pillowcase
-    bad_placement = 0.16*np.ones(n_div*n_div) #for towel
+    # bad_placement = np.array([[max_depth, max_depth, max_depth], [max_depth, max_depth, max_depth], [max_depth, max_depth, max_depth]])
+    # bad_placement = 0.16*np.ones(n_div*n_div) #for towel (system adaptability)
+    bad_placement = max_depth*np.ones(n_div*n_div) #for piles of towels
     bad_placement = bad_placement.reshape(-1, 1)
-    # bad_placement = max_depth*np.ones(n_div*n_div)
+    print("FLAT MATRIX: ", flat_placement)
 
     max_dist = np.linalg.norm(bad_placement - flat_placement, 1) #Max distance from bad placement to perfect placement (100% error) - Used for normalization
     print("BAD MATRIX: ", bad_placement)

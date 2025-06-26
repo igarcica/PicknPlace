@@ -19,7 +19,7 @@
 
 		;;placing costs (cloth-to-table)
 		(= (place_succ towel A placevert) 17)
-		(= (place_succ towel A placediag) 0)
+		(= (place_succ towel A placediag) 1)
 		(= (place_succ towel A placerot) 1)
 		(= (place_succ towel B placevert) 8)
 		(= (place_succ towel B placediag) 22)
