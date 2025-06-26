@@ -19,8 +19,8 @@
 
 		;;placing costs (cloth-to-table)
 		(= (place_succ towel A placevert) 17)
-		(= (place_succ towel A placediag) 1)
-		(= (place_succ towel A placerot) 1)
+		(= (place_succ towel A placediag) 10)
+		(= (place_succ towel A placerot) 10)
 		(= (place_succ towel B placevert) 8)
 		(= (place_succ towel B placediag) 22)
 		(= (place_succ towel B placerot) 6)
@@ -39,7 +39,7 @@
 		(= (place_succ towel2 C placediag) 30)
 		(= (place_succ towel2 C placerot) 30)
 
-		(obj_grasp_class long A) ;;towel grasped by multedges results in deformation class A
+		(obj_grasp_class long B) ;;towel grasped by multedges results in deformation class A
 		(obj_grasp_class short A) ;; It can be the same as with long, the second object will adapt to the first object's init pose
 )
 

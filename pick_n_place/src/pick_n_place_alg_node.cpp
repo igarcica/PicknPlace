@@ -1899,6 +1899,7 @@ rosplan_knowledge_msgs::KnowledgeUpdateServiceArray PicknPlaceAlgNode::updateKB_
   // rosplan_knowledge_msgs::KnowledgeItem[] current_kb_state;
   
   std::vector<rosplan_knowledge_msgs::KnowledgeItem> current_kb_state;
+  std::string object;
 
   std::cout << "Nearest edge " << this->nearest_edge <<std::endl;
   std::cout << "Workspace " << this->workspace <<std::endl;
@@ -1957,16 +1958,23 @@ rosplan_knowledge_msgs::KnowledgeUpdateServiceArray PicknPlaceAlgNode::updateKB_
     ROS_WARN("Update at_pose");
 
     for(size_t i=0; i<current_kb_state.size(); i++) {
+      if(this->n_objs_pile>1) //If the object to grasp is to be piled, modify at_pose of towel2. Otherwise, towel
+        object = "towel2";
+      else
+        object="towel";
       //Remove previous edge
-      ROS_INFO("PicknPlace: REMOVING %s to %s", current_kb_state[i].values[1].value.c_str(), current_kb_state[i].values[0].value.c_str());
-      this->logfile << "PicknPlace: REMOVING " << current_kb_state[i].values[1].value.c_str() << " to " << current_kb_state[i].values[0].value.c_str() << std::endl;
+      // ROS_INFO("PicknPlace: REMOVING %s to %s", current_kb_state[i].values[1].value.c_str(), current_kb_state[i].values[0].value.c_str());
+      // this->logfile << "PicknPlace: REMOVING " << current_kb_state[i].values[1].value.c_str() << " to " << current_kb_state[i].values[0].value.c_str() << std::endl;
+      ROS_INFO("PicknPlace: REMOVING %s to %s", current_kb_state[i].values[1].value.c_str(), object.c_str());
+      this->logfile << "PicknPlace: REMOVING " << current_kb_state[i].values[1].value.c_str() << " to " << object.c_str() << std::endl;
       rosplan_knowledge_msgs::KnowledgeItem item;
       item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
       item.attribute_name = "at_pose";
       item.values.clear();
       diagnostic_msgs::KeyValue pair;
       pair.key = "cloth";
-      pair.value = current_kb_state[i].values[0].value; //"towel" or "hola"
+      // pair.value = current_kb_state[i].values[0].value; //"towel" or "hola"
+      pair.value = object;
       item.values.push_back(pair);
       pair.key = "edge";
       pair.value = current_kb_state[i].values[1].value; //"long / short"; //Get from current KB state
@@ -1975,13 +1983,16 @@ rosplan_knowledge_msgs::KnowledgeUpdateServiceArray PicknPlaceAlgNode::updateKB_
       update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE);
 
       //Add nearest edge
-      ROS_INFO("PicknPlace: ADDING %s to %s", this->nearest_edge.c_str(), current_kb_state[i].values[0].value.c_str());
-      this->logfile << "PicknPlace: ADDING " << this->nearest_edge.c_str() << " to " << current_kb_state[i].values[0].value.c_str() << std::endl;
+      // ROS_INFO("PicknPlace: ADDING %s to %s", this->nearest_edge.c_str(), current_kb_state[i].values[0].value.c_str());
+      // this->logfile << "PicknPlace: ADDING " << this->nearest_edge.c_str() << " to " << current_kb_state[i].values[0].value.c_str() << std::endl;
+      ROS_INFO("PicknPlace: ADDING %s to %s", this->nearest_edge.c_str(), object.c_str());
+      this->logfile << "PicknPlace: ADDING " << this->nearest_edge.c_str() << " to " << object.c_str() << std::endl;
       item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
       item.attribute_name = "at_pose";
       item.values.clear();
       pair.key = "cloth";
-      pair.value = current_kb_state[i].values[0].value; //"towel"; //Get from current KB state 
+      // pair.value = current_kb_state[i].values[0].value; //"towel"; //Get from current KB state
+      pair.value = object; 
       item.values.push_back(pair);
       pair.key = "edge";
       pair.value = this->nearest_edge;

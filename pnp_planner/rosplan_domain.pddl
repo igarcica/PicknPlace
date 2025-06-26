@@ -100,17 +100,17 @@
 )
 
 (:action grasp
-	:parameters (?cloth - garment ?gr - grasp ?class - defclass)
+	:parameters (?cloth - garment ?edge - grasp ?class - defclass)
 	:precondition (and
 				(robot_at home)
 				(robot_empty)
-				(at_pose ?cloth ?gr)
+				(at_pose ?cloth ?edge)
 				(garment_state ?cloth notgrasped)
 				(corners_pos_known ?cloth)
-				;;(obj_grasp_class ?cloth ?gr ?class)
+				;;(obj_grasp_class ?cloth ?edge ?class)
 				;;(def_class ?cloth ?class)
 				(defstate ?cloth flat)
-				(obj_grasp_class ?gr ?class))
+				(obj_grasp_class ?edge ?class))
 	:effect (and
 			(not (garment_state ?cloth notgrasped))
 			(not (robot_at home))
