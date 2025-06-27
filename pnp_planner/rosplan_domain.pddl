@@ -24,6 +24,7 @@
 	(garment_at ?cloth - garment ?ws - workspace)
 	(at_pose ?cloth - garment ?edge - grasp)
 	(garment_state ?cloth - garment ?state - state)
+	(grasped_by ?cloth - garment ?edge - grasp)
 	(corners_pos_known ?cloth - garment)
 	(robot_at ?pos - position)
 	(robot_empty)
@@ -84,7 +85,7 @@
 			(robot_at home)
 			(not (robot_at high_pose))
 			(not (robot_at else))
-			(increase (time_cost) 1)
+			(increase (time_cost) 0)
 			(increase (place_qual) 0))
 )
 
@@ -95,7 +96,7 @@
 	:effect (and
 			(not (robot_at home))
 			(robot_at high_pose)
-			(increase (time_cost) 1)
+			(increase (time_cost) 0)
 			(increase (place_qual) 1))
 )
 
@@ -117,9 +118,10 @@
 			(robot_at else)
 			(not (robot_empty))
 			(garment_state ?cloth grasped)
+			(grasped_by ?cloth ?edge)
 			(not (defstate ?cloth flat))
 			(defstate ?cloth ?class)
-			(increase (time_cost) 10)
+			(increase (time_cost) 0)
 			(increase (place_qual) 0))
 )
 
@@ -136,9 +138,11 @@
 			(not (corners_pos_known ?cloth))
 			;;(garment_at ?cloth rotws)
 			;;(robot_at drag_pose)
+			(not (garment_at ?cloth grws)) ;;Change ws
+			(garment_at ?cloth rotws)
 			(robot_at home)
 			(not (robot_at home))
-			(increase (time_cost) 10)
+			(increase (time_cost) 0)
 			(increase (place_qual) 0))
 )
 
@@ -160,7 +164,7 @@
 			(not (robot_at drag_pose))
 			;(not (robot_at home))
 			;(robot_at drag_pose)
-			(increase (time_cost) 5)
+			(increase (time_cost) 0)
 			(increase (place_qual) 0))
 )
 
@@ -183,13 +187,14 @@
 				(at_pose ?placedcloth ?edge) ;;piledcloth is on placedcloth is in placed with edge
 				(at_pose ?cloth ?edge)
 				(garment_state ?cloth lifted)
+				(grasped_by ?cloth ?edge)
 				(defstate ?cloth ?class))
 	:effect (and 
 			(robot_empty)
 			(on ?cloth ?placedcloth)
 			(garment_state ?cloth placed)
 			(not (garment_state ?cloth lifted))
-			(increase (time_cost) 15)
+			(increase (time_cost) 2)
 			(increase (place_qual) (place_succ ?cloth ?class placediag)))
 )
 
@@ -199,13 +204,14 @@
 				(at_pose ?placedcloth ?edge) ;;piledcloth is on placedcloth is in placed with edge
 				(at_pose ?cloth ?edge)
 				(garment_state ?cloth lifted)
+				(grasped_by ?cloth ?edge)
 				(defstate ?cloth ?class))
 	:effect (and 
 			(robot_empty)
 			(on ?cloth ?placedcloth)
 			(garment_state ?cloth placed)
 			(not (garment_state ?cloth lifted))
-			(increase (time_cost) 20)
+			(increase (time_cost) 3)
 			(increase (place_qual) (place_succ ?cloth ?class placerot)))
 )
 (:action placevert
@@ -214,13 +220,14 @@
 				(at_pose ?placedcloth ?edge) ;;piledcloth is on placedcloth is in placed with edge
 				(at_pose ?cloth ?edge)
 				(garment_state ?cloth lifted)
+				(grasped_by ?cloth ?edge)
 				(defstate ?cloth ?class))
 	:effect (and 
 			(robot_empty)
 			(on ?cloth ?placedcloth)
 			(garment_state ?cloth placed)
 			(not (garment_state ?cloth lifted))
-			(increase (time_cost) 10)
+			(increase (time_cost) 1)
 			(increase (place_qual) (place_succ ?cloth ?class placevert)))
 )
 

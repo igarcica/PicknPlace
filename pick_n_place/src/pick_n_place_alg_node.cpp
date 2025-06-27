@@ -15,6 +15,8 @@ PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
   double close_gripper = 0.97; //0.81;
   // this->piling=false;
   this->n_objs_pile=1;
+  this->object_thickness_drag = 0.055; //default towel 8l
+  this->object_thickness_rotate = 0.07; //default towel 8l
 
   // Garment pose subscriber
   this->garment_pose_subscriber = this->public_node_handle_.subscribe("/segment_table/grasp_point",1,&PicknPlaceAlgNode::garment_pose_callback,this);
@@ -312,12 +314,13 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                     {
                       ROS_INFO("PicknPlaceSM: Sending to PRE_DRAG position.");
                       this->logfile << "State: PRE_DRAG" << std::endl;
-                      if(config_.object_name=="towel")
-                        this->dragging_pose_garment.z = 0.055;
-                      else if(config_.object_name=="pillowc")
-                        this->dragging_pose_garment.z = 0.035; 
-                      // this->dragging_pose_garment.z = 0.032; //this->object_thickness + 0.025; //0.055; //Lower arm to cloth
-                      // std::cout << "\033[1;36m PRE_DRAG: -> \033[1;36m  x: " << this->dragging_pose_garment.x << ", y: " << this->dragging_pose_garment.y << ", z: " << this->dragging_pose_garment.z << std::endl;
+                      // if(config_.object_name=="towel")
+                      //   this->dragging_pose_garment.z = 0.055;
+                      // else if(config_.object_name=="pillowc")
+                      //   this->dragging_pose_garment.z = 0.035; 
+                      // // this->dragging_pose_garment.z = 0.032; //this->object_thickness + 0.025; //0.055; //Lower arm to cloth
+                      // // std::cout << "\033[1;36m PRE_DRAG: -> \033[1;36m  x: " << this->dragging_pose_garment.x << ", y: " << this->dragging_pose_garment.y << ", z: " << this->dragging_pose_garment.z << std::endl;
+                      this->dragging_pose_garment.z = this->object_thickness_drag;
                       this->success &= send_cartesian_pose(this->dragging_pose_garment);
                       if (this->success)
                       {
@@ -427,12 +430,13 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                       {
                         ROS_INFO("PicknPlaceSM: Sending to DRAG_ROTATE position.");
                         this->logfile << "State: ROTATE_POS" << std::endl;
-                        if(config_.object_name=="towel") //Lower arm to cloth ->TODO: based on sensed object thickness, BUT putting a max limit
-                          this->rotating_pose_garment.z = 0.07;
-                        else if(config_.object_name=="pillowc")
-                          this->rotating_pose_garment.z = 0.057;
-                        // this->rotating_pose_garment.z = 0.07;  
-                        // std::cout << "\033[1;36m DRAG_ROTATE_POS: -> \033[1;36m  x: " << this->rotating_pose_garment.x << ", y: " << this->rotating_pose_garment.y << ", z: " << this->rotating_pose_garment.z << std::endl;
+                        // if(config_.object_name=="towel") //Lower arm to cloth ->TODO: based on sensed object thickness, BUT putting a max limit
+                        //   this->rotating_pose_garment.z = 0.07;
+                        // else if(config_.object_name=="pillowc")
+                        //   this->rotating_pose_garment.z = 0.057;
+                        // // this->rotating_pose_garment.z = 0.07;  
+                        // // std::cout << "\033[1;36m DRAG_ROTATE_POS: -> \033[1;36m  x: " << this->rotating_pose_garment.x << ", y: " << this->rotating_pose_garment.y << ", z: " << this->rotating_pose_garment.z << std::endl;
+                        this->rotating_pose_garment.z = this->object_thickness_rotate;
                         this->success &= send_cartesian_pose(this->rotating_pose_garment);
                         if (this->success)
                         {
@@ -1633,12 +1637,18 @@ void PicknPlaceAlgNode::node_config_update(Config &config, uint32_t level)
   if (config.object_name == "towel" && config.layers == "8l") {
     this->stiffness = 99.9;
     this->friction = 80;
+    this->object_thickness_drag = 0.055; // For drag action
+    this->object_thickness_rotate = 0.07; // For rotate action
   } else if (config.object_name == "towel" && config.layers == "12l") {
     this->stiffness = 100;
     this->friction = 78;
+    // this->object_thickness = 0.07; // For drag action - to check
+    // this->object_thickness_rotate = 0.09; // For rotate action - to check
   } else if (config.object_name == "pillowc" && config.layers == "8l") {
     this->stiffness = 60.1;
     this->friction = 79; //82.7;
+    this->object_thickness_drag = 0.035; // For drag action
+    this->object_thickness_rotate = 0.057; // For rotate action
   } else if (config.object_name == "pillowc" && config.layers == "12l") {
     this->stiffness = 70;
     this->friction = 76;
@@ -1648,6 +1658,11 @@ void PicknPlaceAlgNode::node_config_update(Config &config, uint32_t level)
   } else if (config.object_name == "linenap" && config.layers == "8l") {
     this->stiffness = 74.5;
     this->friction = 82;
+  } else if (config.object_name == "waffle" && config.layers == "8l") {
+    this->stiffness = 85.7;
+    this->friction = 85;
+    this->object_thickness_drag = 0.04; // For drag action
+    this->object_thickness_rotate = 0.065; // For rotate action
   } else 
     ROS_WARN("Unkown object properties for: %s + %s", config.object_name.c_str(), config.layers.c_str());
 

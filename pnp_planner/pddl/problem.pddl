@@ -10,36 +10,37 @@
     flat a b c - defclass
 )
 (:init
-    (garment_at towel2 rotws)
+    (garment_at towel2 grws)
 
     (at_pose towel short)
-    (at_pose towel2 long)
+    (at_pose towel2 short)
 
     (garment_state towel placed)
-    (garment_state towel2 notgrasped)
+    (garment_state towel2 lifted)
+
+    (grasped_by towel2 short)
 
     (corners_pos_known towel2)
 
-    (robot_at high_pose)
+    (robot_at else)
 
-    (robot_empty)
 
     (known_obj towel2)
 
-    (defstate towel2 flat)
+    (defstate towel2 B)
 
 
 
-    (obj_grasp_class long A)
-    (obj_grasp_class short A)
+    (obj_grasp_class long C)
+    (obj_grasp_class short B)
 
     (= (time_cost) 0)
 
     (= (place_qual) 0)
 
     (= (place_succ towel a placevert) 17)
-    (= (place_succ towel a placediag) 10)
-    (= (place_succ towel a placerot) 10)
+    (= (place_succ towel a placediag) 1)
+    (= (place_succ towel a placerot) 1)
     (= (place_succ towel b placevert) 8)
     (= (place_succ towel b placediag) 22)
     (= (place_succ towel b placerot) 6)
@@ -60,5 +61,5 @@
 (:goal (and
     (on towel2 towel)
 ))
-(:metric minimize (place_qual))
+(:metric minimize (+ (time_cost) (place_qual)))
 )
