@@ -170,17 +170,17 @@ def print_info(activate, arg1, arg2="", arg3="", arg4="", arg5="", arg6=""):
 
 ####################################################################################
 class CostUpdater:
-    def __init__(self, cost_table, alpha_0=1, alpha_stab=0.3, c=30, beta=1):
+    def __init__(self, cost_table, alpha_0=1, alpha_stab=0.3, delta=30, beta=1):
         """
         Initialize with:
         - cost_table: initial cost matrix (numpy array)
-        - alpha: learning rate for updates
-        - c: threshold for Huber loss
+        - alpha: learning rate for updates (eta (n) in the paper)
+        - delta: threshold for Huber loss
         """
         self.cost_table = cost_table
         self.alpha_0 = alpha_0
         self.alpha_stab = alpha_stab
-        self.c = c
+        self.delta = delta
         self.beta = beta                #beta 1.5 stabilize alpha at step 6
         self.cells = [[[] for _ in range(3)] for _ in range(3)] # Create a storage list for each cell
 
@@ -200,7 +200,7 @@ class CostUpdater:
 
     def huber_psi(self, r):
         """Huber influence function"""
-        huber = np.where(np.abs(r) <= self.c, r, self.c * np.sign(r)) #sign indicates wether to increment or decrease cost
+        huber = np.where(np.abs(r) <= self.delta, r, self.delta * np.sign(r)) #sign indicates wether to increment or decrease cost
         print_info(activate_print,"Huber: ", huber)
         return huber
 
@@ -209,7 +209,7 @@ class CostUpdater:
         print_info(activate_print,"Previous cost: ", self.cost_table[i, j])
         print_info(activate_print,"Observation: ", observed_cost)
 
-        residual = observed_cost - self.cost_table[i, j]
+        residual = observed_cost - self.cost_table[i, j] #et(dt, pt) - Ct(dt, pt)
         print_info(activate_print,"Residual: ", residual)
 
         self.huber = self.huber_psi(residual)

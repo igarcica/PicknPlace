@@ -18,23 +18,24 @@
 		(= (time_cost) 0)
 		(= (place_qual) 0)
 
+		;;placing costs
 		(= (place_succ towel A placevert) 17)
 		(= (place_succ towel A placediag) 1)
 		(= (place_succ towel A placerot) 1)
 		(= (place_succ towel B placevert) 8)
 		(= (place_succ towel B placediag) 22)
-		(= (place_succ towel B placerot) 6)
+		(= (place_succ towel B placerot) 5)
 		(= (place_succ towel C placevert) 30)
 		(= (place_succ towel C placediag) 25)
 		(= (place_succ towel C placerot) 6)
 		;;piling costs
 		(= (place_succ towel2 A placevert) 7)
-		(= (place_succ towel2 A placediag) 3)
+		(= (place_succ towel2 A placediag) 2)
 		(= (place_succ towel2 A placerot) 4)
 		(= (place_succ towel2 B placevert) 30)
 		(= (place_succ towel2 B placediag) 14)
-		(= (place_succ towel2 B placerot) 9)
-		(= (place_succ towel2 C placevert) 30)
+		(= (place_succ towel2 B placerot) 8)
+		(= (place_succ towel2 C placevert) 44)
 		(= (place_succ towel2 C placediag) 30)
 		(= (place_succ towel2 C placerot) 30)
 

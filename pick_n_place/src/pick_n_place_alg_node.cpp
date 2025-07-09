@@ -1619,6 +1619,34 @@ void PicknPlaceAlgNode::node_config_update(Config &config, uint32_t level)
     this->rotate=true;
   }
 
+// ---START SM FROM CHECK DEFORMATION---
+if(config.start_experiments)
+{
+  this->pddl_demo=false;
+  this->start_experiments=true;
+  if(config.vertical_place)
+  {
+    this->placing_strategy=2;//vertical
+    ROS_INFO("PicknPlaceAlgNode: Placing startegy --> Vertical");
+  }
+  else if(config.diagonal_place)
+  {
+    this->placing_strategy=1; //diagonal
+    ROS_INFO("PicknPlaceAlgNode: Placing startegy --> Diagonal");
+  }
+  else if(config.rotating_place)
+  {
+    this->placing_strategy=3; //place2
+    ROS_INFO("PicknPlaceAlgNode: Placing startegy --> Rotating");
+  }
+  else
+  {
+    this->placing_strategy=2; //vertical
+    ROS_INFO("PicknPlaceAlgNode: Placing startegy --> Vertical");
+  }
+  config.start_experiments=false;
+}
+
   // ---PLANNER SYSTEM PARAMS---
     // Execute sections of SM according to received PDDL actions
   if(config.plan_pddl_demo)
@@ -1663,6 +1691,11 @@ void PicknPlaceAlgNode::node_config_update(Config &config, uint32_t level)
     this->friction = 85;
     this->object_thickness_drag = 0.04; // For drag action
     this->object_thickness_rotate = 0.065; // For rotate action
+  } else if (config.object_name == "check" && config.layers == "6l") {
+    this->stiffness = 49;
+    this->friction = 87; //88.4
+    this->object_thickness_drag = 0.03; // For drag action
+    this->object_thickness_rotate = 0.06; // For rotate action
   } else 
     ROS_WARN("Unkown object properties for: %s + %s", config.object_name.c_str(), config.layers.c_str());
 
@@ -2765,6 +2798,7 @@ void PicknPlaceAlgNode::corners_callback(const visualization_msgs::MarkerArray::
       double dy = edges[nearestIndex].first.y - edges[nearestIndex].second.y;
       double perpendicularAngle = std::atan2(dx, -dy); //Used to compute pregrasp distances
       double grasp_angle = std::atan2(dx, dy) * 180 / M_PI; //Used to compute grasp orientation - Angle wrt x-axis of base_link. horizontal edge=0, edge vert=-90, clockwise>0, anticlockwise<0
+      std::cout << "Grasp angle: " << grasp_angle << std::endl;
       // std::cout << "Grasping perpendicular angle (radians): " << perpendicularAngle << std::endl;
       // std::cout << "Grasping perpendicular angle (degrees): " << perpendicularAngle * 180.0 / M_PI << std::endl;
       // std::cout << "N: " << std::atan2(dx, dy) * 180.0 / M_PI << std::endl; //Angle wrt x-axis of base_link. horizontal edge=0, edge vert=-90, clockwise>0, anticlockwise<0
