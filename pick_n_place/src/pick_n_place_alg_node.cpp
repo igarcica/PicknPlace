@@ -267,24 +267,31 @@ void PicknPlaceAlgNode::mainNodeThread(void)
       //State for ROSPlan
       case UPDATE_INIT_ROSPLAN_KB: ROS_INFO("PicknPlaceAlgNode: state UPDATE ROSPLAN KB");
                               {
-                                //Update deformation class in ROSPlan knowledge base to replan accordingly
-                                this->logfile << "State: UPDATE_INIT_ROSPLAN_KB" << std::endl;
-                                update_kb_srv_ = updateKB_init();
-                                if(update_kb_client_.call(update_kb_srv_))
+                                if(config_.ok) 
                                 {
-                                  ROS_WARN("PicknPlaceAlgNode: Knowledge Base updated!");
-                                  //Replan with sensed class (to select placing strategy) this->state=IDLE; this->plan_pddl_demo=true;
-                                  //Can it go to a REPLAN state and not abort current plan?
-                                  ROS_WARN("PicknPlaceAlgNode: Canceling dispatch plan");
-                                  
-                                  // this->pddl_action_done=true; // End PDDL action
-                                  as_.setPreempted();
-                                  this->plan_pddl_demo=true; //generate problem
+                                  //Update deformation class in ROSPlan knowledge base to replan accordingly
+                                  this->logfile << "State: UPDATE_INIT_ROSPLAN_KB" << std::endl;
+                                  update_kb_srv_ = updateKB_init();
+                                  if(update_kb_client_.call(update_kb_srv_))
+                                  {
+                                    ROS_WARN("PicknPlaceAlgNode: Knowledge Base updated!");
+                                    //Replan with sensed class (to select placing strategy) this->state=IDLE; this->plan_pddl_demo=true;
+                                    //Can it go to a REPLAN state and not abort current plan?
+                                    ROS_WARN("PicknPlaceAlgNode: Canceling dispatch plan");
+                                    
+                                    // this->pddl_action_done=true; // End PDDL action
+                                    as_.setPreempted();
+                                    this->plan_pddl_demo=true; //generate problem
+                                    this->state=IDLE;
+                                  }else{
+                                    ROS_WARN("PicknPlaceAlgNode: Knowledge Base NOT updated!");
+                                    this->state=END;
+                                  }
+                                }else if(this->get_garment_position){
+                                  this->process_grasp_pointcloud=true; //Get another point
                                   this->state=IDLE;
-                                }else{
-                                  ROS_WARN("PicknPlaceAlgNode: Knowledge Base NOT updated!");
-                                  this->state=END;
-                                }
+                                }else
+                                  this->state=UPDATE_INIT_ROSPLAN_KB;
                               }
       break;
 
@@ -1696,6 +1703,11 @@ if(config.start_experiments)
     this->friction = 87; //88.4
     this->object_thickness_drag = 0.03; // For drag action
     this->object_thickness_rotate = 0.06; // For rotate action
+  } else if (config.object_name == "linenap" && config.layers == "16l") {
+    this->stiffness = 80;
+    this->friction = 81; 
+    this->object_thickness_drag = 0.03; // For drag action
+    this->object_thickness_rotate = 0.06; // For rotate action
   } else 
     ROS_WARN("Unkown object properties for: %s + %s", config.object_name.c_str(), config.layers.c_str());
 
@@ -2744,11 +2756,9 @@ void PicknPlaceAlgNode::corners_callback(const visualization_msgs::MarkerArray::
     garment_center.z /= points.size();
     double disGarmenCenter = sqrt(pow(garment_center.x, 2) + pow(garment_center.y, 2));
 
-    // this->rotation=
-    ROS_WARN("test2");
-
     
     if(this->get_garment_position)
+    // if(config_.get_grasp_point) //for planner
     {
       //-------GRASPING POSITION-------
       visualization_msgs::Marker marker;
@@ -2904,6 +2914,8 @@ void PicknPlaceAlgNode::corners_callback(const visualization_msgs::MarkerArray::
       valid = validate_waypoint(waypoint);
       if(valid)
         ROS_WARN("good");
+      
+      config_.get_grasp_point = false;
 
       if(this->pddl_demo)
       {

@@ -11,25 +11,32 @@
 )
 (:init
     (garment_at towel rotws)
+    (garment_at towel2 rotws)
 
-    (at_pose towel short)
+    (at_pose towel long)
+    (at_pose towel2 long)
 
-    (garment_state towel lifted)
+    (garment_state towel placed)
+    (garment_state towel2 lifted)
 
-    (grasped_by towel short)
+    (grasped_by towel long)
+    (grasped_by towel2 long)
 
     (corners_pos_known towel)
+    (corners_pos_known towel2)
 
     (robot_at else)
 
 
-    (not (known_obj towel2))
+    (known_obj towel2)
 
-    (defstate towel B)
+    (defstate towel A)
+    (defstate towel2 A)
+
+    (on towel towel)
 
 
-
-    (obj_grasp_class long C)
+    (obj_grasp_class long A)
     (obj_grasp_class short B)
 
     (= (time_cost) 0)
