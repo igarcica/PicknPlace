@@ -18,7 +18,7 @@ or
 
 ``export PATH=$PATH:~/iri-lab/iri_ws/src/PicknPlace/ROSPlan/rosplan_planning_system/common/bin``
 
-``Metric-FF -o rosplan_domain.pddl -f rosplan_problem.pddl -s 3 -w 0``
+``Metric-FF -o rosplan_domain_scalab2.pddl -f rosplan_problem_scalab2.pddl -s 3 -w 0``
 
 ## PnP Demo execution with ROSPlan
 

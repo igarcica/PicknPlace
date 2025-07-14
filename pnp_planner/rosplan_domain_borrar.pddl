@@ -1,9 +1,3 @@
-;; copied from pile2.pddl and tried to apply changes from class.pddl (place succ with defclass)
-;; place success depends on class, class depends on object and grasp
-;; Considered piling with second objects pose unknown
-;; Consider pile orientation to grasp second object (limits possible grasped edge)
-;; TO DO: test update of new_object parameters, modify planner to plan considering worst case of second object, add time costs to actions, compute best weigth for minimization function
-;; TO DO2: Add fold layers, Can I have different objects with same name?, Return degrees of rotation according to init and goal edges, Consider different costs for placing and piling
 
 (define (domain PICKNPLACEpileclass)
 
@@ -45,18 +39,16 @@
 ;; It should consider ?edge and ?ws such that place_succ is the worst (just in case) - HOW??
 ;; Later, once the first object is placed the ?edge and ?ws should be updated with real data - POSSIBLE?
 (:action new_object
-	:parameters (?edge - grasp ?ws - workspace)
+	:parameters (?objtopile ?placed_obj - garment)
 	:precondition (and
-				(garment_state placed_obj placed)
-				(not (known_obj piled_obj))
+				(garment_state ?placed_obj placed)
+				(not (known_obj ?objtopile))
 				(robot_at high_pose))
 	:effect (and
-			(known_obj piled_obj) 
-			(garment_state piled_obj notgrasped)
-			(not (corners_pos_known piled_obj))
-			(defstate piled_obj flat)
-			;;(def_class piled_obj A)
-			;;(obj_grasp_class ?edge ?class)
+			(known_obj ?objtopile) 
+			(garment_state ?objtopile notgrasped)
+			(not (corners_pos_known ?objtopile))
+			(defstate ?objtopile flat)
 			(increase (time_cost) 0)
 			(increase (place_qual) 0))
 )
@@ -70,8 +62,8 @@
 				(robot_at high_pose))
 	:effect (and
 			(corners_pos_known ?cloth)
-			(garment_at ?cloth ?ws)
 			(at_pose ?cloth ?edge)
+			(garment_at ?cloth ?ws)
 			(increase (time_cost) 0)
 			(increase (place_qual) 0))
 )
