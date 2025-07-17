@@ -218,6 +218,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                  {
                    ROS_INFO("PicknPlaneAlgNode: Generating plan");
                    this->pddl_demo = true; 
+                   get_objects_to_pile(); //Update deformation classes of objects to pile
                    //call ROSPlan services
                    generate_problem_client_.call(empty_srv_); //Generate problem
                    get_plan_client_.call(empty_srv_); //Get plan - to check the plan rostopic echo /rosplan_planner_interface/planner_output -p -n 1
@@ -1669,47 +1670,47 @@ if(config.start_experiments)
   //   this->piling=true;
   // }
   // Assign object properties for planner system (prediction, state estimation, etc)
-  if (config.object_name == "towel" && config.layers == "8l") {
-    this->stiffness = 99.9;
-    this->friction = 80;
-    this->object_thickness_drag = 0.055; // For drag action
-    this->object_thickness_rotate = 0.07; // For rotate action
-  } else if (config.object_name == "towel" && config.layers == "12l") {
-    this->stiffness = 100;
-    this->friction = 78;
-    // this->object_thickness = 0.07; // For drag action - to check
-    // this->object_thickness_rotate = 0.09; // For rotate action - to check
-  } else if (config.object_name == "pillowc" && config.layers == "8l") {
-    this->stiffness = 60.1;
-    this->friction = 79; //82.7;
-    this->object_thickness_drag = 0.035; // For drag action
-    this->object_thickness_rotate = 0.057; // For rotate action
-  } else if (config.object_name == "pillowc" && config.layers == "12l") {
-    this->stiffness = 70;
-    this->friction = 76;
-  } else if (config.object_name == "cotnap" && config.layers == "4l") {
-    this->stiffness = 61.8;
-    this->friction = 80;
-  } else if (config.object_name == "linenap" && config.layers == "8l") {
-    this->stiffness = 74.5;
-    this->friction = 82;
-  } else if (config.object_name == "waffle" && config.layers == "8l") {
-    this->stiffness = 85.7;
-    this->friction = 85;
-    this->object_thickness_drag = 0.04; // For drag action
-    this->object_thickness_rotate = 0.065; // For rotate action
-  } else if (config.object_name == "check" && config.layers == "6l") {
-    this->stiffness = 49;
-    this->friction = 87; //88.4
-    this->object_thickness_drag = 0.03; // For drag action
-    this->object_thickness_rotate = 0.06; // For rotate action
-  } else if (config.object_name == "linenap" && config.layers == "16l") {
-    this->stiffness = 80;
-    this->friction = 81; 
-    this->object_thickness_drag = 0.03; // For drag action
-    this->object_thickness_rotate = 0.06; // For rotate action
-  } else 
-    ROS_WARN("Unkown object properties for: %s + %s", config.object_name.c_str(), config.layers.c_str());
+  // if (config.object_name == "towel" && config.layers == "8l") {
+  //   this->stiffness = 99.9;
+  //   this->friction = 80;
+  //   this->object_thickness_drag = 0.055; // For drag action
+  //   this->object_thickness_rotate = 0.07; // For rotate action
+  // } else if (config.object_name == "towel" && config.layers == "12l") {
+  //   this->stiffness = 100;
+  //   this->friction = 78;
+  //   // this->object_thickness = 0.07; // For drag action - to check
+  //   // this->object_thickness_rotate = 0.09; // For rotate action - to check
+  // } else if (config.object_name == "pillowc" && config.layers == "8l") {
+  //   this->stiffness = 60.1;
+  //   this->friction = 79; //82.7;
+  //   this->object_thickness_drag = 0.035; // For drag action
+  //   this->object_thickness_rotate = 0.057; // For rotate action
+  // } else if (config.object_name == "pillowc" && config.layers == "12l") {
+  //   this->stiffness = 70;
+  //   this->friction = 76;
+  // } else if (config.object_name == "cotnap" && config.layers == "4l") {
+  //   this->stiffness = 61.8;
+  //   this->friction = 80;
+  // } else if (config.object_name == "linenap" && config.layers == "8l") {
+  //   this->stiffness = 74.5;
+  //   this->friction = 82;
+  // } else if (config.object_name == "waffle" && config.layers == "8l") {
+  //   this->stiffness = 85.7;
+  //   this->friction = 85;
+  //   this->object_thickness_drag = 0.04; // For drag action
+  //   this->object_thickness_rotate = 0.065; // For rotate action
+  // } else if (config.object_name == "check" && config.layers == "6l") {
+  //   this->stiffness = 49;
+  //   this->friction = 87; //88.4
+  //   this->object_thickness_drag = 0.03; // For drag action
+  //   this->object_thickness_rotate = 0.06; // For rotate action
+  // } else if (config.object_name == "linenap" && config.layers == "16l") {
+  //   this->stiffness = 80;
+  //   this->friction = 81; 
+  //   this->object_thickness_drag = 0.03; // For drag action
+  //   this->object_thickness_rotate = 0.06; // For rotate action
+  // } else 
+  //   ROS_WARN("Unkown object properties for: %s + %s", config.object_name.c_str(), config.layers.c_str());
 
   // ---OTHER PARAMS---
   /*// Start SM for experiments (Starts from state X + Select placing strategy)
@@ -1883,7 +1884,6 @@ void PicknPlaceAlgNode::PDDLgoalCB()
     this->pddl_action_done=true;
     // this->get_garment_position=true;
     // this->state=GET_OBJECT_POSE;
-
   }
   else
   {
@@ -2063,7 +2063,7 @@ rosplan_knowledge_msgs::KnowledgeUpdateServiceArray PicknPlaceAlgNode::updateKB_
   }else
       ROS_WARN("PicknPlaceAlgNode: Not possible to get current KB state");
 
-  //PREDICTED DEFORMATION CLASS - Udates both edgess
+  //PREDICTED DEFORMATION CLASS - Udates both edges
   get_kb_state_srv_.request.predicate_name = "obj_grasp_class"; 
   if(get_kb_state_client_.call(get_kb_state_srv_))
   {
@@ -2079,17 +2079,20 @@ rosplan_knowledge_msgs::KnowledgeUpdateServiceArray PicknPlaceAlgNode::updateKB_
       item.attribute_name = "obj_grasp_class";
       item.values.clear();
       diagnostic_msgs::KeyValue pair;
+      pair.key = "garment";
+      pair.value = current_kb_state[i].values[0].value; //towel, waffle1, waffle2, checkered1...
+      item.values.push_back(pair);
       pair.key = "grasp";
-      pair.value = current_kb_state[i].values[0].value; //long or short
+      pair.value = current_kb_state[i].values[1].value; //long or short
       item.values.push_back(pair);
       pair.key = "defclass";
-      pair.value = current_kb_state[i].values[1].value; //A, B or C
+      pair.value = current_kb_state[i].values[2].value; //A, B or C
       item.values.push_back(pair);
       update_kb_srv_.request.knowledge.push_back(item);
       update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE);
 
       //UPDATE PREDICTED DEF CLASS FOR BOTH EDGES
-      if(current_kb_state[i].values[0].value == this->nearest_edge)
+      if(current_kb_state[i].values[1].value == this->nearest_edge)
       {
         std::cout << "PicknPlace: Predicted deformation class: " << this->predicted_def_class_nearest_edge << std::endl;
         ROS_INFO("PicknPlace: ADDING %s to %s", this->predicted_def_class_nearest_edge.c_str(), current_kb_state[i].values[0].value.c_str());
@@ -2098,8 +2101,11 @@ rosplan_knowledge_msgs::KnowledgeUpdateServiceArray PicknPlaceAlgNode::updateKB_
         item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
         item.attribute_name = "obj_grasp_class";
         item.values.clear();
+        pair.key = "garment";
+        pair.value = current_kb_state[i].values[0].value; //towel, waffle1, waffle2, checkered1...
+        item.values.push_back(pair);
         pair.key = "grasp";
-        pair.value = current_kb_state[i].values[0].value; //short or long" 
+        pair.value = current_kb_state[i].values[1].value; //short or long" 
         item.values.push_back(pair);
         pair.key = "defclass";
         pair.value = this->predicted_def_class_nearest_edge; //this->predicted_deformation_class;
@@ -2107,7 +2113,7 @@ rosplan_knowledge_msgs::KnowledgeUpdateServiceArray PicknPlaceAlgNode::updateKB_
         update_kb_srv_.request.knowledge.push_back(item);
         update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE);
       }
-      else if(current_kb_state[i].values[0].value == this->second_nearest_edge) //else or else if?
+      else if(current_kb_state[i].values[1].value == this->second_nearest_edge) //else or else if?
       {
         ROS_INFO("PicknPlace: ADDING %s to %s", this->predicted_def_class_second_nearest_edge.c_str(), current_kb_state[i].values[0].value.c_str());
         this->logfile << "PicknPlace: ADDING " << this->predicted_def_class_second_nearest_edge.c_str() << " to " << current_kb_state[i].values[0].value.c_str() << std::endl;
@@ -2115,8 +2121,11 @@ rosplan_knowledge_msgs::KnowledgeUpdateServiceArray PicknPlaceAlgNode::updateKB_
         item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
         item.attribute_name = "obj_grasp_class";
         item.values.clear();
+        pair.key = "garment";
+        pair.value = current_kb_state[i].values[0].value; //towel, waffle1, waffle2, checkered1...
+        item.values.push_back(pair);
         pair.key = "grasp";
-        pair.value = current_kb_state[i].values[0].value; //short or long" 
+        pair.value = current_kb_state[i].values[1].value; //short or long" 
         item.values.push_back(pair);
         pair.key = "defclass";
         pair.value = this->predicted_def_class_second_nearest_edge; //this->predicted_deformation_class;
@@ -2401,6 +2410,225 @@ void PicknPlaceAlgNode::predict_deformation_class(void)
   this->logfile << "======= Predicted def class for second nearest edge (" << this->second_nearest_edge << "): " << this->predicted_def_class_second_nearest_edge << std::endl;
   this->logfile << "Preiction parameters -> Layers: " << config_.layers << ", Grasp: " << this->second_nearest_edge << ", nongraspedsize: " << this->grasped_edge_size*100 << ", graspedsize: " << this->not_grasped_edge_size*100 << ", area: " << (this->grasped_edge_size*100) * (this->not_grasped_edge_size*100) << ", stiffness: " << this->stiffness << ", friction: " << this->friction << std::endl;
 }
+
+void PicknPlaceAlgNode::get_objects_to_pile(void)
+{
+  // Save edge sizes, stiffness of the objects to pile for predict deformation class.
+  ROS_INFO("PicknPlaceAlgNode: getting list of objects to pile");
+
+  bool known_obj;
+  std::string object_name;
+  std::string n_layers;
+  double short_edge_size, long_edge_size, stiffness, friction;
+  std::string predicted_def_class_short_edge, predicted_def_class_long_edge;
+  std::vector<rosplan_knowledge_msgs::KnowledgeItem> current_kb_state;
+
+  //Separate comma-separated strings (config object names and layers) into individual strings
+  std::vector<std::string> objs_to_pile_v;
+  std::stringstream ss(config_.objs_to_pile);
+  std::string token;
+  for (; std::getline(ss, token, ','); ) //Split comma-separated strings
+  {
+    std::cout << "hola" << token << std::endl;
+    auto start = std::find_if_not(token.begin(), token.end(), ::isspace);
+    auto end   = std::find_if_not(token.rbegin(), token.rend(), ::isspace).base();
+    token = (start < end) ? std::string(start, end) : ""; //Remove whitespaces
+    objs_to_pile_v.push_back(token);
+  }
+  
+  std::vector<std::string> layers_v;
+  std::stringstream ss2(config_.layers);
+  for (; std::getline(ss2, token, ','); )
+  {
+    auto start = std::find_if_not(token.begin(), token.end(), ::isspace);
+    auto end   = std::find_if_not(token.rbegin(), token.rend(), ::isspace).base();
+    token = (start < end) ? std::string(start, end) : ""; 
+    layers_v.push_back(token);
+  }
+
+  //Check for errors in input (different number of objects and layers, different number of n_objs_to_pile and object/layers, non-existing objects, etc)
+  // if(config_.n_objs_pile != object_name.size()) 
+  // {
+  //   ROS_WARN("Objects to pile are repeated?");
+  //   break;
+  // }
+
+  for (int i = 0; i < config_.n_objs_pile; i++) //Get all the cloth names and layers of the objects to pile introduced in the reconfigure
+  {
+    known_obj = true;
+    object_name = objs_to_pile_v[i];
+    n_layers = layers_v[i];
+    std::cout << "object: " << object_name << std::endl;
+    std::cout << "layers: " << n_layers << std::endl;
+
+    //GET OBJECT PROPERTIES
+    if (object_name == "towel" && n_layers == "8l") {
+      short_edge_size = 25;
+      long_edge_size = 25;
+      stiffness = 99.9;
+      friction = 80;
+      // object_thickness_drag = 0.055; // For drag action
+      // object_thickness_rotate = 0.07; // For rotate action
+    } else if (object_name == "towel" && n_layers == "12l") {
+      stiffness = 100;
+      friction = 78;
+      short_edge_size = 25;
+      long_edge_size = 25;
+    //   // this->object_thickness = 0.07; // For drag action - to check
+    //   // this->object_thickness_rotate = 0.09; // For rotate action - to check
+    // } else if (config.object_name == "pillowc" && config.layers == "8l") {
+    //   this->stiffness = 60.1;
+    //   this->friction = 79; //82.7;
+    //   this->object_thickness_drag = 0.035; // For drag action
+    //   this->object_thickness_rotate = 0.057; // For rotate action
+    // } else if (config.object_name == "pillowc" && config.layers == "12l") {
+    //   this->stiffness = 70;
+    //   this->friction = 76;
+    // } else if (config.object_name == "cotnap" && config.layers == "4l") {
+    //   this->stiffness = 61.8;
+    //   this->friction = 80;
+    // } else if (config.object_name == "linenap" && config.layers == "8l") {
+    //   this->stiffness = 74.5;
+    //   this->friction = 82;
+    } else if (object_name == "waffle2" && n_layers == "8l") {
+      stiffness = 85.7;
+      friction = 85;
+      short_edge_size = 12;
+      long_edge_size = 25;
+    //   this->object_thickness_drag = 0.04; // For drag action
+    //   this->object_thickness_rotate = 0.065; // For rotate action
+    // } else if (config.object_name == "check" && config.layers == "6l") {
+    //   this->stiffness = 49;
+    //   this->friction = 87; //88.4
+    //   this->object_thickness_drag = 0.03; // For drag action
+    //   this->object_thickness_rotate = 0.06; // For rotate action
+    // } else if (config.object_name == "linenap" && config.layers == "16l") {
+    // this->stiffness = 80;
+    // this->friction = 81; 
+    // this->object_thickness_drag = 0.03; // For drag action
+    // this->object_thickness_rotate = 0.06; // For rotate action
+    } else {
+      known_obj = false;
+      ROS_WARN("Unkown object properties for: %s + %s", object_name.c_str(), n_layers.c_str());
+    }
+    
+    //PREDICT DEFORMATION CLASSES for both edges of the current object
+    if(known_obj)
+    {
+      //Deformation class grasping short edge
+      predict_deformation_class_srv_.request.layers = n_layers; 
+      predict_deformation_class_srv_.request.grasp = "short";
+      predict_deformation_class_srv_.request.nongraspedsize = long_edge_size;
+      predict_deformation_class_srv_.request.graspedsize = short_edge_size;
+      predict_deformation_class_srv_.request.area = long_edge_size * short_edge_size;
+      predict_deformation_class_srv_.request.stiffness = stiffness; 
+      predict_deformation_class_srv_.request.friction =  friction; 
+      if(predict_deformation_class_client_.call(predict_deformation_class_srv_))
+      {
+        std::cout << "Predicted deformation class grasping SHORT edge of " << object_name << " is: " << predict_deformation_class_srv_.response.predicted_def_class << std::endl;
+        predicted_def_class_short_edge = predict_deformation_class_srv_.response.predicted_def_class;
+      }
+      //Deformation class grasping long edge
+      predict_deformation_class_srv_.request.layers = n_layers; 
+      predict_deformation_class_srv_.request.grasp = "long";
+      predict_deformation_class_srv_.request.nongraspedsize = short_edge_size;
+      predict_deformation_class_srv_.request.graspedsize = long_edge_size;
+      predict_deformation_class_srv_.request.area = long_edge_size * short_edge_size;
+      predict_deformation_class_srv_.request.stiffness = stiffness; 
+      predict_deformation_class_srv_.request.friction =  friction; 
+      if(predict_deformation_class_client_.call(predict_deformation_class_srv_))
+      {
+        std::cout << "Predicted deformation class grasping LONG edge of " << object_name << " is: " << predict_deformation_class_srv_.response.predicted_def_class << std::endl;
+        predicted_def_class_long_edge = predict_deformation_class_srv_.response.predicted_def_class;
+      }
+    
+    
+      //UPDATE KNOWLEDGE BASE with deformation classes of all objects to pile (obj_grasp_class garment grasp defclass)
+      get_kb_state_srv_.request.predicate_name = "obj_grasp_class"; 
+      if(get_kb_state_client_.call(get_kb_state_srv_))
+      {
+        current_kb_state = get_kb_state_srv_.response.attributes;
+        ROS_WARN("Update obj_grasp_class");
+
+        for(size_t i=0; i<current_kb_state.size(); i++) {
+          if(current_kb_state[i].values[0].value == object_name) //Update only the CURRENT object deformation classes
+          {
+            //Remove previous def class
+            ROS_INFO("PicknPlace: REMOVING %s to %s edge of %s", current_kb_state[i].values[2].value.c_str(), current_kb_state[i].values[1].value.c_str(), current_kb_state[i].values[0].value.c_str());
+            this->logfile << "PicknPlace: REMOVING " << current_kb_state[i].values[2].value.c_str() << " to " << current_kb_state[i].values[1].value.c_str() << " edge of " << current_kb_state[i].values[0].value.c_str() << std::endl;
+            rosplan_knowledge_msgs::KnowledgeItem item;
+            item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
+            item.attribute_name = "obj_grasp_class";
+            item.values.clear();
+            diagnostic_msgs::KeyValue pair;
+            pair.key = "garment";
+            pair.value = current_kb_state[i].values[0].value; //towel, waffle1, waffle2, checkered1...
+            item.values.push_back(pair);
+            pair.key = "grasp";
+            pair.value = current_kb_state[i].values[1].value; //long or short
+            item.values.push_back(pair);
+            pair.key = "defclass";
+            pair.value = current_kb_state[i].values[2].value; //A, B or C
+            item.values.push_back(pair);
+            update_kb_srv_.request.knowledge.push_back(item);
+            update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE);
+
+            //UPDATE PREDICTED DEF CLASS FOR BOTH EDGES
+            if(current_kb_state[i].values[1].value == "short")
+            {
+              ROS_INFO("PicknPlace: ADDING %s to %s edge of %s", predicted_def_class_short_edge.c_str(), current_kb_state[i].values[1].value.c_str(), current_kb_state[i].values[0].value.c_str());
+              this->logfile << "PicknPlace: ADDING " << predicted_def_class_short_edge.c_str() << " to " << current_kb_state[i].values[1].value.c_str() << " edge of " << current_kb_state[i].values[0].value.c_str() << std::endl;
+              //Add predicted def class
+              item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
+              item.attribute_name = "obj_grasp_class";
+              item.values.clear();
+              pair.key = "garment";
+              pair.value = current_kb_state[i].values[0].value; //towel, waffle1, waffle2, checkered1...
+              item.values.push_back(pair);
+              pair.key = "grasp";
+              pair.value = current_kb_state[i].values[1].value; //short or long" 
+              item.values.push_back(pair);
+              pair.key = "defclass";
+              pair.value = predicted_def_class_short_edge; 
+              item.values.push_back(pair);
+              update_kb_srv_.request.knowledge.push_back(item);
+              update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE);
+            }
+            else if(current_kb_state[i].values[1].value == "long") 
+            {
+              ROS_INFO("PicknPlace: ADDING %s to %s edge of %s", predicted_def_class_long_edge.c_str(), current_kb_state[i].values[1].value.c_str(), current_kb_state[i].values[0].value.c_str());
+              this->logfile << "PicknPlace: ADDING " << predicted_def_class_long_edge.c_str() << " to " << current_kb_state[i].values[1].value.c_str() << " edge of " << current_kb_state[i].values[0].value.c_str() << std::endl;
+              //Add predicted def class
+              item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
+              item.attribute_name = "obj_grasp_class";
+              item.values.clear();
+              pair.key = "garment";
+              pair.value = current_kb_state[i].values[0].value; //towel, waffle1, waffle2, checkered1...
+              item.values.push_back(pair);
+              pair.key = "grasp";
+              pair.value = current_kb_state[i].values[1].value; //short or long" 
+              item.values.push_back(pair);
+              pair.key = "defclass";
+              pair.value = predicted_def_class_long_edge; 
+              item.values.push_back(pair);
+              update_kb_srv_.request.knowledge.push_back(item);
+              update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE);
+            }
+          } // close if current object
+        } //close for of KB
+      }else
+        ROS_WARN("PicknPlaceAlgNode: Not possible to get current KB state");
+    
+      if(update_kb_client_.call(update_kb_srv_))
+      {
+        ROS_WARN("PicknPlaceAlgNode: Updating knowledge Base!");                           
+      }else
+        ROS_WARN("PicknPlaceAlgNode: Knowledge Base NOT updated!");
+    }//close if known_obj
+  } //close for of list of objects to pile
+}
+  
+
 
 /* PERCEPTION FUNCTIONS */
 // Set and publish handeye transform

@@ -1,9 +1,13 @@
-;; copied from pile2.pddl and tried to apply changes from class.pddl (place succ with defclass)
 ;; place success depends on class, class depends on object and grasp
 ;; Considered piling with second objects pose unknown
 ;; Consider pile orientation to grasp second object (limits possible grasped edge)
 ;; TO DO: test update of new_object parameters, modify planner to plan considering worst case of second object, add time costs to actions, compute best weigth for minimization function
 ;; TO DO2: Add fold layers, Can I have different objects with same name?, Return degrees of rotation according to init and goal edges, Consider different costs for placing and piling
+
+;; consider piles of more than 2 objects
+;; different def classes depending on the object
+;; Consider placed edge of pile with garment_state ?placedcloth placed (before it seems that it didnt work entirely)
+;; con Metric-FF -o rosplan_domain_scalab2.pddl -f rosplan_problem_scalab2.pddl -s 3 -w 0 saca un plan pero tarda un poco
 
 (define (domain PICKNPLACEpileclass)
 
@@ -30,10 +34,10 @@
 	(robot_empty)
 	(known_obj ?cloth - garment)
 	(defstate ?cloth - garment ?class - defclass) 		;;the object has deformation class ?class
-	;;(obj_grasp_class ?cloth - garment ?edge - grasp ?class - defclass) ;; ?cloth grasped by ?edge will produce deformation class ?class
+	(obj_grasp_class ?cloth - garment ?edge - grasp ?class - defclass) ;; ?cloth grasped by ?edge will produce deformation class ?class
 	(on ?piledcloth ?placedcloth - garment)
 	(def_class ?cloth - garment ?class - defclass)
-	(obj_grasp_class ?edge - grasp ?class - defclass) ;;?cloth grasped by ?edge will produce deformation class ?class
+	;;(obj_grasp_class ?edge - grasp ?class - defclass) ;;?cloth grasped by ?edge will produce deformation class ?class
 )
 
 (:functions
@@ -44,34 +48,20 @@
 
 ;; It should consider ?edge and ?ws such that place_succ is the worst (just in case) - HOW??
 ;; Later, once the first object is placed the ?edge and ?ws should be updated with real data - POSSIBLE?
-(:action new_object
-	:parameters (?edge - grasp ?ws - workspace)
-	:precondition (and
-				(garment_state placed_obj placed)
-				(not (known_obj piled_obj))
-				(robot_at high_pose))
-	:effect (and
-			(known_obj piled_obj) 
-			(garment_state piled_obj notgrasped)
-			(not (corners_pos_known piled_obj))
-			(defstate piled_obj flat)
-			;;(def_class piled_obj A)
-			;;(obj_grasp_class ?edge ?class)
-			(increase (time_cost) 0)
-			(increase (place_qual) 0))
-)
 
 ;; Move to any waypoint, avoiding terrain
 (:action check_corners
-	:parameters (?cloth - garment ?ws - workspace ?edge - grasp)
+	:parameters (?cloth - garment)
 	:precondition (and
+				(known_obj ?cloth)
 				(garment_state ?cloth notgrasped)
 				(not (corners_pos_known ?cloth))
+				;;(at_pose ?cloth ?edge)
 				(robot_at high_pose))
 	:effect (and
 			(corners_pos_known ?cloth)
-			(garment_at ?cloth ?ws)
-			(at_pose ?cloth ?edge)
+			;;(garment_at ?cloth ?ws)
+			;;(at_pose ?cloth ?edge)
 			(increase (time_cost) 0)
 			(increase (place_qual) 0))
 )
@@ -108,11 +98,12 @@
 				(at_pose ?cloth ?edge)
 				(garment_state ?cloth notgrasped)
 				(corners_pos_known ?cloth)
-				;;(obj_grasp_class ?cloth ?edge ?class)
+				(obj_grasp_class ?cloth ?edge ?class)
 				;;(def_class ?cloth ?class)
-				(defstate ?cloth flat)
-				(obj_grasp_class ?edge ?class))
+				(defstate ?cloth flat))
+				;;(obj_grasp_class ?edge ?class))
 	:effect (and
+			(at_pose table ?edge)
 			(not (garment_state ?cloth notgrasped))
 			(not (robot_at home))
 			(robot_at else)
@@ -179,11 +170,10 @@
 			(increase (place_qual) 0))
 )
 
-
-
 (:action placediag
-	:parameters (?cloth ?placedcloth - garment ?edge - grasp  ?class - defclass)
+	:parameters (?cloth ?placedcloth ?new_cloth - garment ?edge - grasp  ?class - defclass)
 	:precondition (and
+				(garment_state ?placedcloth placed)
 				(at_pose ?placedcloth ?edge) ;;piledcloth is on placedcloth is in placed with edge
 				(at_pose ?cloth ?edge)
 				(garment_state ?cloth lifted)
@@ -194,13 +184,15 @@
 			(on ?cloth ?placedcloth)
 			(garment_state ?cloth placed)
 			(not (garment_state ?cloth lifted))
+			(known_obj ?new_cloth)
 			(increase (time_cost) 2)
 			(increase (place_qual) (place_succ ?cloth ?class placediag)))
 )
 
 (:action placerot
-	:parameters (?cloth ?placedcloth - garment ?edge - grasp  ?class - defclass)
+	:parameters (?cloth ?placedcloth ?new_cloth - garment ?edge - grasp  ?class - defclass)
 	:precondition (and
+				(garment_state ?placedcloth placed)
 				(at_pose ?placedcloth ?edge) ;;piledcloth is on placedcloth is in placed with edge
 				(at_pose ?cloth ?edge)
 				(garment_state ?cloth lifted)
@@ -211,12 +203,14 @@
 			(on ?cloth ?placedcloth)
 			(garment_state ?cloth placed)
 			(not (garment_state ?cloth lifted))
+			(known_obj ?new_cloth)
 			(increase (time_cost) 3)
 			(increase (place_qual) (place_succ ?cloth ?class placerot)))
 )
 (:action placevert
-	:parameters (?cloth ?placedcloth - garment ?edge - grasp ?class - defclass)
+	:parameters (?cloth ?placedcloth ?new_cloth - garment ?edge - grasp ?class - defclass)
 	:precondition (and 
+				(garment_state ?placedcloth placed)
 				(at_pose ?placedcloth ?edge) ;;piledcloth is on placedcloth is in placed with edge
 				(at_pose ?cloth ?edge)
 				(garment_state ?cloth lifted)
@@ -227,8 +221,12 @@
 			(on ?cloth ?placedcloth)
 			(garment_state ?cloth placed)
 			(not (garment_state ?cloth lifted))
+			(known_obj ?new_cloth)
 			(increase (time_cost) 1)
 			(increase (place_qual) (place_succ ?cloth ?class placevert)))
 )
+
+
+
 
 )

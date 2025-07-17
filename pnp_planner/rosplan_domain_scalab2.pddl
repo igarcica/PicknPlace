@@ -97,6 +97,7 @@
 				(defstate ?cloth flat))
 				;;(obj_grasp_class ?edge ?class))
 	:effect (and
+			(at_pose table ?edge)
 			(not (garment_state ?cloth notgrasped))
 			(not (robot_at home))
 			(robot_at else)
@@ -166,6 +167,7 @@
 (:action placediag
 	:parameters (?cloth ?placedcloth ?new_cloth - garment ?edge - grasp  ?class - defclass)
 	:precondition (and
+				(garment_state ?placedcloth placed)
 				(at_pose ?placedcloth ?edge) ;;piledcloth is on placedcloth is in placed with edge
 				(at_pose ?cloth ?edge)
 				(garment_state ?cloth lifted)
@@ -184,6 +186,7 @@
 (:action placerot
 	:parameters (?cloth ?placedcloth ?new_cloth - garment ?edge - grasp  ?class - defclass)
 	:precondition (and
+				(garment_state ?placedcloth placed)
 				(at_pose ?placedcloth ?edge) ;;piledcloth is on placedcloth is in placed with edge
 				(at_pose ?cloth ?edge)
 				(garment_state ?cloth lifted)
@@ -216,5 +219,8 @@
 			(increase (time_cost) 1)
 			(increase (place_qual) (place_succ ?cloth ?class placevert)))
 )
+
+
+
 
 )

@@ -76,11 +76,10 @@ The rqt_reconfigure parameters related to the planner are:
   - **plan_pddl_demo**: Generates pddl problem based on current state of KB.
 - ***Object's properties***: 
   - **grasp_second_edge**: To force the grasp of the second nearest edge.
-  - **piling**: If there is a pile or not (for computing placement quality).
-  - **object_name**: Object name (towel or pillowc).
-  - **layers**: Labels for the number of layers of the object (4l, 6l, 8l, 12l or 16l).
-  - **stiffness**: Stiffness value of the folded object.
-  - **friction**: Friction value of the folded object.
+  - **n_objs_pile**: Number of objects to pile.
+  - **object_name**: Object name (when the pile is of repeated objects).
+  - **objs_to_pile**: List of objects to pile (comma-separated names).
+  - **layers**: Labels for the number of layers of the object (4l, 6l, 8l, 12l or 16l). If the objects to pile are different (objs_to_pile is used) it should include the list of layers.s
 
 0. Compile the PDDL package that includes the action client (RPTutorial10.cpp):
 
@@ -95,7 +94,7 @@ The rqt_reconfigure parameters related to the planner are:
 
 `` ./tutorial04.bash`` -->
 
-2. Set the object properties in the "C_Object_properties section of the reconfigure, including the object name (pillowc or towel), the number of layers (8l), the stiffness and friction of that case, and if it is desired to force to grasp the second nearest edge and if there is already a pile (for computing pile quality).
+2. Set the object properties in the "C_Object_properties section of the reconfigure, including the number of objects to pile (n_objs_pile), the list of object names (objs_to_pile), the number of layers, and if it is desired to force to grasp the second nearest edge. 
 
 3. Start the demo generating and parsing the plan activating the boolean ``plan_pddl_demo`` in the reconfigure and check if the generated plan is ok.
 

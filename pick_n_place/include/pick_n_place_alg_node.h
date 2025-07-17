@@ -305,7 +305,8 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     rosplan_knowledge_msgs::KnowledgeUpdateServiceArray updateKB_init(void);
     rosplan_knowledge_msgs::KnowledgeUpdateServiceArray updateKB_defstate(void);
     rosplan_knowledge_msgs::KnowledgeUpdateServiceArray updateKB_new_obj(void);
-    void predict_deformation_class(void);
+    void predict_deformation_class(void); //Predicts deformation classes of current object in environment
+    void get_objects_to_pile(void); //Gets properties of the list of objects to pile, predicts deformation classes and updates KB of the planner (for initial plan)
 
     // PDDL variables
     bool plan_pddl_demo;
