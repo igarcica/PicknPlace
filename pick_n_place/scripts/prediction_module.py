@@ -101,7 +101,7 @@ def handle_service(req):
     int_def_class = trained_model.predict(new_sample_processed)
 
     # print(f"Predicted deformation class: {int_def_class[0]}")
-    rospy.loginfo("Deformation Class Prediction: Predicted %i", int_def_class[0])
+    rospy.logdebug("Service predict_def_class: Predicted %i", int_def_class[0])
 
     #If class is 0 then send "A", etc
     if(int_def_class == 0):

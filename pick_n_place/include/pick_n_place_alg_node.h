@@ -200,7 +200,6 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     ros::Subscriber corners_subscriber;
     ros::Subscriber place_corners_subscriber;
     ros::Subscriber pile_height_subscriber;
-    void garment_pose_callback(const visualization_msgs::Marker::ConstPtr& msg);
     void check_worspaces(double garment_center);
     //void garment_angle_callback(const std_msgs::Float64::ConstPtr& msg);
     // void compute_grasp_angle(const std_msgs::Float64& msg);
@@ -304,7 +303,6 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     void managePDDLactions(void);
     rosplan_knowledge_msgs::KnowledgeUpdateServiceArray updateKB_init(void);
     rosplan_knowledge_msgs::KnowledgeUpdateServiceArray updateKB_defstate(void);
-    rosplan_knowledge_msgs::KnowledgeUpdateServiceArray updateKB_new_obj(void);
     void predict_deformation_class(void); //Predicts deformation classes of current object in environment
     void get_objects_to_pile(void); //Gets properties of the list of objects to pile, predicts deformation classes and updates KB of the planner (for initial plan)
 
@@ -320,6 +318,10 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     std::string workspace;
     double stiffness;
     double friction;
+    
+    int n_obj_in_pile; //current piled object
+    std::vector<std::string> objs_names, pddl_objs_names, objs_layers; //list of object names to pile
+    std::vector<double> objs_stiffness, objs_friction, objs_thickn; //stiffness, friction and thicnkess of objects to pile
     
 
     // [action client attributes]

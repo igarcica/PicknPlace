@@ -14,12 +14,11 @@ PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
   double open_gripper = 0.35;
   double close_gripper = 0.97; //0.81;
   // this->piling=false;
-  this->n_objs_pile=1;
+  this->n_objs_pile = 0;
   this->object_thickness_drag = 0.055; //default towel 8l
   this->object_thickness_rotate = 0.07; //default towel 8l
 
   // Garment pose subscriber
-  this->garment_pose_subscriber = this->public_node_handle_.subscribe("/segment_table/grasp_point",1,&PicknPlaceAlgNode::garment_pose_callback,this);
   this->process_grasp_pointcloud = false;
   this->get_garment_position=false;
   this->get_garment_angle=false;
@@ -218,7 +217,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                  {
                    ROS_INFO("PicknPlaneAlgNode: Generating plan");
                    this->pddl_demo = true; 
-                   get_objects_to_pile(); //Update deformation classes of objects to pile
+                   get_objects_to_pile(); //Update deformation classes of objects to pile before planning
                    //call ROSPlan services
                    generate_problem_client_.call(empty_srv_); //Generate problem
                    get_plan_client_.call(empty_srv_); //Get plan - to check the plan rostopic echo /rosplan_planner_interface/planner_output -p -n 1
@@ -750,9 +749,9 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                               {
                                 // this->logfile << "State: CHECK_DEFORMATION" << std::endl;
                                 this->logfile << "--- DEFORMATION CLASS ESTIMATION ---" << std::endl;
-                                this->logfile << "Sensing def class parameters --> object name: " << config_.object_name << ", layers: " << config_.layers << ", nearest_edge: " << this->nearest_edge << std::endl;
-                                sense_deformation_class_srv_.request.object_name = config_.object_name; //obtain form reconfigure
-                                sense_deformation_class_srv_.request.layers = config_.layers;
+                                this->logfile << "Sensing def class parameters --> object name: " << this->objs_names[this->n_obj_in_pile] << ", layers: " << this->objs_layers[this->n_obj_in_pile] << ", nearest_edge: " << this->nearest_edge << std::endl;
+                                sense_deformation_class_srv_.request.object_name = this->objs_names[this->n_obj_in_pile]; //obtain form reconfigure
+                                sense_deformation_class_srv_.request.layers = this->objs_layers[this->n_obj_in_pile];
                                 sense_deformation_class_srv_.request.grasped_edge = this->nearest_edge;
                                 if(sense_deformation_class_client_.call(sense_deformation_class_srv_))
                                 {
@@ -766,7 +765,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                                     this->state=UPDATE_ROSPLAN_KB;
                                   }
                                   else // Continue SM
-                                    this->state=CHOOSE_PLACING; //Change to CHOOSE_PLACING
+                                    this->state=CHOOSE_PLACING; 
                                 }else{
                                   ROS_WARN("PicknPlaceAlgNode (CHECK DEFORMATION): Unable to sense deformation class");
                                   this->state=END;
@@ -1406,41 +1405,41 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                                }
       break;
 
-      //State for ROSPlan
-      case GET_OBJECT_POSE: ROS_DEBUG("PicknPlaceAlgnode: state GET OBJECT POSE");
-                            {
-                              this->logfile << "State: GET_OBJECT_POSE" << std::endl;
-                              //TO DO:
-                              //Get object pose (nearest edge + worspace location)
-                              //Predict def class
-                              //Update KB with object pose
-                              //Replan
-                              update_kb_srv_ = updateKB_new_obj(); //Update based on sensed info (object's pose + predicted deformation class)
-                              if(update_kb_client_.call(update_kb_srv_))
-                              {
-                                ROS_WARN("PicknPlaceAlgNode: Knowledge Base updated!");
-                                ROS_WARN("PicknPlaceAlgNode: Canceling current dispatch plan to replan");
-                                as_.setPreempted(); //Stop current plan and replan with updated KB
-                                this->plan_pddl_demo=true; //Generate new problem and plan
-                                this->state=IDLE;
-                              }else{
-                                ROS_WARN("PicknPlaceAlgNode: Knowledge Base NOT updated!");
-                                this->state=END;
-                              }
-                            }
-      break;
+      // //State for ROSPlan
+      // case GET_OBJECT_POSE: ROS_DEBUG("PicknPlaceAlgnode: state GET OBJECT POSE");
+      //                       {
+      //                         this->logfile << "State: GET_OBJECT_POSE" << std::endl;
+      //                         //TO DO:
+      //                         //Get object pose (nearest edge + worspace location)
+      //                         //Predict def class
+      //                         //Update KB with object pose
+      //                         //Replan
+      //                         update_kb_srv_ = updateKB_new_obj(); //Update based on sensed info (object's pose + predicted deformation class)
+      //                         if(update_kb_client_.call(update_kb_srv_))
+      //                         {
+      //                           ROS_WARN("PicknPlaceAlgNode: Knowledge Base updated!");
+      //                           ROS_WARN("PicknPlaceAlgNode: Canceling current dispatch plan to replan");
+      //                           as_.setPreempted(); //Stop current plan and replan with updated KB
+      //                           this->plan_pddl_demo=true; //Generate new problem and plan
+      //                           this->state=IDLE;
+      //                         }else{
+      //                           ROS_WARN("PicknPlaceAlgNode: Knowledge Base NOT updated!");
+      //                           this->state=END;
+      //                         }
+      //                       }
+      // break;
 
 
       case CHECK_PLACING_QUAL: ROS_INFO("PicknPlaceAlgNode: state CHECK PLACING QUALITY");
                               {
                                 // this->logfile << "State: CHECK_PLACING_QUAL" << std::endl;
                                 this->logfile << "--- PLACING QUALITY ESTIMATION ---" << std::endl;
-                                this->logfile << "Placing quality parameters --> object name: " << config_.object_name << ", nearest_edge: " << this->nearest_edge << ", objs_in_pile: " << this->n_objs_pile << std::endl;
-                                get_placing_quality_srv_.request.object_name = config_.object_name; //obtained form reconfigure
-                                get_placing_quality_srv_.request.layers = config_.layers; //obtained form reconfigure
+                                this->logfile << "Placing quality parameters --> object name: " << this->objs_names[this->n_obj_in_pile] << ", nearest_edge: " << this->nearest_edge << ", object number in pile: " << this->n_objs_pile+1 << std::endl;
+                                get_placing_quality_srv_.request.object_name = this->objs_names[this->n_obj_in_pile]; //obtained form reconfigure
+                                get_placing_quality_srv_.request.layers = this->objs_layers[this->n_obj_in_pile]; //obtained form reconfigure
                                 get_placing_quality_srv_.request.grasped_edge = this->nearest_edge;
                                 // get_placing_quality_srv_.request.piling = this->piling;
-                                get_placing_quality_srv_.request.n_objs_pile = this->n_objs_pile;
+                                get_placing_quality_srv_.request.n_objs_pile = this->n_objs_pile+1;
                                 if(get_placing_quality_client_.call(get_placing_quality_srv_))
                                 {
                                   ROS_INFO("PicknPlace: Placing quality: %f", get_placing_quality_srv_.response.placing_quality);
@@ -1449,6 +1448,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                                   this->placing_quality = get_placing_quality_srv_.response.placing_quality;
                                   if(this->pddl_demo)
                                    {
+                                     this->n_objs_pile += 1; //Next object of the list
                                      this->pddl_action_done=true; // End PDDL action
                                      this->state=IDLE;
                                    }
@@ -1810,17 +1810,22 @@ void PicknPlaceAlgNode::PDDLgoalCB()
   
 
   // start executing the action
-  if(0==goal->action_name.compare("check_corners")) 
+  if(0==goal->action_name.compare("home")) 
+  {
+    ROS_WARN("PicknPlace: Executing HOME section of the FSM");
+    this->start_demo=true;
+  }
+  else if(0==goal->action_name.compare("go_high")) 
+  {
+    ROS_WARN("PicknPlace: GO HIGH action");
+    this->state=CHECK_CORNERS_POSE;
+  }
+  else if(0==goal->action_name.compare("check_corners")) 
   {
     ROS_INFO("PicknPlace: PDDL Action %s received", goal->action_name.c_str());
     ROS_WARN("PicknPlace: Executing CHECK CORNERS section of the finite state machine");
     this->process_grasp_pointcloud=true;
     this->get_garment_position=true;
-  }
-  else if(0==goal->action_name.compare("home")) 
-  {
-    ROS_WARN("PicknPlace: Executing HOME section of the FSM");
-    this->start_demo=true;
   }
   else if(0==goal->action_name.compare("grasp")) 
   {
@@ -1871,20 +1876,15 @@ void PicknPlaceAlgNode::PDDLgoalCB()
     this->rotation=90;
     this->state=PRE_PRE_ROTATE;
   }
-  else if(0==goal->action_name.compare("go_high")) 
-  {
-    ROS_WARN("PicknPlace: GO HIGH action");
-    this->state=CHECK_CORNERS_POSE;
-  }
-  else if(0==goal->action_name.compare("new_object")) 
-  {
-    ROS_WARN("PicknPlace: NEW OBJECT action");
-    // this->piling=true;
-    this->n_objs_pile+=1;
-    this->pddl_action_done=true;
-    // this->get_garment_position=true;
-    // this->state=GET_OBJECT_POSE;
-  }
+  // else if(0==goal->action_name.compare("new_object")) 
+  // {
+  //   ROS_WARN("PicknPlace: NEW OBJECT action");
+  //   // this->piling=true;
+  //   this->n_objs_pile+=1;
+  //   this->pddl_action_done=true;
+  //   // this->get_garment_position=true;
+  //   // this->state=GET_OBJECT_POSE;
+  // }
   else
   {
     ROS_WARN("PicknPlace: No action received");
@@ -1959,7 +1959,7 @@ rosplan_knowledge_msgs::KnowledgeUpdateServiceArray PicknPlaceAlgNode::updateKB_
   // rosplan_knowledge_msgs::KnowledgeItem[] current_kb_state;
   
   std::vector<rosplan_knowledge_msgs::KnowledgeItem> current_kb_state;
-  std::string object;
+  // std::string object;
 
   std::cout << "Nearest edge " << this->nearest_edge <<std::endl;
   std::cout << "Workspace " << this->workspace <<std::endl;
@@ -1973,37 +1973,40 @@ rosplan_knowledge_msgs::KnowledgeUpdateServiceArray PicknPlaceAlgNode::updateKB_
     ROS_WARN("Update garment_at");
 
     for(size_t i=0; i<current_kb_state.size(); i++) {
-      //Remove previous workspace
-      ROS_INFO("PicknPlace: REMOVING %s to %s", current_kb_state[i].values[1].value.c_str(), current_kb_state[i].values[0].value.c_str());
-      this->logfile << "PicknPlace: REMOVING " << current_kb_state[i].values[1].value.c_str() << " to " << current_kb_state[i].values[0].value.c_str() << std::endl;
-      rosplan_knowledge_msgs::KnowledgeItem item;
-      item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
-      item.attribute_name = "garment_at";
-      item.values.clear();
-      diagnostic_msgs::KeyValue pair;
-      pair.key = "cloth";
-      pair.value = current_kb_state[i].values[0].value; //"towel" or "hola"
-      item.values.push_back(pair);
-      pair.key = "ws";
-      pair.value = current_kb_state[i].values[1].value; //"grws"; //Get from current KB state
-      item.values.push_back(pair);
-      update_kb_srv_.request.knowledge.push_back(item);
-      update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE);
+      if(current_kb_state[i].values[0].value == this->pddl_objs_names[this->n_obj_in_pile]) //Update only the CURRENT object state
+      {
+        //Remove previous workspace
+        ROS_INFO("PicknPlace: REMOVING %s to %s", current_kb_state[i].values[1].value.c_str(), current_kb_state[i].values[0].value.c_str());
+        this->logfile << "PicknPlace: REMOVING " << current_kb_state[i].values[1].value.c_str() << " to " << current_kb_state[i].values[0].value.c_str() << std::endl;
+        rosplan_knowledge_msgs::KnowledgeItem item;
+        item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
+        item.attribute_name = "garment_at";
+        item.values.clear();
+        diagnostic_msgs::KeyValue pair;
+        pair.key = "cloth";
+        pair.value = current_kb_state[i].values[0].value; //"towel" 
+        item.values.push_back(pair);
+        pair.key = "ws";
+        pair.value = current_kb_state[i].values[1].value; //"grws"; //Get from current KB state
+        item.values.push_back(pair);
+        update_kb_srv_.request.knowledge.push_back(item);
+        update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE);
 
-      ROS_INFO("PicknPlace: ADDING %s to %s", this->workspace.c_str(), current_kb_state[i].values[0].value.c_str());
-      this->logfile << "PicknPlace: ADDING " << this->workspace.c_str() << " to " << current_kb_state[i].values[0].value.c_str() << std::endl;
-      //Add sensed workspace
-      item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
-      item.attribute_name = "garment_at";
-      item.values.clear();
-      pair.key = "cloth";
-      pair.value = current_kb_state[i].values[0].value; //"towel"; //Get from current KB state 
-      item.values.push_back(pair);
-      pair.key = "ws";
-      pair.value = this->workspace;
-      item.values.push_back(pair);
-      update_kb_srv_.request.knowledge.push_back(item);
-      update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE);
+        ROS_INFO("PicknPlace: ADDING %s to %s", this->workspace.c_str(), current_kb_state[i].values[0].value.c_str());
+        this->logfile << "PicknPlace: ADDING " << this->workspace.c_str() << " to " << current_kb_state[i].values[0].value.c_str() << std::endl;
+        //Add sensed workspace
+        item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
+        item.attribute_name = "garment_at";
+        item.values.clear();
+        pair.key = "cloth";
+        pair.value = current_kb_state[i].values[0].value; //"towel"; //Get from current KB state 
+        item.values.push_back(pair);
+        pair.key = "ws";
+        pair.value = this->workspace;
+        item.values.push_back(pair);
+        update_kb_srv_.request.knowledge.push_back(item);
+        update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE);
+      }
     }
     // return update_kb_srv_;
     // std::cout << current_kb_state[0].values.value[1] << std::endl;
@@ -2018,51 +2021,55 @@ rosplan_knowledge_msgs::KnowledgeUpdateServiceArray PicknPlaceAlgNode::updateKB_
     ROS_WARN("Update at_pose");
 
     for(size_t i=0; i<current_kb_state.size(); i++) {
-      if(this->n_objs_pile>1) //If the object to grasp is to be piled, modify at_pose of towel2. Otherwise, towel
-        object = "towel2";
-      else
-        object="towel";
-      //Remove previous edge
-      // ROS_INFO("PicknPlace: REMOVING %s to %s", current_kb_state[i].values[1].value.c_str(), current_kb_state[i].values[0].value.c_str());
-      // this->logfile << "PicknPlace: REMOVING " << current_kb_state[i].values[1].value.c_str() << " to " << current_kb_state[i].values[0].value.c_str() << std::endl;
-      ROS_INFO("PicknPlace: REMOVING %s to %s", current_kb_state[i].values[1].value.c_str(), object.c_str());
-      this->logfile << "PicknPlace: REMOVING " << current_kb_state[i].values[1].value.c_str() << " to " << object.c_str() << std::endl;
-      rosplan_knowledge_msgs::KnowledgeItem item;
-      item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
-      item.attribute_name = "at_pose";
-      item.values.clear();
-      diagnostic_msgs::KeyValue pair;
-      pair.key = "cloth";
-      // pair.value = current_kb_state[i].values[0].value; //"towel" or "hola"
-      pair.value = object;
-      item.values.push_back(pair);
-      pair.key = "edge";
-      pair.value = current_kb_state[i].values[1].value; //"long / short"; //Get from current KB state
-      item.values.push_back(pair);
-      update_kb_srv_.request.knowledge.push_back(item);
-      update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE);
+      // if(this->n_objs_pile>1) //If the object to grasp is to be piled, modify at_pose of towel2. Otherwise, towel
+      //   object = "towel2";
+      // else
+      //   object="towel";
+      if(current_kb_state[i].values[0].value == this->pddl_objs_names[this->n_obj_in_pile]) //Update only the CURRENT object state
+      {
+        //Remove previous edge
+        ROS_INFO("PicknPlace: REMOVING %s to %s", current_kb_state[i].values[1].value.c_str(), current_kb_state[i].values[0].value.c_str());
+        this->logfile << "PicknPlace: REMOVING " << current_kb_state[i].values[1].value.c_str() << " to " << current_kb_state[i].values[0].value.c_str() << std::endl;
+        // ROS_INFO("PicknPlace: REMOVING %s to %s", current_kb_state[i].values[1].value.c_str(), object.c_str());
+        // this->logfile << "PicknPlace: REMOVING " << current_kb_state[i].values[1].value.c_str() << " to " << object.c_str() << std::endl;
+        rosplan_knowledge_msgs::KnowledgeItem item;
+        item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
+        item.attribute_name = "at_pose";
+        item.values.clear();
+        diagnostic_msgs::KeyValue pair;
+        pair.key = "cloth";
+        pair.value = current_kb_state[i].values[0].value; //towel, check, etc
+        // pair.value = object;
+        item.values.push_back(pair);
+        pair.key = "edge";
+        pair.value = current_kb_state[i].values[1].value; //"long / short"
+        item.values.push_back(pair);
+        update_kb_srv_.request.knowledge.push_back(item);
+        update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE);
 
-      //Add nearest edge
-      // ROS_INFO("PicknPlace: ADDING %s to %s", this->nearest_edge.c_str(), current_kb_state[i].values[0].value.c_str());
-      // this->logfile << "PicknPlace: ADDING " << this->nearest_edge.c_str() << " to " << current_kb_state[i].values[0].value.c_str() << std::endl;
-      ROS_INFO("PicknPlace: ADDING %s to %s", this->nearest_edge.c_str(), object.c_str());
-      this->logfile << "PicknPlace: ADDING " << this->nearest_edge.c_str() << " to " << object.c_str() << std::endl;
-      item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
-      item.attribute_name = "at_pose";
-      item.values.clear();
-      pair.key = "cloth";
-      // pair.value = current_kb_state[i].values[0].value; //"towel"; //Get from current KB state
-      pair.value = object; 
-      item.values.push_back(pair);
-      pair.key = "edge";
-      pair.value = this->nearest_edge;
-      item.values.push_back(pair);
-      update_kb_srv_.request.knowledge.push_back(item);
-      update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE);
+        // Add nearest edge
+        ROS_INFO("PicknPlace: ADDING %s to %s", this->nearest_edge.c_str(), current_kb_state[i].values[0].value.c_str());
+        this->logfile << "PicknPlace: ADDING " << this->nearest_edge.c_str() << " to " << current_kb_state[i].values[0].value.c_str() << std::endl;
+        // ROS_INFO("PicknPlace: ADDING %s to %s", this->nearest_edge.c_str(), object.c_str());
+        // this->logfile << "PicknPlace: ADDING " << this->nearest_edge.c_str() << " to " << object.c_str() << std::endl;
+        item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
+        item.attribute_name = "at_pose";
+        item.values.clear();
+        pair.key = "cloth";
+        pair.value = current_kb_state[i].values[0].value; //towel, check, etc
+        // pair.value = object; 
+        item.values.push_back(pair);
+        pair.key = "edge";
+        pair.value = this->nearest_edge;
+        item.values.push_back(pair);
+        update_kb_srv_.request.knowledge.push_back(item);
+        update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE);
+      }
     }
   }else
       ROS_WARN("PicknPlaceAlgNode: Not possible to get current KB state");
 
+  /* //We predict the classes of all the objects to pile before starting
   //PREDICTED DEFORMATION CLASS - Udates both edges
   get_kb_state_srv_.request.predicate_name = "obj_grasp_class"; 
   if(get_kb_state_client_.call(get_kb_state_srv_))
@@ -2137,6 +2144,7 @@ rosplan_knowledge_msgs::KnowledgeUpdateServiceArray PicknPlaceAlgNode::updateKB_
     }
   }else
       ROS_WARN("PicknPlaceAlgNode: Not possible to get current KB state");
+      */
 
   return update_kb_srv_; //What if service could not be called?
   
@@ -2158,219 +2166,53 @@ rosplan_knowledge_msgs::KnowledgeUpdateServiceArray PicknPlaceAlgNode::updateKB_
     current_kb_state = get_kb_state_srv_.response.attributes;
 
     for(size_t i=0; i<current_kb_state.size(); i++) {
-      // std::cout << "PicknPlace: Sense deformation class: " << this->sensed_deformation_class << std::endl;
-      ROS_INFO("PicknPlace: REMOVING %s to %s", current_kb_state[i].values[1].value.c_str(), current_kb_state[i].values[0].value.c_str());
-      this->logfile << "PicknPlace: REMOVING " << current_kb_state[i].values[1].value.c_str() << " to " << current_kb_state[i].values[0].value.c_str() << std::endl;
+      if(current_kb_state[i].values[0].value == this->pddl_objs_names[this->n_obj_in_pile]) //Update only the CURRENT object state
+      {
+        // std::cout << "PicknPlace: Sense deformation class: " << this->sensed_deformation_class << std::endl;
+        ROS_INFO("PicknPlace: REMOVING %s to %s", current_kb_state[i].values[1].value.c_str(), current_kb_state[i].values[0].value.c_str());
+        this->logfile << "PicknPlace: REMOVING " << current_kb_state[i].values[1].value.c_str() << " to " << current_kb_state[i].values[0].value.c_str() << std::endl;
 
-      //Remove previous def class
-      rosplan_knowledge_msgs::KnowledgeItem item;
-      item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
-      item.attribute_name = "defstate";
-      item.values.clear();
-      diagnostic_msgs::KeyValue pair;
-      pair.key = "cloth";
-      pair.value = current_kb_state[i].values[0].value; //"towel" or "hola"
-      item.values.push_back(pair);
-      pair.key = "class";
-      pair.value = current_kb_state[i].values[1].value; //"a"; //Get from current KB state
-      item.values.push_back(pair);
-      update_kb_srv_.request.knowledge.push_back(item);
-      update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE);
+        //Remove previous def class
+        rosplan_knowledge_msgs::KnowledgeItem item;
+        item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
+        item.attribute_name = "defstate";
+        item.values.clear();
+        diagnostic_msgs::KeyValue pair;
+        pair.key = "cloth";
+        pair.value = current_kb_state[i].values[0].value; //towel, waffle1, check2...
+        item.values.push_back(pair);
+        pair.key = "class";
+        pair.value = current_kb_state[i].values[1].value; //"a"; //Get from current KB state
+        item.values.push_back(pair);
+        update_kb_srv_.request.knowledge.push_back(item);
+        update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE);
 
-      ROS_INFO("PicknPlace: ADDING %s to %s", this->sensed_deformation_class.c_str(), current_kb_state[i].values[0].value.c_str());
-      this->logfile << "PicknPlace: ADDING " << this->sensed_deformation_class.c_str() << " to " << current_kb_state[i].values[0].value.c_str() << std::endl;
-      //Add sensed def class
-      item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
-      item.attribute_name = "defstate";
-      item.values.clear();
-      pair.key = "cloth";
-      pair.value = current_kb_state[i].values[0].value; //"towel"; //Get from current KB state 
-      item.values.push_back(pair);
-      pair.key = "class";
-      pair.value = this->sensed_deformation_class;
-      item.values.push_back(pair);
-      update_kb_srv_.request.knowledge.push_back(item);
-      update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE);
-
+        ROS_INFO("PicknPlace: ADDING %s to %s", this->sensed_deformation_class.c_str(), current_kb_state[i].values[0].value.c_str());
+        this->logfile << "PicknPlace: ADDING " << this->sensed_deformation_class.c_str() << " to " << current_kb_state[i].values[0].value.c_str() << std::endl;
+        //Add sensed def class
+        item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
+        item.attribute_name = "defstate";
+        item.values.clear();
+        pair.key = "cloth";
+        pair.value = current_kb_state[i].values[0].value; //"towel"; //Get from current KB state 
+        item.values.push_back(pair);
+        pair.key = "class";
+        pair.value = this->sensed_deformation_class;
+        item.values.push_back(pair);
+        update_kb_srv_.request.knowledge.push_back(item);
+        update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE);
+      }
     }
     return update_kb_srv_;
     
     // std::cout << current_kb_state[0].values.value[1] << std::endl;
   }else
     ROS_WARN("PicknPlaceAlgNode: Not possible to get current KB state");
-  
-  // //for loop current_kb_state[i]
-  // //Remove previous def class
-  // rosplan_knowledge_msgs::KnowledgeItem item;
-	// item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
-	// item.attribute_name = "defstate";
-	// item.values.clear();
-	// diagnostic_msgs::KeyValue pair;
-  // pair.key = "cloth";
-	// pair.value = "towel"; //current_kb_state[0].values[0].value; //"towel" or "hola"
-	// item.values.push_back(pair);
-  // pair.key = "class";
-	// pair.value = "A"; //current_kb_state[0].values[1].value; //"a"; //Get from current KB state
-	// item.values.push_back(pair);
-  // update_kb_srv_.request.knowledge.push_back(item);
-	// update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE);
-
-  // //Add sensed def class
-	// item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
-	// item.attribute_name = "defstate";
-	// item.values.clear();
-  // pair.key = "cloth";
-	// pair.value = "towel"; //current_kb_state[0].values[0].value; //"towel"; //Get from current KB state
-	// item.values.push_back(pair);
-  // pair.key = "class";
-	// pair.value = "B"; //sensed_deformation_class;
-	// item.values.push_back(pair);
-  // update_kb_srv_.request.knowledge.push_back(item);
-	// update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE);
 
   // return update_kb_srv_;
 }
 
-rosplan_knowledge_msgs::KnowledgeUpdateServiceArray PicknPlaceAlgNode::updateKB_new_obj(void)
-{
-	//TO DO: Get predicates and params from current KB state
-  this->logfile << "Updating KB: defstate\n";
-
-
-
-
-  //Update deformation class in ROSPlan knowledge base to replan accordingly
-
-  // //Add (known_obj hola)
-  // rosplan_knowledge_msgs::KnowledgeItem item;
-	// item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
-	// item.attribute_name = "known_obj";
-	// item.values.clear();
-	// diagnostic_msgs::KeyValue pair;
-  // pair.key = "cloth";
-	// pair.value = "hola"; 
-	// item.values.push_back(pair);
-  // update_kb_srv_.request.knowledge.push_back(item);
-  // update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE);
-
-  // //Add (garment_at hola rotws)
-	// item.attribute_name = "garment_at";
-	// item.values.clear();
-	// item.values.push_back(pair);
-  // pair.key = "cloth";
-	// pair.value = "hola"; 
-  // pair.key = "ws";
-	// pair.value = "rotws"; 
-	// item.values.push_back(pair);
-  // update_kb_srv_.request.knowledge.push_back(item);
-	// update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE);
-
-  // //Add (at_pose hola short)
-	// item.attribute_name = "at_pose";
-	// item.values.clear();
-	// item.values.push_back(pair);
-  // pair.key = "cloth";
-	// pair.value = "hola"; 
-  // pair.key = "edge";
-	// pair.value = "short"; 
-	// item.values.push_back(pair);
-  // update_kb_srv_.request.knowledge.push_back(item);
-	// update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE);
-
-  // //Add (garment_state hola notgrasped)
-	// item.attribute_name = "garment_state";
-	// item.values.clear();
-	// item.values.push_back(pair);
-  // pair.key = "cloth";
-	// pair.value = "hola"; 
-  // pair.key = "state";
-	// pair.value = "notgrasped"; 
-	// item.values.push_back(pair);
-  // update_kb_srv_.request.knowledge.push_back(item);
-	// update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE);
-
-  // //Remove (not (corners_pos_known hola))
-  // item.attribute_name = "corners_pos_known";
-	// item.values.clear();
-	// item.values.push_back(pair);
-  // pair.key = "cloth";
-	// pair.value = "hola"; 
-	// item.values.push_back(pair);
-  // update_kb_srv_.request.knowledge.push_back(item);
-	// update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE);
-
-  // //Add (defstate hola flat)
-  // item.attribute_name = "defstate";
-	// item.values.clear();
-	// item.values.push_back(pair);
-  // pair.key = "cloth";
-	// pair.value = "hola"; 
-  // pair.key = "state2";
-	// pair.value = "flat"; 
-	// item.values.push_back(pair);
-  // update_kb_srv_.request.knowledge.push_back(item);
-	// update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE);
-  // 
-  // // Add (def_class hola B)
-  // item.attribute_name = "def_class";
-	// item.values.clear();
-	// item.values.push_back(pair);
-  // pair.key = "cloth";
-	// pair.value = "hola"; 
-  // pair.key = "class";
-	// pair.value = "B"; 
-	// item.values.push_back(pair);
-  // update_kb_srv_.request.knowledge.push_back(item);
-	// update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE);
-
-  // // Remove (def_class hola A)
-  // item.attribute_name = "def_class";
-	// item.values.clear();
-	// item.values.push_back(pair);
-  // pair.key = "cloth";
-	// pair.value = "hola"; 
-  // pair.key = "class";
-	// pair.value = "A"; 
-	// item.values.push_back(pair);
-  // update_kb_srv_.request.knowledge.push_back(item);
-	// update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE);
-
-  /*//Remove previous def class
-  rosplan_knowledge_msgs::KnowledgeItem item;
-	item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
-	item.attribute_name = "defstate";
-	item.values.clear();
-	diagnostic_msgs::KeyValue pair;
-  pair.key = "cloth";
-	pair.value = "hola"; //Get from current KB state
-	item.values.push_back(pair);
-  pair.key = "class";
-	pair.value = "a"; //Get from current KB state
-	item.values.push_back(pair);
-  update_kb_srv_.request.knowledge.push_back(item);
-	update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE);
-
-  //Add def class
-  // rosplan_knowledge_msgs::KnowledgeItem item;
-	item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
-	item.attribute_name = "defstate";
-	item.values.clear();
-	// diagnostic_msgs::KeyValue pair;
-  pair.key = "cloth";
-	pair.value = "hola"; //Get from current KB state
-	item.values.push_back(pair);
-  pair.key = "class";
-	pair.value = "B"; //predicted deformation class
-	item.values.push_back(pair);
-  update_kb_srv_.request.knowledge.push_back(item);
-	update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE);
-
-  return update_kb_srv_; */
-
-
-}
-
-void PicknPlaceAlgNode::predict_deformation_class(void)
+/*void PicknPlaceAlgNode::predict_deformation_class(void)
 {
   ROS_INFO("PicknPlace: Predicting deformation class");
   this->logfile << "\n--- PREDICTION OF DEFORMATION CLASS ---\n";
@@ -2410,11 +2252,13 @@ void PicknPlaceAlgNode::predict_deformation_class(void)
   this->logfile << "======= Predicted def class for second nearest edge (" << this->second_nearest_edge << "): " << this->predicted_def_class_second_nearest_edge << std::endl;
   this->logfile << "Preiction parameters -> Layers: " << config_.layers << ", Grasp: " << this->second_nearest_edge << ", nongraspedsize: " << this->grasped_edge_size*100 << ", graspedsize: " << this->not_grasped_edge_size*100 << ", area: " << (this->grasped_edge_size*100) * (this->not_grasped_edge_size*100) << ", stiffness: " << this->stiffness << ", friction: " << this->friction << std::endl;
 }
+*/
 
 void PicknPlaceAlgNode::get_objects_to_pile(void)
 {
-  // Save edge sizes, stiffness of the objects to pile for predict deformation class.
-  ROS_INFO("PicknPlaceAlgNode: getting list of objects to pile");
+  // Save edge sizes, stiffness of the objects to pile for predict deformation class and provide an initial plan
+  // TODO: Modify PDDL goal based on list
+  ROS_INFO("PicknPlaceAlgNode: Getting list of objects to pile");
 
   bool known_obj;
   std::string object_name;
@@ -2424,26 +2268,23 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
   std::vector<rosplan_knowledge_msgs::KnowledgeItem> current_kb_state;
 
   //Separate comma-separated strings (config object names and layers) into individual strings
-  std::vector<std::string> objs_to_pile_v;
-  std::stringstream ss(config_.objs_to_pile);
-  std::string token;
+  std::stringstream ss(config_.objs_to_pile); 
+  std::string token; 
   for (; std::getline(ss, token, ','); ) //Split comma-separated strings
   {
-    std::cout << "hola" << token << std::endl;
     auto start = std::find_if_not(token.begin(), token.end(), ::isspace);
     auto end   = std::find_if_not(token.rbegin(), token.rend(), ::isspace).base();
     token = (start < end) ? std::string(start, end) : ""; //Remove whitespaces
-    objs_to_pile_v.push_back(token);
+    this->pddl_objs_names.push_back(token);
   }
   
-  std::vector<std::string> layers_v;
   std::stringstream ss2(config_.layers);
   for (; std::getline(ss2, token, ','); )
   {
     auto start = std::find_if_not(token.begin(), token.end(), ::isspace);
     auto end   = std::find_if_not(token.rbegin(), token.rend(), ::isspace).base();
     token = (start < end) ? std::string(start, end) : ""; 
-    layers_v.push_back(token);
+    this->objs_layers.push_back(token);
   }
 
   //Check for errors in input (different number of objects and layers, different number of n_objs_to_pile and object/layers, non-existing objects, etc)
@@ -2455,62 +2296,142 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
 
   for (int i = 0; i < config_.n_objs_pile; i++) //Get all the cloth names and layers of the objects to pile introduced in the reconfigure
   {
-    known_obj = true;
-    object_name = objs_to_pile_v[i];
-    n_layers = layers_v[i];
-    std::cout << "object: " << object_name << std::endl;
-    std::cout << "layers: " << n_layers << std::endl;
+    known_obj = false;
+    object_name = this->pddl_objs_names[i]; //pddl names (towel, check1, check2, waffle1, etc)
+    n_layers = this->objs_layers[i];
 
     //GET OBJECT PROPERTIES
-    if (object_name == "towel" && n_layers == "8l") {
-      short_edge_size = 25;
-      long_edge_size = 25;
-      stiffness = 99.9;
-      friction = 80;
-      // object_thickness_drag = 0.055; // For drag action
-      // object_thickness_rotate = 0.07; // For rotate action
-    } else if (object_name == "towel" && n_layers == "12l") {
-      stiffness = 100;
-      friction = 78;
-      short_edge_size = 25;
-      long_edge_size = 25;
-    //   // this->object_thickness = 0.07; // For drag action - to check
-    //   // this->object_thickness_rotate = 0.09; // For rotate action - to check
-    // } else if (config.object_name == "pillowc" && config.layers == "8l") {
-    //   this->stiffness = 60.1;
-    //   this->friction = 79; //82.7;
-    //   this->object_thickness_drag = 0.035; // For drag action
-    //   this->object_thickness_rotate = 0.057; // For rotate action
-    // } else if (config.object_name == "pillowc" && config.layers == "12l") {
-    //   this->stiffness = 70;
-    //   this->friction = 76;
-    // } else if (config.object_name == "cotnap" && config.layers == "4l") {
-    //   this->stiffness = 61.8;
-    //   this->friction = 80;
-    // } else if (config.object_name == "linenap" && config.layers == "8l") {
-    //   this->stiffness = 74.5;
-    //   this->friction = 82;
-    } else if (object_name == "waffle2" && n_layers == "8l") {
-      stiffness = 85.7;
-      friction = 85;
-      short_edge_size = 12;
-      long_edge_size = 25;
+    // if (object_name == "towel" && n_layers == "8l") {
+    if (object_name.find("towel") != std::string::npos) //if object_name contains "towel"
+    {
+      this->objs_names.push_back("towel");
+      if(n_layers == "8l")
+      {
+        known_obj = true;
+        short_edge_size = 23; //check
+        long_edge_size = 25;
+        stiffness = 99.9;
+        friction = 80;
+        // this->objs_stiffness.push_back(99.9);
+        // this->objs_friction.push_back(80);
+        // object_thickness_drag = 0.055; // For drag action
+        // object_thickness_rotate = 0.07; // For rotate action
+      }
+      else if(n_layers == "12l")
+      {
+        known_obj = true;
+        stiffness = 100;
+        friction = 78;
+        short_edge_size = 15;
+        long_edge_size = 25;
+        // this->object_thickness = 0.07; // For drag action - to check
+        // this->object_thickness_rotate = 0.09; // For rotate action - to check
+      }
+    }
+    else if (object_name.find("pillowc") != std::string::npos)
+    {
+      this->objs_names.push_back("pillowc");
+      if(n_layers == "8l")
+      {
+        known_obj = true;
+        stiffness = 60.1;
+        friction = 79; //82.7;
+        this->object_thickness_drag = 0.035; // For drag action
+        this->object_thickness_rotate = 0.057; // For rotate action
+        short_edge_size = 23; 
+        long_edge_size = 28;
+      } 
+      else if (n_layers == "12l") 
+      {
+        known_obj = true;
+        stiffness = 70;
+        friction = 76;
+        short_edge_size = 15; //check
+        long_edge_size = 28;
+      }
+    }
+    else if (object_name.find("cotnap") != std::string::npos)
+    {
+      this->objs_names.push_back("cotnap");
+      if(n_layers == "4l")
+      {
+        known_obj = true;
+        stiffness = 61.8;
+        friction = 80;
+        short_edge_size = 25;
+        long_edge_size = 25;
+      }
+    }
+    else if (object_name.find("linenap") != std::string::npos) 
+    {
+      this->objs_names.push_back("linenap");
+      if(n_layers == "8l")
+      {
+        known_obj = true;
+        stiffness = 74.5;
+        friction = 82;
+        short_edge_size = 13;
+        long_edge_size = 25;
+      }
+      else if(n_layers == "16l") 
+      {
+        known_obj = true;
+        stiffness = 80;
+        friction = 81; 
+        short_edge_size = 12;
+        long_edge_size = 12;
+        this->object_thickness_drag = 0.03; // For drag action
+        this->object_thickness_rotate = 0.06; // For rotate action
+      }
+    }
+    else if (object_name.find("waffle") != std::string::npos) 
+    {
+      this->objs_names.push_back("waffle");
+      if(n_layers == "8l")
+      {
+        known_obj = true;
+        stiffness = 85.7;
+        friction = 85;
+        short_edge_size = 18;
+        long_edge_size = 25;
     //   this->object_thickness_drag = 0.04; // For drag action
     //   this->object_thickness_rotate = 0.065; // For rotate action
-    // } else if (config.object_name == "check" && config.layers == "6l") {
-    //   this->stiffness = 49;
-    //   this->friction = 87; //88.4
-    //   this->object_thickness_drag = 0.03; // For drag action
-    //   this->object_thickness_rotate = 0.06; // For rotate action
-    // } else if (config.object_name == "linenap" && config.layers == "16l") {
-    // this->stiffness = 80;
-    // this->friction = 81; 
-    // this->object_thickness_drag = 0.03; // For drag action
-    // this->object_thickness_rotate = 0.06; // For rotate action
-    } else {
-      known_obj = false;
-      ROS_WARN("Unkown object properties for: %s + %s", object_name.c_str(), n_layers.c_str());
+      }
     }
+    else if (object_name.find("check") != std::string::npos) 
+    {
+      this->objs_names.push_back("check");
+      if(n_layers == "6l")
+      {
+        known_obj = true;
+        stiffness = 49;
+        friction = 87; //88.4
+        this->object_thickness_drag = 0.03; // For drag action
+        this->object_thickness_rotate = 0.06; // For rotate action
+        short_edge_size = 16; //check
+        long_edge_size = 35; //check
+      }
+      else if(n_layers == "8l") //TO CHECK!!
+      {
+        known_obj = true;
+        stiffness = 70;
+        friction = 84; 
+        short_edge_size = 18;
+        long_edge_size = 25;
+      }
+    }
+    else if (object_name.find("twlrag") != std::string::npos) 
+    {
+      this->objs_names.push_back("twlrag");
+      if(n_layers == "8l")
+      {
+        known_obj = true;
+        stiffness = 85; //to check (more or less than waffle?)
+        friction = 85; //to check
+        short_edge_size = 18;
+        long_edge_size = 25;
+      }
+    } 
     
     //PREDICT DEFORMATION CLASSES for both edges of the current object
     if(known_obj)
@@ -2525,7 +2446,7 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
       predict_deformation_class_srv_.request.friction =  friction; 
       if(predict_deformation_class_client_.call(predict_deformation_class_srv_))
       {
-        std::cout << "Predicted deformation class grasping SHORT edge of " << object_name << " is: " << predict_deformation_class_srv_.response.predicted_def_class << std::endl;
+        std::cout << "Predicted deformation class grasping SHORT edge of " << object_name << " " << n_layers << " is: " << predict_deformation_class_srv_.response.predicted_def_class << std::endl;
         predicted_def_class_short_edge = predict_deformation_class_srv_.response.predicted_def_class;
       }
       //Deformation class grasping long edge
@@ -2538,17 +2459,17 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
       predict_deformation_class_srv_.request.friction =  friction; 
       if(predict_deformation_class_client_.call(predict_deformation_class_srv_))
       {
-        std::cout << "Predicted deformation class grasping LONG edge of " << object_name << " is: " << predict_deformation_class_srv_.response.predicted_def_class << std::endl;
+        std::cout << "Predicted deformation class grasping LONG edge of " << object_name << " " << n_layers << " is: " << predict_deformation_class_srv_.response.predicted_def_class << std::endl;
         predicted_def_class_long_edge = predict_deformation_class_srv_.response.predicted_def_class;
       }
     
     
-      //UPDATE KNOWLEDGE BASE with deformation classes of all objects to pile (obj_grasp_class garment grasp defclass)
+    //UPDATE KNOWLEDGE BASE with deformation classes of all objects to pile (obj_grasp_class garment grasp defclass)
       get_kb_state_srv_.request.predicate_name = "obj_grasp_class"; 
       if(get_kb_state_client_.call(get_kb_state_srv_))
       {
         current_kb_state = get_kb_state_srv_.response.attributes;
-        ROS_WARN("Update obj_grasp_class");
+        ROS_INFO("PicknPlaceAlgnode: Update obj_grasp_class");
 
         for(size_t i=0; i<current_kb_state.size(); i++) {
           if(current_kb_state[i].values[0].value == object_name) //Update only the CURRENT object deformation classes
@@ -2625,6 +2546,9 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
       }else
         ROS_WARN("PicknPlaceAlgNode: Knowledge Base NOT updated!");
     }//close if known_obj
+    else
+      ROS_WARN("Unkown object properties for: %s + %s", object_name.c_str(), n_layers.c_str());
+
   } //close for of list of objects to pile
 }
   
@@ -3162,9 +3086,8 @@ void PicknPlaceAlgNode::corners_callback(const visualization_msgs::MarkerArray::
           check_worspaces(disGarmenCenter); //Get workspace based on distance of garment center
           this->get_garment_position=false;
           // PREDICT DEF CLASS
-          predict_deformation_class(); //Predict deformation classes for both edges
-          this->state=UPDATE_INIT_ROSPLAN_KB;
-          // this->pddl_action_done=true; //End PDDL action
+          // predict_deformation_class(); //Predict deformation classes for both edges
+          this->state=UPDATE_INIT_ROSPLAN_KB; //Update predicates garment_at (workspace) and at_pose (nearest edge)
           this->config_.ok=false;
           this->process_grasp_pointcloud=false;
         }
@@ -3182,60 +3105,6 @@ void PicknPlaceAlgNode::corners_callback(const visualization_msgs::MarkerArray::
 void PicknPlaceAlgNode::place_corners_callback(const visualization_msgs::MarkerArray::ConstPtr& msg)
 {
     ROS_DEBUG("PicknPlaceAlgNode: Place corners callback");
-}
-
-// Transform point obtained through camera wrt robot frame base_link
-void PicknPlaceAlgNode::garment_pose_callback(const visualization_msgs::Marker::ConstPtr& msg)
-{
-  ROS_DEBUG("PicknPlaceAlgNode: garment pose callback");
-  /*
-  visualization_msgs::Marker marker;
-  marker.header.frame_id = "base_link";
-  marker.id = 0;
-  marker.type = visualization_msgs::Marker::SPHERE;
-  marker.scale.x=0.01;
-  marker.scale.y=0.01;
-  marker.scale.z=0.01;
-  marker.color.r = 1.0f;
-  marker.color.g = 0.0f;
-  marker.color.b = 1.0f;
-  marker.color.a = 1.0;
-  marker.lifetime = ros::Duration();
-
-  geometry_msgs::PointStamped point_in;
-  geometry_msgs::PointStamped point_out;
-
-  point_in.header.frame_id = msg->header.frame_id;
-  point_in.header.stamp = msg->header.stamp;
-  point_in.point = msg->pose.position;
-
-  if(this->get_garment_position)
-  {
-    this->listener.transformPoint("base_link", point_in, point_out);
-    //this->grasp_pose.pose.position = point_out.point;
-    //this->grasp_pose.pose.orientation =
-    //std::cout << "\033[1;36m Grasp position -> \033[1;36m  x: " << grasp_pose.pose.position.x << ", y: " << grasp_pose.pose.position.y << ", z: " << grasp_pose.pose.position.z << std::endl;
-
-    this->pre_grasp_center.x = point_out.point.x-this->pre_grasp_distance.x;
-    this->pre_grasp_center.y = point_out.point.y-this->pre_grasp_distance.y;
-    this->pre_grasp_center.z = 0.055;
-
-    std::cout << "Garment position -> x: " << point_out.point.x << ", y: " << point_out.point.y << ", z: " << point_out.point.z << std::endl;
-
-    std::cout << "\033[1;36m Grasp position -> \033[1;36m  x: " << this->pre_grasp_center.x << ", y: " << this-> pre_grasp_center.y << ", z: " << this->pre_grasp_center.z << std::endl;
-    std::cout << "\033[1;36m Grasp orientation -> \033[1;36m  x: " << this->pre_grasp_center.theta_x << ", y: " << this-> pre_grasp_center.theta_y << ", z: " << this->pre_grasp_center.theta_z << std::endl;
-    this->grasping_point_garment = this->pre_grasp_center;
-
-    marker.pose.position.x=point_out.point.x;
-    marker.pose.position.y=point_out.point.y;
-    marker.pose.position.z=point_out.point.z;
-    //marker.pose.position.x=this->pre_grasp_center.x;
-    //marker.pose.position.y=this->pre_grasp_center.y;
-    //marker.pose.position.z=this->pre_grasp_center.z;
-    grasp_marker_publisher.publish(marker);
-
-    this->get_garment_position=false;
-  }*/
 }
 
 //void PicknPlaceAlgNode::check_worspaces(double garment_center, double grasp_point)
