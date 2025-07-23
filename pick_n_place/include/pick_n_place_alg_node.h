@@ -154,7 +154,6 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     double close_gripper;
     double open_gripper;
     // bool piling;
-    int n_objs_pile;
     double object_thickness_drag;
     double object_thickness_rotate;
 
@@ -310,6 +309,7 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     bool plan_pddl_demo;
     bool pddl_demo;
     bool pddl_action_done;
+    bool init_plan;
     bool drag;
     bool rotate;
     double rotation;
@@ -319,7 +319,7 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     double stiffness;
     double friction;
     
-    int n_obj_in_pile; //current piled object
+    int n_obj_pile; //current piled object
     std::vector<std::string> objs_names, pddl_objs_names, objs_layers; //list of object names to pile
     std::vector<double> objs_stiffness, objs_friction, objs_thickn; //stiffness, friction and thicnkess of objects to pile
     

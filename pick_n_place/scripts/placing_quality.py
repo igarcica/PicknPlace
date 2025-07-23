@@ -45,17 +45,27 @@ CLOTH_SIZE = {
     "linenap_16l": (0.13,0.13, 0.02),
     "check_4l": (0.25,0.35),
     "check_6l": (0.24,0.25, 0.01),
-    "check_8l": (0.18,0.25),
+    "check_8l": (0.18,0.25, 0.01),
     "check_12l": (0.12,0.25),
     "check_16l": (0.13,0.18),
     "waffle_4l": (0.25,0.35),
     "waffle_6l": (0.24,0.25),
     "waffle_8l": (0.18,0.25, 0.02),
     "waffle_12l": (0.12,0.25),
-    "waffle_16l": (0.13,0.18)
+    "waffle_16l": (0.13,0.18),
+    "linrag_4l": (0.25,0.35),
+    "linrag_6l": (0.24,0.25),
+    "linrag_8l": (0.18,0.25, 0.005),
+    "linrag_12l": (0.12,0.25),
+    "linrag_16l": (0.13,0.18),
+    "twlrag_4l": (0.25,0.35),
+    "twlrag_6l": (0.24,0.25),
+    "twlrag_8l": (0.18,0.25, 0.02),
+    "twlrag_12l": (0.12,0.25),
+    "twlrag_16l": (0.13,0.18)
     }
 
-show_imgs = True
+show_imgs = False
 save_imgs = False
 write_dir = "/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/exps_slides/"
 plot_scale = dict(xaxis=dict(range=[0, 0.4]), yaxis=dict(range=[0.2, -0.3]), zaxis=dict(range=[0, 0.3]), aspectratio=dict(x=1, y=1, z=1) ) #plot scale for grasped samples
@@ -110,8 +120,8 @@ def process_pointcloud(data, grasp_edge_size, nongrasp_edge_size, obj_thickness,
 
 def handle_service(req):
     
-    # msg = rospy.wait_for_message('/segment_table/place', PointCloud2) # Get next message from the topic /segment_table/place (segmented pointcloud of the placed object)
-    msg = rospy.wait_for_message('/cloud_pcd', PointCloud2) # Get next message from the topic /segment_table/place (segmented pointcloud of the placed object)
+    msg = rospy.wait_for_message('/segment_table/place', PointCloud2) # Get next message from the topic /segment_table/place (segmented pointcloud of the placed object)
+    # msg = rospy.wait_for_message('/cloud_pcd', PointCloud2) # Get next message from the topic /segment_table/place (segmented pointcloud of the placed object)
     
     ## ---Get object dimensions for creating canonical---
     object_layers = req.object_name + "_" + req.layers

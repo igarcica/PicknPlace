@@ -64,7 +64,17 @@ CLOTH_SIZE = {
     "waffle_6l": (0.24,0.25),
     "waffle_8l": (0.18,0.25),
     "waffle_12l": (0.12,0.25),
-    "waffle_16l": (0.13,0.18)
+    "waffle_16l": (0.13,0.18),
+    "linrag_4l": (0.25,0.35),
+    "linrag_6l": (0.24,0.25),
+    "linrag_8l": (0.18,0.25, 0.005),
+    "linrag_12l": (0.12,0.25),
+    "linrag_16l": (0.13,0.18),
+    "twlrag_4l": (0.25,0.35),
+    "twlrag_6l": (0.24,0.25),
+    "twlrag_8l": (0.18,0.25, 0.02),
+    "twlrag_12l": (0.12,0.25),
+    "twlrag_16l": (0.13,0.18)
     }
 # obj_name = "pillowc_8l"
 # #default grasped and non-grasped value positions from CLOTH_SIZE

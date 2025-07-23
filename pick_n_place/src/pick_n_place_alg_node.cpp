@@ -14,7 +14,7 @@ PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
   double open_gripper = 0.35;
   double close_gripper = 0.97; //0.81;
   // this->piling=false;
-  this->n_objs_pile = 0;
+  this->n_obj_pile = 0;
   this->object_thickness_drag = 0.055; //default towel 8l
   this->object_thickness_rotate = 0.07; //default towel 8l
 
@@ -121,6 +121,7 @@ PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
   this->plan_pddl_demo=false; //Start SM calling ROSPlan to generate plan
   this->pddl_demo=false;  //Ends the SM when the planned action is completed
   this->pddl_action_done=false;
+  this->init_plan=true; //Predict deformation classes of listed objects before initial plan
   this->drag=false;
   this->rotate=false;
   this->rotation=90;
@@ -217,7 +218,11 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                  {
                    ROS_INFO("PicknPlaneAlgNode: Generating plan");
                    this->pddl_demo = true; 
-                   get_objects_to_pile(); //Update deformation classes of objects to pile before planning
+                   if(this->init_plan)
+                   {
+                     get_objects_to_pile(); //Update deformation classes of objects to pile before planning
+                     this->init_plan=false;
+                   }
                    //call ROSPlan services
                    generate_problem_client_.call(empty_srv_); //Generate problem
                    get_plan_client_.call(empty_srv_); //Get plan - to check the plan rostopic echo /rosplan_planner_interface/planner_output -p -n 1
@@ -265,7 +270,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
       break;
 
       //State for ROSPlan
-      case UPDATE_INIT_ROSPLAN_KB: ROS_INFO("PicknPlaceAlgNode: state UPDATE ROSPLAN KB");
+      case UPDATE_INIT_ROSPLAN_KB: ROS_DEBUG("PicknPlaceAlgNode: state UPDATE ROSPLAN KB");
                               {
                                 if(config_.ok) 
                                 {
@@ -749,9 +754,9 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                               {
                                 // this->logfile << "State: CHECK_DEFORMATION" << std::endl;
                                 this->logfile << "--- DEFORMATION CLASS ESTIMATION ---" << std::endl;
-                                this->logfile << "Sensing def class parameters --> object name: " << this->objs_names[this->n_obj_in_pile] << ", layers: " << this->objs_layers[this->n_obj_in_pile] << ", nearest_edge: " << this->nearest_edge << std::endl;
-                                sense_deformation_class_srv_.request.object_name = this->objs_names[this->n_obj_in_pile]; //obtain form reconfigure
-                                sense_deformation_class_srv_.request.layers = this->objs_layers[this->n_obj_in_pile];
+                                this->logfile << "Sensing def class parameters --> object name: " << this->objs_names[this->n_obj_pile] << ", layers: " << this->objs_layers[this->n_obj_pile] << ", nearest_edge: " << this->nearest_edge << std::endl;
+                                sense_deformation_class_srv_.request.object_name = this->objs_names[this->n_obj_pile]; //obtain form reconfigure
+                                sense_deformation_class_srv_.request.layers = this->objs_layers[this->n_obj_pile];
                                 sense_deformation_class_srv_.request.grasped_edge = this->nearest_edge;
                                 if(sense_deformation_class_client_.call(sense_deformation_class_srv_))
                                 {
@@ -1147,7 +1152,10 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                               ROS_INFO("PicknPlaceSM: Sending to PRE-place position.");
                               this->logfile << "State: PRE_PLACE_VERTICAL" << std::endl;
                               geometry_msgs::Pose desired_pose;
-                              desired_pose.position.x = 0.12;
+                              if(this->n_obj_pile==0)
+                                desired_pose.position.x = 0.12; 
+                              else
+                                desired_pose.position.x = 0.14; //Because the first one slides due to higher friction between cloth-cloth
                               desired_pose.position.y = -0.28;
                               desired_pose.position.z = tool_pose.z;
                               // std::cout << "\033[1;36m PRE-PLACE: -> \033[1;36m  x: " << desired_pose.position.x << ", y: " <<  desired_pose.position.y << ", z: " << desired_pose.position.z << std::endl;
@@ -1434,21 +1442,22 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                               {
                                 // this->logfile << "State: CHECK_PLACING_QUAL" << std::endl;
                                 this->logfile << "--- PLACING QUALITY ESTIMATION ---" << std::endl;
-                                this->logfile << "Placing quality parameters --> object name: " << this->objs_names[this->n_obj_in_pile] << ", nearest_edge: " << this->nearest_edge << ", object number in pile: " << this->n_objs_pile+1 << std::endl;
-                                get_placing_quality_srv_.request.object_name = this->objs_names[this->n_obj_in_pile]; //obtained form reconfigure
-                                get_placing_quality_srv_.request.layers = this->objs_layers[this->n_obj_in_pile]; //obtained form reconfigure
+                                this->logfile << "Placing quality parameters --> object name: " << this->objs_names[this->n_obj_pile] << ", nearest_edge: " << this->nearest_edge << ", object number in pile: " << this->n_obj_pile+1 << std::endl;
+                                get_placing_quality_srv_.request.object_name = this->objs_names[this->n_obj_pile]; //obtained form reconfigure
+                                get_placing_quality_srv_.request.layers = this->objs_layers[this->n_obj_pile]; //obtained form reconfigure
                                 get_placing_quality_srv_.request.grasped_edge = this->nearest_edge;
                                 // get_placing_quality_srv_.request.piling = this->piling;
-                                get_placing_quality_srv_.request.n_objs_pile = this->n_objs_pile+1;
+                                get_placing_quality_srv_.request.n_objs_pile = this->n_obj_pile+1;
                                 if(get_placing_quality_client_.call(get_placing_quality_srv_))
                                 {
                                   ROS_INFO("PicknPlace: Placing quality: %f", get_placing_quality_srv_.response.placing_quality);
                                   this->logfile << "======= Placing quality: " << get_placing_quality_srv_.response.placing_quality << std::endl;
                                   this->logfile << "Placing error: " << 100-get_placing_quality_srv_.response.placing_quality << std::endl;
+                                  this->logfile << "=========================================================" << std::endl;
                                   this->placing_quality = get_placing_quality_srv_.response.placing_quality;
                                   if(this->pddl_demo)
                                    {
-                                     this->n_objs_pile += 1; //Next object of the list
+                                     this->n_obj_pile += 1; //Next object of the list
                                      this->pddl_action_done=true; // End PDDL action
                                      this->state=IDLE;
                                    }
@@ -1880,7 +1889,7 @@ void PicknPlaceAlgNode::PDDLgoalCB()
   // {
   //   ROS_WARN("PicknPlace: NEW OBJECT action");
   //   // this->piling=true;
-  //   this->n_objs_pile+=1;
+  //   this->n_obj_pile+=1;
   //   this->pddl_action_done=true;
   //   // this->get_garment_position=true;
   //   // this->state=GET_OBJECT_POSE;
@@ -1973,7 +1982,7 @@ rosplan_knowledge_msgs::KnowledgeUpdateServiceArray PicknPlaceAlgNode::updateKB_
     ROS_WARN("Update garment_at");
 
     for(size_t i=0; i<current_kb_state.size(); i++) {
-      if(current_kb_state[i].values[0].value == this->pddl_objs_names[this->n_obj_in_pile]) //Update only the CURRENT object state
+      if(current_kb_state[i].values[0].value == this->pddl_objs_names[this->n_obj_pile]) //Update only the CURRENT object state
       {
         //Remove previous workspace
         ROS_INFO("PicknPlace: REMOVING %s to %s", current_kb_state[i].values[1].value.c_str(), current_kb_state[i].values[0].value.c_str());
@@ -2021,11 +2030,11 @@ rosplan_knowledge_msgs::KnowledgeUpdateServiceArray PicknPlaceAlgNode::updateKB_
     ROS_WARN("Update at_pose");
 
     for(size_t i=0; i<current_kb_state.size(); i++) {
-      // if(this->n_objs_pile>1) //If the object to grasp is to be piled, modify at_pose of towel2. Otherwise, towel
+      // if(this->n_obj_pile>1) //If the object to grasp is to be piled, modify at_pose of towel2. Otherwise, towel
       //   object = "towel2";
       // else
       //   object="towel";
-      if(current_kb_state[i].values[0].value == this->pddl_objs_names[this->n_obj_in_pile]) //Update only the CURRENT object state
+      if(current_kb_state[i].values[0].value == this->pddl_objs_names[this->n_obj_pile]) //Update only the CURRENT object state
       {
         //Remove previous edge
         ROS_INFO("PicknPlace: REMOVING %s to %s", current_kb_state[i].values[1].value.c_str(), current_kb_state[i].values[0].value.c_str());
@@ -2166,7 +2175,7 @@ rosplan_knowledge_msgs::KnowledgeUpdateServiceArray PicknPlaceAlgNode::updateKB_
     current_kb_state = get_kb_state_srv_.response.attributes;
 
     for(size_t i=0; i<current_kb_state.size(); i++) {
-      if(current_kb_state[i].values[0].value == this->pddl_objs_names[this->n_obj_in_pile]) //Update only the CURRENT object state
+      if(current_kb_state[i].values[0].value == this->pddl_objs_names[this->n_obj_pile]) //Update only the CURRENT object state
       {
         // std::cout << "PicknPlace: Sense deformation class: " << this->sensed_deformation_class << std::endl;
         ROS_INFO("PicknPlace: REMOVING %s to %s", current_kb_state[i].values[1].value.c_str(), current_kb_state[i].values[0].value.c_str());
@@ -2288,7 +2297,7 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
   }
 
   //Check for errors in input (different number of objects and layers, different number of n_objs_to_pile and object/layers, non-existing objects, etc)
-  // if(config_.n_objs_pile != object_name.size()) 
+  // if(config_.n_obj_pile != object_name.size()) 
   // {
   //   ROS_WARN("Objects to pile are repeated?");
   //   break;
@@ -2336,8 +2345,8 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
         known_obj = true;
         stiffness = 60.1;
         friction = 79; //82.7;
-        this->object_thickness_drag = 0.035; // For drag action
-        this->object_thickness_rotate = 0.057; // For rotate action
+        // this->object_thickness_drag = 0.035; // For drag action
+        // this->object_thickness_rotate = 0.057; // For rotate action
         short_edge_size = 23; 
         long_edge_size = 28;
       } 
@@ -2378,8 +2387,8 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
         known_obj = true;
         stiffness = 80;
         friction = 81; 
-        short_edge_size = 12;
-        long_edge_size = 12;
+        short_edge_size = 13;
+        long_edge_size = 13;
         this->object_thickness_drag = 0.03; // For drag action
         this->object_thickness_rotate = 0.06; // For rotate action
       }
@@ -2406,10 +2415,10 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
         known_obj = true;
         stiffness = 49;
         friction = 87; //88.4
-        this->object_thickness_drag = 0.03; // For drag action
-        this->object_thickness_rotate = 0.06; // For rotate action
         short_edge_size = 16; //check
         long_edge_size = 35; //check
+        this->object_thickness_drag = 0.03; // For drag action
+        this->object_thickness_rotate = 0.06; // For rotate action
       }
       else if(n_layers == "8l") //TO CHECK!!
       {
@@ -2418,6 +2427,8 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
         friction = 84; 
         short_edge_size = 18;
         long_edge_size = 25;
+        this->object_thickness_drag = 0.03; // For drag action
+        this->object_thickness_rotate = 0.06; // For rotate action
       }
     }
     else if (object_name.find("twlrag") != std::string::npos) 
@@ -2426,8 +2437,20 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
       if(n_layers == "8l")
       {
         known_obj = true;
-        stiffness = 85; //to check (more or less than waffle?)
-        friction = 85; //to check
+        stiffness = 94; //to check (more or less than waffle?)
+        friction = 90; //to check
+        short_edge_size = 18;
+        long_edge_size = 25;
+      }
+    } 
+    else if (object_name.find("linrag") != std::string::npos) 
+    {
+      this->objs_names.push_back("linrag");
+      if(n_layers == "8l")
+      {
+        known_obj = true;
+        stiffness = 65; //to check (more or less than check and pillowc?)
+        friction = 83; //to check
         short_edge_size = 18;
         long_edge_size = 25;
       }
