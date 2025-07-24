@@ -18,7 +18,7 @@
 (:init (garment_state table placed) (robot_at else) (robot_empty)
 
 		;; object to place (cloth-to-table costs)
-		(known_obj twlrag) (garment_state twlrag notgrasped) (garment_at twlrag rotws) (at_pose twlrag long) (not (corners_pos_known twlrag)) (defstate twlrag flat) 
+		(known_obj twlrag) (garment_state twlrag notgrasped) (garment_at twlrag rotws) (at_pose twlrag short) (not (corners_pos_known twlrag)) (defstate twlrag flat) 
 		;;(known_obj linrag) (known_obj checkered1) (garment_state checkered1 placed) (at_pose checkered1 short)
 
 		;; objects to pile
@@ -98,11 +98,11 @@
 		(obj_grasp_class twlrag short A) ;; It can be the same as with long, the second object will adapt to the first object's init pose
 		(obj_grasp_class twlrag long A)  ;; twlrag grasped by long edge results in deformation class A
 
-		(obj_grasp_class waffle1 short B)
-		(obj_grasp_class waffle1 long C) 
+		(obj_grasp_class waffle1 short A)
+		(obj_grasp_class waffle1 long A) 
 
-		(obj_grasp_class waffle2 short B)
-		(obj_grasp_class waffle2 long C) 
+		(obj_grasp_class waffle2 short A)
+		(obj_grasp_class waffle2 long A) 
 
 		(obj_grasp_class checkered1 short A)
 		(obj_grasp_class checkered1 long A) 
@@ -110,15 +110,16 @@
 		(obj_grasp_class checkered2 short A)
 		(obj_grasp_class checkered2 long A) 		
 
-		(obj_grasp_class checkered3 short B)
-		(obj_grasp_class checkered3 long C) 
+		(obj_grasp_class checkered3 short A)
+		(obj_grasp_class checkered3 long A) 
 
-		(obj_grasp_class linrag short B)
-		(obj_grasp_class linrag long C) 
+		(obj_grasp_class linrag short A)
+		(obj_grasp_class linrag long A) 
 )
 
 ;;(:goal (and (garment_state twlrag placed) ))
-(:goal (and (on twlrag table) (on waffle1 twlrag) (on checkered1 waffle1) (on checkered2 checkered1) (on linrag checkered2s)
+(:goal (and (on twlrag table) (on waffle1 twlrag) (on checkered1 waffle1) (on checkered2 checkered1) (on linrag checkered2)
+
 ))
 
 ;;(:metric minimize (time_cost))

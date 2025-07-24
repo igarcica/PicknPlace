@@ -2227,13 +2227,13 @@ rosplan_knowledge_msgs::KnowledgeUpdateServiceArray PicknPlaceAlgNode::updateKB_
   this->logfile << "\n--- PREDICTION OF DEFORMATION CLASS ---\n";
 
   //PREDICT DEFORMATION CLASS for NEAREST EDGE
-  predict_deformation_class_srv_.request.layers = config_.layers; //"8l"; //reconfigure
+  predict_deformation_class_srv_.request.layers = this->objs_layers[this->n_obj_pile]; //config_.layers; //"8l"; 
   predict_deformation_class_srv_.request.grasp = this->nearest_edge; //short or long
   predict_deformation_class_srv_.request.nongraspedsize = this->not_grasped_edge_size*100;
   predict_deformation_class_srv_.request.graspedsize = this->grasped_edge_size*100;
   predict_deformation_class_srv_.request.area = (this->grasped_edge_size*100) * (this->not_grasped_edge_size*100); //Area in centimeters
-  predict_deformation_class_srv_.request.stiffness = this->stiffness; //reconfigure
-  predict_deformation_class_srv_.request.friction =  this->friction; //reconfigure
+  predict_deformation_class_srv_.request.stiffness = this->objs_stiffness[this->n_obj_pile]; //this->stiffness; 
+  predict_deformation_class_srv_.request.friction =  this->objs_friction[this->n_obj_pile]; //this->friction; 
   if(predict_deformation_class_client_.call(predict_deformation_class_srv_))
   {
     std::cout << "Predicted deformation class grasping nearest edge: " << predict_deformation_class_srv_.response.predicted_def_class << std::endl;
@@ -2241,13 +2241,13 @@ rosplan_knowledge_msgs::KnowledgeUpdateServiceArray PicknPlaceAlgNode::updateKB_
   }
 
   //PREDICT DEFORMATION CLASS for SECOND NEAREST EDGE
-  predict_deformation_class_srv_.request.layers = config_.layers; //"8l"; //reconfigure
+  predict_deformation_class_srv_.request.layers = this->objs_layers[this->n_obj_pile]; //config_.layers;
   predict_deformation_class_srv_.request.grasp = this->second_nearest_edge; //short or long
   predict_deformation_class_srv_.request.nongraspedsize = this->grasped_edge_size*100;
   predict_deformation_class_srv_.request.graspedsize = this->not_grasped_edge_size*100;
   predict_deformation_class_srv_.request.area = (this->grasped_edge_size*100) * (this->not_grasped_edge_size*100); //Area in centimeters
-  predict_deformation_class_srv_.request.stiffness = this->stiffness; //reconfigure
-  predict_deformation_class_srv_.request.friction =  this->friction; //reconfigure
+  predict_deformation_class_srv_.request.stiffness = this->objs_stiffness[this->n_obj_pile]; //this->stiffness; 
+  predict_deformation_class_srv_.request.friction =  this->objs_friction[this->n_obj_pile]; //this->friction; 
   if(predict_deformation_class_client_.call(predict_deformation_class_srv_))
   {
     std::cout << "Predicted deformation class grasping SECOND nearest edge: " << predict_deformation_class_srv_.response.predicted_def_class << std::endl;
@@ -2257,12 +2257,11 @@ rosplan_knowledge_msgs::KnowledgeUpdateServiceArray PicknPlaceAlgNode::updateKB_
 
   //Log info to text file
   this->logfile << "======= Predicted def class for nearest edge (" << this->nearest_edge << "): " << this->predicted_def_class_nearest_edge << std::endl;
-  this->logfile << "Preiction parameters -> Layers: " << config_.layers << ", Grasp: " << this->nearest_edge << ", nongraspedsize: " << this->not_grasped_edge_size*100 << ", graspedsize: " << this->grasped_edge_size*100 << ", area: " << (this->grasped_edge_size*100) * (this->not_grasped_edge_size*100) << ", stiffness: " << this->stiffness << ", friction: " << this->friction << std::endl;
+  this->logfile << "Preiction parameters -> Layers: " << this->objs_layers[this->n_obj_pile] << ", Grasp: " << this->nearest_edge << ", nongraspedsize: " << this->not_grasped_edge_size*100 << ", graspedsize: " << this->grasped_edge_size*100 << ", area: " << (this->grasped_edge_size*100) * (this->not_grasped_edge_size*100) << ", stiffness: " << this->stiffness << ", friction: " << this->friction << std::endl;
   this->logfile << "======= Predicted def class for second nearest edge (" << this->second_nearest_edge << "): " << this->predicted_def_class_second_nearest_edge << std::endl;
-  this->logfile << "Preiction parameters -> Layers: " << config_.layers << ", Grasp: " << this->second_nearest_edge << ", nongraspedsize: " << this->grasped_edge_size*100 << ", graspedsize: " << this->not_grasped_edge_size*100 << ", area: " << (this->grasped_edge_size*100) * (this->not_grasped_edge_size*100) << ", stiffness: " << this->stiffness << ", friction: " << this->friction << std::endl;
+  this->logfile << "Preiction parameters -> Layers: " << this->objs_layers[this->n_obj_pile] << ", Grasp: " << this->second_nearest_edge << ", nongraspedsize: " << this->grasped_edge_size*100 << ", graspedsize: " << this->not_grasped_edge_size*100 << ", area: " << (this->grasped_edge_size*100) * (this->not_grasped_edge_size*100) << ", stiffness: " << this->stiffness << ", friction: " << this->friction << std::endl;
 }
 */
-
 void PicknPlaceAlgNode::get_objects_to_pile(void)
 {
   // Save edge sizes, stiffness of the objects to pile for predict deformation class and provide an initial plan
@@ -2321,6 +2320,8 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
         long_edge_size = 25;
         stiffness = 99.9;
         friction = 80;
+        this->objs_stiffness.push_back(99.9);
+        this->objs_friction.push_back(80);
         // this->objs_stiffness.push_back(99.9);
         // this->objs_friction.push_back(80);
         // object_thickness_drag = 0.055; // For drag action
@@ -2333,6 +2334,8 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
         friction = 78;
         short_edge_size = 15;
         long_edge_size = 25;
+        this->objs_stiffness.push_back(100);
+        this->objs_friction.push_back(78);
         // this->object_thickness = 0.07; // For drag action - to check
         // this->object_thickness_rotate = 0.09; // For rotate action - to check
       }
@@ -2349,6 +2352,8 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
         // this->object_thickness_rotate = 0.057; // For rotate action
         short_edge_size = 23; 
         long_edge_size = 28;
+        this->objs_stiffness.push_back(60.1);
+        this->objs_friction.push_back(79);
       } 
       else if (n_layers == "12l") 
       {
@@ -2357,6 +2362,8 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
         friction = 76;
         short_edge_size = 15; //check
         long_edge_size = 28;
+        this->objs_stiffness.push_back(70);
+        this->objs_friction.push_back(76);
       }
     }
     else if (object_name.find("cotnap") != std::string::npos)
@@ -2369,6 +2376,8 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
         friction = 80;
         short_edge_size = 25;
         long_edge_size = 25;
+        this->objs_stiffness.push_back(61.8);
+        this->objs_friction.push_back(80);
       }
     }
     else if (object_name.find("linenap") != std::string::npos) 
@@ -2381,6 +2390,8 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
         friction = 82;
         short_edge_size = 13;
         long_edge_size = 25;
+        this->objs_stiffness.push_back(74.5);
+        this->objs_friction.push_back(82);
       }
       else if(n_layers == "16l") 
       {
@@ -2391,6 +2402,8 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
         long_edge_size = 13;
         this->object_thickness_drag = 0.03; // For drag action
         this->object_thickness_rotate = 0.06; // For rotate action
+        this->objs_stiffness.push_back(80);
+        this->objs_friction.push_back(81);
       }
     }
     else if (object_name.find("waffle") != std::string::npos) 
@@ -2403,6 +2416,8 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
         friction = 85;
         short_edge_size = 18;
         long_edge_size = 25;
+        this->objs_stiffness.push_back(85.7);
+        this->objs_friction.push_back(85);
     //   this->object_thickness_drag = 0.04; // For drag action
     //   this->object_thickness_rotate = 0.065; // For rotate action
       }
@@ -2419,6 +2434,8 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
         long_edge_size = 35; //check
         this->object_thickness_drag = 0.03; // For drag action
         this->object_thickness_rotate = 0.06; // For rotate action
+        this->objs_stiffness.push_back(49);
+        this->objs_friction.push_back(88);
       }
       else if(n_layers == "8l") //TO CHECK!!
       {
@@ -2429,6 +2446,8 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
         long_edge_size = 25;
         this->object_thickness_drag = 0.03; // For drag action
         this->object_thickness_rotate = 0.06; // For rotate action
+        this->objs_stiffness.push_back(70);
+        this->objs_friction.push_back(84);
       }
     }
     else if (object_name.find("twlrag") != std::string::npos) 
@@ -2441,6 +2460,8 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
         friction = 90; //to check
         short_edge_size = 18;
         long_edge_size = 25;
+        this->objs_stiffness.push_back(94);
+        this->objs_friction.push_back(90);
       }
     } 
     else if (object_name.find("linrag") != std::string::npos) 
@@ -2453,6 +2474,8 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
         friction = 83; //to check
         short_edge_size = 18;
         long_edge_size = 25;
+        this->objs_stiffness.push_back(65);
+        this->objs_friction.push_back(83);
       }
     } 
     
