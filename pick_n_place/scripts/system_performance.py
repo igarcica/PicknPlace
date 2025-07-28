@@ -146,7 +146,7 @@ def plot_quality(placed_quality_results, piled_quality_results, labels):
 ####################################################################################
 
 
-for m in range(0,len(errors)):
+for m in range(0,len(errors)): #cloth-table and cloth-cloth cost tables
     updater = cost_update.CostUpdater(cost_tables[m], 0.5, 0.3, 60, 0.5)
     costs_history[m] = updater.save_cell_evolution(cost_tables[m]) #Initialize cells
     cost_table_evolution[m].append(cost_tables[m].copy()) #Initialize cost tables history

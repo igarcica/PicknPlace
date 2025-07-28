@@ -1,0 +1,14 @@
+# Service to compute new state-action cost given a placement quality
+# cost_table is the previous flattened 3x3 table of costs from which the state-action was executed
+# def_class is the deformation class state from which the placing action was executed (A, B or C)
+# placing_str is the placing action that was executed (v, d, or r)
+# placing_qual is the resulting quality of the placement (pile quality)
+# Returns a flattened 3x3 matrix of the new_cost_table and the separated new_cost value
+
+int32[9] cost_table
+string def_class
+string placing_str
+int32 placing_qual
+---
+int32[9] new_cost_table
+int32 new_cost

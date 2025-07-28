@@ -17,6 +17,7 @@ PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
   this->n_obj_pile = 0;
   this->object_thickness_drag = 0.055; //default towel 8l
   this->object_thickness_rotate = 0.07; //default towel 8l
+  this->placing_strategy="placevert";
 
   // Garment pose subscriber
   this->process_grasp_pointcloud = false;
@@ -101,6 +102,9 @@ PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
   get_placing_quality_client_ = this->private_node_handle_.serviceClient<pick_n_place::GetPlacingQual>("/pick_n_place/get_placing_quality");
   float placing_quality=0;
 
+  //Planning cost computation service
+  compute_cost_entry_client_ = this->private_node_handle_.serviceClient<pick_n_place::ComputeCostEntry>("/pick_n_place/compute_new_cost");
+
   //ROSPlan services
   generate_problem_client_ = this->private_node_handle_.serviceClient<std_srvs::Empty>("/rosplan_problem_interface/problem_generation_server");
   get_plan_client_ = this->private_node_handle_.serviceClient<std_srvs::Empty>("/rosplan_planner_interface/planning_server");
@@ -130,6 +134,11 @@ PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
   this->workspace="grws";
   this->stiffness=0.0;
   this->friction=0.0;
+  this->cost_table = {{
+        7, 3, 4,
+        30, 14, 9,
+        30, 30, 30
+    }};
 
   // [init action clients]
 
@@ -760,9 +769,9 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                                 sense_deformation_class_srv_.request.grasped_edge = this->nearest_edge;
                                 if(sense_deformation_class_client_.call(sense_deformation_class_srv_))
                                 {
-                                  ROS_INFO("PicknPlace: Sensed deformation class: %s", sense_deformation_class_srv_.response.sensed_def_class.c_str());
-                                  this->logfile << "======= Sensed deformation class: " << sense_deformation_class_srv_.response.sensed_def_class.c_str() << std::endl;
                                   this->sensed_deformation_class = sense_deformation_class_srv_.response.sensed_def_class;
+                                  ROS_INFO("PicknPlace: Sensed deformation class: %s", this->sensed_deformation_class.c_str());
+                                  this->logfile << "======= Sensed deformation class: " << this->sensed_deformation_class.c_str() << std::endl;
                                   if(this->pddl_demo)
                                   {
                                     // this->pddl_action_done=true; // End PDDL action
@@ -887,16 +896,15 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                             if(config_.ok)
                             {
                              this->logfile << "State: CHOOSE_PLACING" << std::endl;
-			                       std::cout << this->placing_strategy << std::endl;
                              this->success = true;
-                             if(this->placing_strategy==1)
+                             if(this->placing_strategy=="placediag")
                                this->state=PRE_PLACE_DIAGONAL;
-                             else if(this->placing_strategy==2)
+                             else if(this->placing_strategy=="placevert")
 			                         this->state=PRE_PLACE_VERTICAL;
-			                       else if(this->placing_strategy==3)
+			                       else if(this->placing_strategy=="placerot")
                                this->state=PRE_PLACE_ROTATING;
-                             else if(this->placing_strategy==4)
-                               this->state=OPEN_GRIPPER;
+                            //  else if(this->placing_strategy=="placedyn")
+                            //    this->state=OPEN_GRIPPER;
                              ros::Duration(0.5).sleep();
                              config_.ok=false;
                             }else
@@ -1450,14 +1458,17 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                                 get_placing_quality_srv_.request.n_objs_pile = this->n_obj_pile+1;
                                 if(get_placing_quality_client_.call(get_placing_quality_srv_))
                                 {
-                                  ROS_INFO("PicknPlace: Placing quality: %f", get_placing_quality_srv_.response.placing_quality);
-                                  this->logfile << "======= Placing quality: " << get_placing_quality_srv_.response.placing_quality << std::endl;
-                                  this->logfile << "Placing error: " << 100-get_placing_quality_srv_.response.placing_quality << std::endl;
-                                  this->logfile << "=========================================================" << std::endl;
                                   this->placing_quality = get_placing_quality_srv_.response.placing_quality;
+                                  ROS_INFO("PicknPlace: Placing quality: %f", this->placing_quality);
+                                  this->logfile << "======= Placing quality: " << this->placing_quality << std::endl;
+                                  this->logfile << "Placing error: " << 100-this->placing_quality << std::endl;
+                                  this->logfile << "=========================================================" << std::endl;
+                                  
                                   if(this->pddl_demo)
                                    {
                                      this->n_obj_pile += 1; //Next object of the list
+                                     if(this->n_obj_pile > 1) //If the object placed is not the first one (we just update the cloth-to-cloth table)
+                                       update_costs(); //Update cost table based on placing quality result
                                      this->pddl_action_done=true; // End PDDL action
                                      this->state=IDLE;
                                    }
@@ -1571,13 +1582,13 @@ void PicknPlaceAlgNode::node_config_update(Config &config, uint32_t level)
     if(config.towel)
     {
       this->close_gripper=0.81;
-      this->placing_strategy=2;//vertical
+      this->placing_strategy="placevert"; //2
       ROS_INFO("PicknPlaceAlgNode: Starting demo for towel with vertical placing");
     }
     else if(config.napkin)
     {
       this->close_gripper=0.98;
-      this->placing_strategy=3;//place2
+      this->placing_strategy="placerot";//place2 //3
       ROS_INFO("PicknPlaceAlgNode: Starting demo for thin object with rotating placing");
     }
     // Custom demo (selected gripper closing and placing strategy)
@@ -1587,27 +1598,27 @@ void PicknPlaceAlgNode::node_config_update(Config &config, uint32_t level)
       this->close_gripper=config.close_gripper;
       if(config.vertical_place)
       {
-        this->placing_strategy=2;//vertical
+        this->placing_strategy="placevert";//2
         ROS_INFO("PicknPlaceAlgNode: Placing startegy --> Vertical");
       }
       else if(config.diagonal_place)
       {
-        this->placing_strategy=1; //diagonal
+        this->placing_strategy="placediag"; //1
         ROS_INFO("PicknPlaceAlgNode: Placing startegy --> Diagonal");
       }
       else if(config.rotating_place)
       {
-        this->placing_strategy=3; //place2
+        this->placing_strategy="placerot"; //place2 3
         ROS_INFO("PicknPlaceAlgNode: Placing startegy --> Rotating");
       }
       else if(config.dynamic_place)
       {
-        this->placing_strategy=4; //dynamic (executed outside SM)
+        this->placing_strategy="placedyn"; //dynamic (executed outside SM) //4
         ROS_INFO("PicknPlaceAlgNode: Placing startegy --> Dynamic");
       }
       else
       {
-        this->placing_strategy=2; //vertical
+        this->placing_strategy="placevert"; //2
         ROS_INFO("PicknPlaceAlgNode: Placing startegy --> Vertical");
       }
     }
@@ -1643,22 +1654,22 @@ if(config.start_experiments)
   this->start_experiments=true;
   if(config.vertical_place)
   {
-    this->placing_strategy=2;//vertical
+    this->placing_strategy="placevert"; //2
     ROS_INFO("PicknPlaceAlgNode: Placing startegy --> Vertical");
   }
   else if(config.diagonal_place)
   {
-    this->placing_strategy=1; //diagonal
+    this->placing_strategy="placediag"; //1
     ROS_INFO("PicknPlaceAlgNode: Placing startegy --> Diagonal");
   }
   else if(config.rotating_place)
   {
-    this->placing_strategy=3; //place2
+    this->placing_strategy="placerot"; //place2
     ROS_INFO("PicknPlaceAlgNode: Placing startegy --> Rotating");
   }
   else
   {
-    this->placing_strategy=2; //vertical
+    this->placing_strategy="placevert"; //2
     ROS_INFO("PicknPlaceAlgNode: Placing startegy --> Vertical");
   }
   config.start_experiments=false;
@@ -1851,19 +1862,19 @@ void PicknPlaceAlgNode::PDDLgoalCB()
   else if(0==goal->action_name.compare("placevert")) 
   {
     ROS_WARN("PicknPlace: PLACE VERT action");
-    this->placing_strategy=2;
+    this->placing_strategy="placevert";
     this->state=CHOOSE_PLACING;
   }
   else if(0==goal->action_name.compare("placediag")) 
   {
     ROS_WARN("PicknPlace: PLACE DIAG action");
-    this->placing_strategy=1; 
+    this->placing_strategy="placediag"; 
     this->state=CHOOSE_PLACING;
   }
   else if(0==goal->action_name.compare("placerot")) 
   {
     ROS_WARN("PicknPlace: PLACE ROT action");
-    this->placing_strategy=3; 
+    this->placing_strategy="placerot"; 
     this->state=CHOOSE_PLACING;
   }
   else if(0==goal->action_name.compare("drag")) 
@@ -2078,7 +2089,7 @@ rosplan_knowledge_msgs::KnowledgeUpdateServiceArray PicknPlaceAlgNode::updateKB_
   }else
       ROS_WARN("PicknPlaceAlgNode: Not possible to get current KB state");
 
-  /* //We predict the classes of all the objects to pile before starting
+  /* 
   //PREDICTED DEFORMATION CLASS - Udates both edges
   get_kb_state_srv_.request.predicate_name = "obj_grasp_class"; 
   if(get_kb_state_client_.call(get_kb_state_srv_))
@@ -2262,6 +2273,7 @@ rosplan_knowledge_msgs::KnowledgeUpdateServiceArray PicknPlaceAlgNode::updateKB_
   this->logfile << "Preiction parameters -> Layers: " << this->objs_layers[this->n_obj_pile] << ", Grasp: " << this->second_nearest_edge << ", nongraspedsize: " << this->grasped_edge_size*100 << ", graspedsize: " << this->not_grasped_edge_size*100 << ", area: " << (this->grasped_edge_size*100) * (this->not_grasped_edge_size*100) << ", stiffness: " << this->stiffness << ", friction: " << this->friction << std::endl;
 }
 */
+
 void PicknPlaceAlgNode::get_objects_to_pile(void)
 {
   // Save edge sizes, stiffness of the objects to pile for predict deformation class and provide an initial plan
@@ -2597,7 +2609,66 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
 
   } //close for of list of objects to pile
 }
-  
+ 
+void PicknPlaceAlgNode::update_costs(void) //Update table of costs for the next object to pile
+{ 
+  ROS_INFO("PicknPlaceAlgNode: Updating KB cost table");
+  this->logfile << "\n--- UPDATING KB: place_succ ---\n";
+
+  int new_cost;
+
+  //Compute new cost
+  compute_cost_entry_srv_.request.cost_table = this->cost_table;
+  compute_cost_entry_srv_.request.def_class = this->sensed_deformation_class;
+  compute_cost_entry_srv_.request.placing_str = this->placing_strategy;
+  compute_cost_entry_srv_.request.placing_qual = this->placing_quality;
+  if(compute_cost_entry_client_.call(compute_cost_entry_srv_))
+  {
+    this->cost_table = compute_cost_entry_srv_.response.new_cost_table; //Update cost table
+    new_cost = compute_cost_entry_srv_.response.new_cost;
+  }
+
+  //Update KB function place_succ ?cloth - garment ?class - defclass ?place - placing - entry of the executed state-action (defclass-placement) of the next object
+  ROS_INFO("PicknPlace: ADDING new cost %d to %s - %s of %s", new_cost, this->sensed_deformation_class.c_str(), this->placing_strategy.c_str(), this->pddl_objs_names[this->n_obj_pile]);
+  this->logfile << "ADDING new cost " << new_cost << " to " << this->sensed_deformation_class.c_str() << "-" << this->placing_strategy.c_str() << " of " << this->pddl_objs_names[this->n_obj_pile] << std::endl;
+  //Add new cost to next object
+  rosplan_knowledge_msgs::KnowledgeItem item;
+  item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FUNCTION;
+  item.attribute_name = "place_succ";
+  item.values.clear();
+  diagnostic_msgs::KeyValue pair;
+  pair.key = "garment";
+  pair.value = this->pddl_objs_names[this->n_obj_pile]; //Next object to pile (towel, twlrag, waffle1, waffle2, checkered1...)
+  item.values.push_back(pair);
+  pair.key = "defclass";
+  pair.value = this->sensed_deformation_class; //Last sensed deformation class (A, B or C)
+  item.values.push_back(pair);
+  pair.key = "placing";
+  pair.value = this->placing_strategy; //Last placing action (placevert, placediag or placerot)
+  item.values.push_back(pair);
+  item.function_value = new_cost; //Commputed cost
+  update_kb_srv_.request.knowledge.push_back(item);   
+  update_kb_srv_.request.update_type.push_back(rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE);
+
+  //Update Knowledge Base
+  if(update_kb_client_.call(update_kb_srv_))
+  {
+    ROS_WARN("PicknPlaceAlgNode: Updating knowledge Base!");                           
+  }else
+    ROS_WARN("PicknPlaceAlgNode: Knowledge Base NOT updated!");
+
+  //Save new cost table in logfile
+  this->logfile << "New cost table: ";
+  for (size_t i = 0; i < this->cost_table.size(); ++i) {
+    this->logfile << this->cost_table[i];
+    if ((i + 1) % 3 == 0)
+        this->logfile << "\n";  // Newline every 3 elements for 3x3 format
+    else
+        this->logfile << " ";
+  }
+  this->logfile << std::endl;
+    // this->logfile << "New cost table: " << this->cost_table << std::endl;
+}
 
 
 /* PERCEPTION FUNCTIONS */
@@ -3146,7 +3217,6 @@ void PicknPlaceAlgNode::corners_callback(const visualization_msgs::MarkerArray::
     }
   }
 }
-
 
 void PicknPlaceAlgNode::place_corners_callback(const visualization_msgs::MarkerArray::ConstPtr& msg)
 {

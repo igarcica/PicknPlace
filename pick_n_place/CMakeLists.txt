@@ -32,6 +32,7 @@ add_service_files(
   SenseDefClass.srv
   PredictDefClass.srv
   GetPlacingQual.srv
+  ComputeCostEntry.srv
 )
 
 ## Generate actions in the 'action' folder
@@ -87,6 +88,7 @@ catkin_install_python(PROGRAMS
     scripts/sense_def_class.py
     scripts/prediction_module.py
     scripts/placing_quality.py
+    scripts/compute_cost_entry.py
     DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

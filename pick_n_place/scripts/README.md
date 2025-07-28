@@ -9,7 +9,12 @@ This folder contains python scripts for the modules necessary for the system (pr
     - clustering_raw_traintest_ros.py: Contains the functions to classify the current grid-based metric in a deformation class. Loads the trained model in ``/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/placing_metric/kmeans_model.pkl``
 - placing_quality.py: ROS node with the service to compute the quality of the placed object or pile. Uses ``placing_grid_metric_ros.py``
     - placing_grid_metric_ros.py: Contains the functions to process the pointcloud of the placed object and compute the metric for the placing quality.
-- cost_update.py: Given the placement qualities, placcing strtaegies and sensed deformation classes, it computes and plots the costs tables.
+- cost_update.py: Given the placement qualities, placing strategies and sensed deformation classes, it computes and plots the costs tables.
+    - system_adaptability.py: Plots the pile quality and cost evolution of the system's adaptabilty experiments.
+    - stystem_performance.py
+    - system_scalability.py
+    - compute_cost_entry.py: ROS node with a service to compute the new state-action cost entry given a placement quality. 
+
 
 
 #  Deformation class prediction, Deformation state estimation and Placing state estimation modules
@@ -84,8 +89,19 @@ python3 placing_cost_update.py
 
 Given the placing quality history, sensed deformation class and placing strategy, it computes the cost tables and plots the placing quality and costs evolution:
 
+<!--```
+python3 cost_update.py
+``` -->
 ```
-python3 main_cost_update.py
+python3 system_adaptability.py
+```
+
+To compute the new state-action cost given a placement quality (through ROS topic), execute:
+
+```
+roscore
+rosrun pick_n_place compute_cost_entry.py 
+rosservice call /pick_n_place/compute_cost_entry "cost_table: [17, 1, 1, 8, 22, 6, 30, 25, 6], def_class: 'A' placing_str: 'placevert' placing_qual: 90"
 ```
 
 

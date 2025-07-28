@@ -49,9 +49,10 @@
 #include <kortex_driver/SetCartesianReferenceFrame.h>
 #include <kortex_driver/Base_ClearFaults.h>
 #include <kortex_driver/OnNotificationActionTopic.h>
-#include <pick_n_place/SenseDefClass.h> //Deformation clustering module
-#include <pick_n_place/PredictDefClass.h> //Prediction deformation class module
-#include <pick_n_place/GetPlacingQual.h> //Placing quality module
+#include <pick_n_place/SenseDefClass.h> //Deformation clustering service
+#include <pick_n_place/PredictDefClass.h> //Prediction deformation class service
+#include <pick_n_place/GetPlacingQual.h> //Placing quality service
+#include <pick_n_place/ComputeCostEntry.h> //Compute cost entry service
 #include <std_srvs/Empty.h> 
 //#include <rosplan_dispatch_msgs/DispatchService.h> //ROSPlan
 #include <rosplan_knowledge_msgs/KnowledgeUpdateServiceArray.h> //ROSPlan
@@ -149,7 +150,7 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     bool start_demo=false;
     bool start_experiments=false;
     bool stop=false;
-    int placing_strategy=2;
+    std::string placing_strategy;
     pick_place_states_t state;
     double close_gripper;
     double open_gripper;
@@ -281,6 +282,12 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     pick_n_place::GetPlacingQual get_placing_quality_srv_;
     float placing_quality;
 
+    //Planning cost computation
+    ros::ServiceClient compute_cost_entry_client_;
+    pick_n_place::ComputeCostEntry compute_cost_entry_srv_;
+    void update_costs(void); //Update PDDL cost table based on placement quality
+    boost::array<int, 9> cost_table; //cloth-to-cloth cost table (for updating costs between piled objects in piles of more than 2 objects)
+
     //ROSPlan services
     ros::ServiceClient generate_problem_client_;
     ros::ServiceClient get_plan_client_;
@@ -302,6 +309,8 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     void managePDDLactions(void);
     rosplan_knowledge_msgs::KnowledgeUpdateServiceArray updateKB_init(void);
     rosplan_knowledge_msgs::KnowledgeUpdateServiceArray updateKB_defstate(void);
+
+    // 
     void predict_deformation_class(void); //Predicts deformation classes of current object in environment
     void get_objects_to_pile(void); //Gets properties of the list of objects to pile, predicts deformation classes and updates KB of the planner (for initial plan)
 
