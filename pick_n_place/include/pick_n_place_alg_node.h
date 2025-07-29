@@ -275,8 +275,12 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     std::string sensed_deformation_class;
     ros::ServiceClient predict_deformation_class_client_;
     pick_n_place::PredictDefClass predict_deformation_class_srv_;
+    void predict_deformation_class(void); //Predicts deformation classes of current object in environment
     std::string predicted_def_class_nearest_edge;
     std::string predicted_def_class_second_nearest_edge;
+    std::vector<std::string> predicted_def_class_short_edge_v; //For saving in CSV
+    std::vector<std::string> predicted_def_class_long_edge_v; //For saving in CSV
+
     //Check placing quality
     ros::ServiceClient get_placing_quality_client_;
     pick_n_place::GetPlacingQual get_placing_quality_srv_;
@@ -309,10 +313,7 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     void managePDDLactions(void);
     rosplan_knowledge_msgs::KnowledgeUpdateServiceArray updateKB_init(void);
     rosplan_knowledge_msgs::KnowledgeUpdateServiceArray updateKB_defstate(void);
-
-    // 
-    void predict_deformation_class(void); //Predicts deformation classes of current object in environment
-    void get_objects_to_pile(void); //Gets properties of the list of objects to pile, predicts deformation classes and updates KB of the planner (for initial plan)
+    std::string initial_plan, current_plan;
 
     // PDDL variables
     bool plan_pddl_demo;
@@ -331,6 +332,7 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     int n_obj_pile; //current piled object
     std::vector<std::string> objs_names, pddl_objs_names, objs_layers; //list of object names to pile
     std::vector<double> objs_stiffness, objs_friction, objs_thickn; //stiffness, friction and thicnkess of objects to pile
+    void get_objects_to_pile(void); //Gets properties of the list of objects to pile, predicts deformation classes and updates KB of the planner (for initial plan)
     
 
     // [action client attributes]
@@ -341,8 +343,7 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     void kinova_linear_moveActive();
     void kinova_linear_moveFeedback(const iri_kinova_linear_movement::kinova_linear_movementFeedbackConstPtr& feedback);
 
-    // std::ofstream logfile("/home/userlab/Desktop/log_picknplace.txt", std::ios::app); 
-    std::ofstream logfile;
+    std::ofstream logfile, csvfile;
 
    /**
     * \brief config variable

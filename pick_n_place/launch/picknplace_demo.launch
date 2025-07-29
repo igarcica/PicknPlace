@@ -20,6 +20,8 @@
 
   <node name="placing_quality" pkg="pick_n_place" type="placing_quality.py" output="screen" />
 
+  <node name="compute_new_cost" pkg="pick_n_place" type="compute_cost_entry.py" output="screen" />
+
   <!-- <include file="$(find pnp_planner)/launch/rosplan_tutotial10.launch"> </include> -->
 
 </launch>

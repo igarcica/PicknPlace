@@ -204,12 +204,12 @@ class CostUpdater:
         print_info(activate_print,"Huber: ", huber)
         return huber
 
-    def update_cost(self, i, j, observed_cost, n_exp):
+    def update_cost(self, i, j, observed_error, n_exp):
         """Update cost entry (i, j) using Huber M-estimator"""
         print_info(activate_print,"Previous cost: ", self.cost_table[i, j])
-        print_info(activate_print,"Observation: ", observed_cost)
+        print_info(activate_print,"Observation: ", observed_error)
 
-        residual = observed_cost - self.cost_table[i, j] #et(dt, pt) - Ct(dt, pt)
+        residual = observed_error - self.cost_table[i, j] #et(dt, pt) - Ct(dt, pt)
         print_info(activate_print,"Residual: ", residual)
 
         self.huber = self.huber_psi(residual)

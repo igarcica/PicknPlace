@@ -169,6 +169,8 @@ PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
   this->logfile << "---------------------------------------\n";
   this->logfile << "\n ======= Initialized pick_n_place_alg_node \n"; 
   // logfile.close();
+  this->csvfile.open("/home/userlab/iri-lab/iri_ws/src/PicknPlace/summary_picknplace.csv", std::ios::app);
+  this->csvfile << "Object in pile, Object name, Predicted Class SHORT, Predicted Class LONG, Initial plan, Grasped edge, Sensed deformation, Placing Quality, Last plan" << std::endl; //Headers
 }
 
 PicknPlaceAlgNode::~PicknPlaceAlgNode(void)
@@ -230,7 +232,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                    if(this->init_plan)
                    {
                      get_objects_to_pile(); //Update deformation classes of objects to pile before planning
-                     this->init_plan=false;
+                    //  this->init_plan=false;
                    }
                    //call ROSPlan services
                    generate_problem_client_.call(empty_srv_); //Generate problem
@@ -240,6 +242,11 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                   //  dispatch_plan_client_.call(dispatch_plan_srv_, boost::bind(&PicknPlaceAlgNode::testCallback, _1));
                    this->plan_pddl_demo=false;
                    ROS_WARN("PicknPlaneAlgNode: Waiting to dispatch plan");
+                   if(this->init_plan)
+                   {
+                     this->initial_plan = this->current_plan; //Save initial plan after predicting deformation of all the objects to pile
+                     this->init_plan=false;
+                   }
                  }
                  else if(this->start_experiments)
 		             {
@@ -1463,7 +1470,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                                   this->logfile << "======= Placing quality: " << this->placing_quality << std::endl;
                                   this->logfile << "Placing error: " << 100-this->placing_quality << std::endl;
                                   this->logfile << "=========================================================" << std::endl;
-                                  
+                                  this->csvfile << this->n_obj_pile << "," << this->objs_names[this->n_obj_pile] << "," << this->predicted_def_class_short_edge_v[this->n_obj_pile] << "," << this->predicted_def_class_long_edge_v[this->n_obj_pile] << "," << this->initial_plan << "," << this->nearest_edge << "," << this->sensed_deformation_class << "," << this->placing_quality << "," << this->current_plan << std::endl;
                                   if(this->pddl_demo)
                                    {
                                      this->n_obj_pile += 1; //Next object of the list
@@ -2506,6 +2513,7 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
       {
         std::cout << "Predicted deformation class grasping SHORT edge of " << object_name << " " << n_layers << " is: " << predict_deformation_class_srv_.response.predicted_def_class << std::endl;
         predicted_def_class_short_edge = predict_deformation_class_srv_.response.predicted_def_class;
+        this->predicted_def_class_short_edge_v.push_back(predicted_def_class_short_edge);
       }
       //Deformation class grasping long edge
       predict_deformation_class_srv_.request.layers = n_layers; 
@@ -2519,6 +2527,7 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
       {
         std::cout << "Predicted deformation class grasping LONG edge of " << object_name << " " << n_layers << " is: " << predict_deformation_class_srv_.response.predicted_def_class << std::endl;
         predicted_def_class_long_edge = predict_deformation_class_srv_.response.predicted_def_class;
+        this->predicted_def_class_long_edge_v.push_back(predicted_def_class_long_edge);
       }
     
     
@@ -2626,11 +2635,12 @@ void PicknPlaceAlgNode::update_costs(void) //Update table of costs for the next 
   {
     this->cost_table = compute_cost_entry_srv_.response.new_cost_table; //Update cost table
     new_cost = compute_cost_entry_srv_.response.new_cost;
-  }
+  }else
+    ROS_ERROR("PicknPlace: Unable to call /compute_new_cost service");
 
   //Update KB function place_succ ?cloth - garment ?class - defclass ?place - placing - entry of the executed state-action (defclass-placement) of the next object
-  ROS_INFO("PicknPlace: ADDING new cost %d to %s - %s of %s", new_cost, this->sensed_deformation_class.c_str(), this->placing_strategy.c_str(), this->pddl_objs_names[this->n_obj_pile]);
-  this->logfile << "ADDING new cost " << new_cost << " to " << this->sensed_deformation_class.c_str() << "-" << this->placing_strategy.c_str() << " of " << this->pddl_objs_names[this->n_obj_pile] << std::endl;
+  ROS_INFO("PicknPlace: ADDING new cost %d to %s - %s of %s", new_cost, this->sensed_deformation_class.c_str(), this->placing_strategy.c_str(), this->pddl_objs_names[this->n_obj_pile-1].c_str());
+  this->logfile << "ADDING new cost " << new_cost << " to " << this->sensed_deformation_class.c_str() << "-" << this->placing_strategy.c_str() << " of " << this->pddl_objs_names[this->n_obj_pile-1].c_str() << std::endl;
   //Add new cost to next object
   rosplan_knowledge_msgs::KnowledgeItem item;
   item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FUNCTION;
@@ -2658,7 +2668,7 @@ void PicknPlaceAlgNode::update_costs(void) //Update table of costs for the next 
     ROS_WARN("PicknPlaceAlgNode: Knowledge Base NOT updated!");
 
   //Save new cost table in logfile
-  this->logfile << "New cost table: ";
+  this->logfile << "New cost table: \n";
   for (size_t i = 0; i < this->cost_table.size(); ++i) {
     this->logfile << this->cost_table[i];
     if ((i + 1) % 3 == 0)
@@ -3415,9 +3425,10 @@ void PicknPlaceAlgNode::planner_topic_callback(const std_msgs::String::ConstPtr&
 {
   ROS_INFO("PicknPlaceAlgNode: New plan received");
   this->logfile << "\n--- NEW PLAN RECEIVED --- \n";
+  this->logfile << "New plan: " << msg->data << std::endl;
 
   std::cout << "New plan: " << msg->data << std::endl;
-  this->logfile << "New plan: " << msg->data << std::endl;
+  this->current_plan = msg->data;
 
 }
 
