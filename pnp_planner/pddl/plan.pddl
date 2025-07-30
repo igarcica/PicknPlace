@@ -13,31 +13,18 @@ ff: search configuration is weighted A* with weight 0.
 Metric is ((1.00*[RF1](TIME_COST)1.00*[RF0](PLACE_QUAL)) - () + 0.00)
 COST MINIMIZATION DONE (WITH cost-minimizing relaxed plans).
 
-advancing to goal distance:    7
-                               6
-                               5
-                               4
-                               3
-                               2
-                               1
+advancing to goal distance:    1
                                0
 
 ff: found legal plan as follows
-step    0: PLACEROT CHECKERED2 CHECKERED1 LINRAG LONG B
-        1: HOME
-        2: GO_HIGH
-        3: CHECK_CORNERS LINRAG
-        4: HOME
-        5: GRASP LINRAG LONG A
-        6: CHECK_DEFORMATION LINRAG
-        7: PLACEDIAG LINRAG CHECKERED2 TABLE LONG A
-plan cost: 18.000000
+step    0: PLACEROT CHECKERED1 WAFFLE1 TABLE SHORT B
+plan cost: 12.000000
 
-time spent:    0.00 seconds instantiating 12327 easy, 66 hard action templates
-               0.00 seconds reachability analysis, yielding 116 facts and 843 actions
-               0.00 seconds creating final representation with 79 relevant facts, 2 relevant fluents
+time spent:    0.00 seconds instantiating 1552 easy, 34 hard action templates
+               0.00 seconds reachability analysis, yielding 36 facts and 51 actions
+               0.00 seconds creating final representation with 11 relevant facts, 2 relevant fluents
                0.00 seconds computing LNF
                0.00 seconds building connectivity graph
-               0.01 seconds searching, evaluating 418 states, to a max depth of 0
-               0.01 seconds total time
+               0.00 seconds searching, evaluating 33 states, to a max depth of 0
+               0.00 seconds total time
 

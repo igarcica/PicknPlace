@@ -38,6 +38,9 @@ Launch the knowledge base, problem and planner interface to store the PDDL model
 
 or `rosplan_tutorial10_sim.launch` without launching the robot.
 
+Execute the script `problem_generation.py` to generate the PDDL problem based on the objects to pile.
+
+Introduce the number of objects to pile, the object names and the layers in the *n_objs_pile*, *objs_to_pile* and *layers* parameters of the reconfigure, respectively. 
 Press `plan_pddl_demo` in the reconfigure to generate problem, plan and parse. If the plan is correct (check with `rostopic echo /rosplan_planner_interface/planner_output -p -n 1`), dispatch the plan calling the service:
 
 ``rosservice call /rosplan_plan_dispatcher/dispatch_plan``

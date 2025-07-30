@@ -170,8 +170,10 @@ PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
   this->logfile << "\n ======= Initialized pick_n_place_alg_node \n"; 
   // logfile.close();
   this->csvfile.open("/home/userlab/iri-lab/iri_ws/src/PicknPlace/summary_picknplace.csv", std::ios::app);
-  this->csvfile << "Object in pile, Object name, Predicted Class SHORT, Predicted Class LONG, Initial plan, Grasped edge, Sensed deformation, Placing Quality, Last plan" << std::endl; //Headers
+  this->csvfile << "Object in pile, Object name, Predicted Class SHORT, Predicted Class LONG, Grasped edge, Sensed deformation, Placing Quality" << std::endl; //Headers
+  this->planningfile.open("/home/userlab/iri-lab/iri_ws/src/PicknPlace/planning_summary.txt", std::ios::app);
 }
+
 
 PicknPlaceAlgNode::~PicknPlaceAlgNode(void)
 {
@@ -232,7 +234,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                    if(this->init_plan)
                    {
                      get_objects_to_pile(); //Update deformation classes of objects to pile before planning
-                    //  this->init_plan=false;
+                     this->init_plan=false;
                    }
                    //call ROSPlan services
                    generate_problem_client_.call(empty_srv_); //Generate problem
@@ -242,11 +244,6 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                   //  dispatch_plan_client_.call(dispatch_plan_srv_, boost::bind(&PicknPlaceAlgNode::testCallback, _1));
                    this->plan_pddl_demo=false;
                    ROS_WARN("PicknPlaneAlgNode: Waiting to dispatch plan");
-                   if(this->init_plan)
-                   {
-                     this->initial_plan = this->current_plan; //Save initial plan after predicting deformation of all the objects to pile
-                     this->init_plan=false;
-                   }
                  }
                  else if(this->start_experiments)
 		             {
@@ -303,6 +300,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                                     // this->pddl_action_done=true; // End PDDL action
                                     as_.setPreempted();
                                     this->plan_pddl_demo=true; //generate problem
+                                    this->planningfile << "---UPDATE INITIAL POSE OBJECT (UPDATE INIT ROSPLAN KB)---\n" << std::endl;
                                     this->state=IDLE;
                                   }else{
                                     ROS_WARN("PicknPlaceAlgNode: Knowledge Base NOT updated!");
@@ -809,6 +807,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                                   // this->pddl_action_done=true; // End PDDL action
                                   as_.setPreempted();
                                   this->plan_pddl_demo=true;
+                                  this->planningfile << "---UPDATE SENSED DEFORMATION CLASS (UPDATE ROSPLAN KB)--- \n" << std::endl;
                                   this->state=IDLE;
                                 }else{
                                   ROS_WARN("PicknPlaceAlgNode: Knowledge Base NOT updated!");
@@ -1470,7 +1469,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                                   this->logfile << "======= Placing quality: " << this->placing_quality << std::endl;
                                   this->logfile << "Placing error: " << 100-this->placing_quality << std::endl;
                                   this->logfile << "=========================================================" << std::endl;
-                                  this->csvfile << this->n_obj_pile << "," << this->objs_names[this->n_obj_pile] << "," << this->predicted_def_class_short_edge_v[this->n_obj_pile] << "," << this->predicted_def_class_long_edge_v[this->n_obj_pile] << "," << this->initial_plan << "," << this->nearest_edge << "," << this->sensed_deformation_class << "," << this->placing_quality << "," << this->current_plan << std::endl;
+                                  this->csvfile << this->n_obj_pile << "," << this->objs_names[this->n_obj_pile] << "," << this->predicted_def_class_short_edge_v[this->n_obj_pile] << "," << this->predicted_def_class_long_edge_v[this->n_obj_pile] << "," << this->nearest_edge << "," << this->sensed_deformation_class << "," << this->placing_quality << std::endl;
                                   if(this->pddl_demo)
                                    {
                                      this->n_obj_pile += 1; //Next object of the list
@@ -1687,6 +1686,7 @@ if(config.start_experiments)
   if(config.plan_pddl_demo)
   {
     ROS_WARN("PicknPlaceAlgNode: Activated PDDL SM management");
+    this->planningfile << "---INIT PLAN---\n" << std::endl;
     this->plan_pddl_demo=true;
     config.plan_pddl_demo=false;
     //this->pddl_demo=true;
@@ -3428,7 +3428,45 @@ void PicknPlaceAlgNode::planner_topic_callback(const std_msgs::String::ConstPtr&
   this->logfile << "New plan: " << msg->data << std::endl;
 
   std::cout << "New plan: " << msg->data << std::endl;
-  this->current_plan = msg->data;
+  std::string current_plan = msg->data;
+
+  //Save plan cost and time spend in planning
+  std::string filepath = "/home/userlab/iri-lab/iri_ws/src/PicknPlace/pnp_planner/pddl/plan.pddl";
+  std::ifstream file(filepath);
+  std::string line;
+  // PlanStats stats;
+  double cost = -1;
+  double time = -1;
+
+  // if (!file.is_open()) {
+  //   std::cerr << "Could not open planner output file: " << filepath << std::endl;
+  //   return stats;
+  // }
+
+  while (std::getline(file, line)) {
+    // Look for "plan cost:"
+    size_t pos = line.find("plan cost:");
+    if (pos != std::string::npos) {
+      std::string num = line.substr(pos + 11);  // 11 = length of "plan cost: "
+      cost = std::stod(num);
+      std::cout << "COOOOOOOST:  " << cost << std::endl;
+    }
+
+    // Look for "seconds total time"
+    pos = line.find("seconds total time");
+    if (pos != std::string::npos) {
+      size_t start = line.rfind(" ", pos - 2); // Find space before the number
+      if (start != std::string::npos) {
+        std::string num = line.substr(start + 1, pos - start - 1);
+        time = std::stod(num);
+        std::cout << "TIIIIIME:  " << time << std::endl;
+      }
+    }
+  }
+  this->planningfile << current_plan << std::endl;
+  this->planningfile << "plan cost: " << cost << std::endl;
+  this->planningfile << "time spend: " << time << std::endl;
+  this->planningfile << "----------------------------------------------------------------" << std::endl;
 
 }
 

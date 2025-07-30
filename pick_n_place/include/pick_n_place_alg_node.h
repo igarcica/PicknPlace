@@ -313,7 +313,6 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     void managePDDLactions(void);
     rosplan_knowledge_msgs::KnowledgeUpdateServiceArray updateKB_init(void);
     rosplan_knowledge_msgs::KnowledgeUpdateServiceArray updateKB_defstate(void);
-    std::string initial_plan, current_plan;
 
     // PDDL variables
     bool plan_pddl_demo;
@@ -343,7 +342,7 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     void kinova_linear_moveActive();
     void kinova_linear_moveFeedback(const iri_kinova_linear_movement::kinova_linear_movementFeedbackConstPtr& feedback);
 
-    std::ofstream logfile, csvfile;
+    std::ofstream logfile, csvfile, planningfile;
 
    /**
     * \brief config variable
