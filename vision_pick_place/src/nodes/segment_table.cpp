@@ -43,14 +43,25 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <pcl_ros/transforms.h>
 #include <tf/transform_listener.h>
+#include <visualization_msgs/MarkerArray.h>
+#include <visualization_msgs/Marker.h>
+#include <std_msgs/Float64.h>
+#include <dynamic_reconfigure/server.h>
+#include <geometry_msgs/Point.h>
 
 // PCL headers
 #include <pcl/point_cloud.h>
 #include <pcl/surface/convex_hull.h>
-#include <visualization_msgs/MarkerArray.h>
-#include <std_msgs/Float64.h>
+#include <pcl/point_types.h>
 
-#include <dynamic_reconfigure/server.h>
+//OpenCV headers
+#include <opencv2/opencv.hpp>
+
+// #include <pcl/common/common.h>
+// #include <pcl/filters/statistical_outlier_removal.h>
+// #include <pcl/filters/project_inliers.h>
+// #include <pcl/ModelCoefficients.h>
+// #include <cmath>
 
 // Std C++ headers
 #include <string>
@@ -80,8 +91,11 @@ namespace pal {
     void nonplaneCloudCallback(const sensor_msgs::PointCloud2ConstPtr& nonplaneCloud);
     //void garmentCloudCallback(const sensor_msgs::PointCloud2ConstPtr& garmentCloud);
     visualization_msgs::MarkerArray computeCorners(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_hull);
+    visualization_msgs::MarkerArray computeCorners2(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_hull);
+    // visualization_msgs::MarkerArray computeCorners3(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_hull);
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr filterPointCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pclCloud, std::string axis, double min, double max);
   
+    // void rdpSimplify(const std::vector<pcl::PointXYZ>& points, std::vector<pcl::PointXYZ>& out, double epsilon);
 
     void start();
     void stop();
@@ -363,6 +377,8 @@ namespace pal {
 
   void SegmentPlane::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& cloud)
   {
+    ROS_DEBUG("SegmentPlane::cloudCallback");
+
     if ( (cloud->width * cloud->height) < 2)
     {
       ROS_DEBUG("SegmentPlace: Empty Cloud");
@@ -835,7 +851,9 @@ namespace pal {
   void SegmentPlane::placeCloudCallback(const sensor_msgs::PointCloud2ConstPtr& placeCloud)
   {
     ROS_DEBUG("SegmentPlace: placeCloud Callback");
-    if ( (placeCloud->width * placeCloud->height) == 0)
+
+    // if ( (placeCloud->width * placeCloud->height) == 0)
+    if ( (placeCloud->width * placeCloud->height) < 3)
     {
       ROS_DEBUG("SegmentPlace: Empty placeCloud");
       return;
@@ -879,7 +897,7 @@ namespace pal {
     ROS_DEBUG("SegmentPlace: pickCloud Callback");
 
     // To get the segmented cloud in PCL XYZ format (instead of XYZRGB)
-    if ( (pickCloud->width * pickCloud->height) == 0)
+    if ( (pickCloud->width * pickCloud->height) < 3) //To avoid [pcl::SampleConsensusModel::getSamples] Can not select 0 unique points out of 2!
     {
       ROS_DEBUG("SegmentPlace: Empty pickCloud");
       return;
@@ -1306,8 +1324,261 @@ namespace pal {
 
   }
 
+visualization_msgs::MarkerArray SegmentPlane::computeCorners2(pcl::PointCloud<pcl::PointXYZ>::Ptr garmentCloud)
+{
+    ROS_INFO("SegmentPlane: Computing corners");
+
+    visualization_msgs::MarkerArray marker_array;
+
+    if (!garmentCloud || garmentCloud->empty()) {
+        ROS_WARN("Empty garment point cloud received.");
+        return marker_array;
+    }
+
+    // Step 1: Project point cloud to 2D (XY)
+    std::vector<cv::Point2f> xy_points;
+    for (const auto& pt : garmentCloud->points) {
+        xy_points.emplace_back(pt.x, pt.y);
+    }
+
+    std::cout << "hola1" << std::endl;
+
+    // Step 2: Use OpenCV to compute the minimum area rectangle
+    cv::RotatedRect minRect = cv::minAreaRect(xy_points);
+
+    std::cout << "hola2" << std::endl;
+
+    // Step 3: Extract the 4 corners of the rectangle
+    std::vector<cv::Point2f> box2D(4);
+    minRect.points(box2D.data());
+
+    std::cout << "hola3" << std::endl;
+
+    // Step 4: Convert 2D corners to 3D using average Z from nearest points
+    std::vector<geometry_msgs::Point> corners3D;
+    for (const auto& pt2d : box2D) {
+        // Find nearest point in original cloud to get Z
+        float min_dist = std::numeric_limits<float>::max();
+        float nearest_z = 0.0f;
+
+        for (const auto& pt : garmentCloud->points) {
+            float dx = pt2d.x - pt.x;
+            float dy = pt2d.y - pt.y;
+            float dist = dx * dx + dy * dy;
+            if (dist < min_dist) {
+                min_dist = dist;
+                nearest_z = pt.z;
+            }
+        }
+
+        geometry_msgs::Point pt3d;
+        pt3d.x = pt2d.x;
+        pt3d.y = pt2d.y;
+        pt3d.z = nearest_z;
+        corners3D.push_back(pt3d);
+    }
+
+    std::cout << "hola4" << std::endl;
+    // Step 5: Create a LINE_STRIP marker to visualize the rectangle
+    visualization_msgs::Marker line_strip;
+    line_strip.header.frame_id = garmentCloud->header.frame_id;  
+    // line_strip.ns = "garment_corners";
+    line_strip.id = 0;
+    line_strip.type = visualization_msgs::Marker::LINE_STRIP;
+    line_strip.action = visualization_msgs::Marker::ADD;
+    line_strip.scale.x = 0.01;  // line width
+    line_strip.color.r = 1.0;
+    line_strip.color.g = 0.0;
+    line_strip.color.b = 0.0;
+    line_strip.color.a = 1.0;
+    line_strip.pose.orientation.w = 1.0;
+
+    // Close the rectangle loop
+    for (const auto& pt : corners3D) {
+        line_strip.points.push_back(pt);
+    }
+    line_strip.points.push_back(corners3D.front());  // close loop
+
+    marker_array.markers.push_back(line_strip);
+
+    // Step 6: Add sphere markers for each corner
+    for (size_t i = 0; i < corners3D.size(); ++i) {
+      std::cout << corners3D[i] << std::endl;
+        visualization_msgs::Marker sphere;
+        sphere.header = line_strip.header;
+        // sphere.ns = "garment_corner_spheres";
+        sphere.id = i + 1;
+        sphere.type = visualization_msgs::Marker::SPHERE;
+        sphere.action = visualization_msgs::Marker::ADD;
+        sphere.pose.position = corners3D[i];
+        sphere.scale.x = 0.02;
+        sphere.scale.y = 0.02;
+        sphere.scale.z = 0.02;
+        sphere.color.r = 0.0;
+        sphere.color.g = 1.0;
+        sphere.color.b = 0.0;
+        sphere.color.a = 1.0;
+        sphere.pose.orientation.w = 1.0;
+
+        marker_array.markers.push_back(sphere);
+    }
+
+    return marker_array;
+}
+
+
+// Simplify polygon using Ramer–Douglas–Peucker (RDP)
+/*void SegmentPlane::rdpSimplify(const std::vector<pcl::PointXYZ>& points, std::vector<pcl::PointXYZ>& out, double epsilon) {
+    if (points.size() < 3) {
+        out = points;
+        return;
+    }
+
+    double maxDist = 0.0;
+    size_t index = 0;
+
+    const pcl::PointXYZ& start = points.front();
+    const pcl::PointXYZ& end = points.back();
+
+    for (size_t i = 1; i < points.size() - 1; ++i) {
+        double area = std::abs((end.x - start.x) * (start.y - points[i].y) -
+                               (start.x - points[i].x) * (end.y - start.y));
+        double length = std::hypot(end.x - start.x, end.y - start.y);
+        double dist = area / length;
+
+        if (dist > maxDist) {
+            index = i;
+            maxDist = dist;
+        }
+    }
+
+    if (maxDist > epsilon) {
+        std::vector<pcl::PointXYZ> left(points.begin(), points.begin() + index + 1);
+        std::vector<pcl::PointXYZ> right(points.begin() + index, points.end());
+
+        std::vector<pcl::PointXYZ> out1, out2;
+        rdpSimplify(left, out1, epsilon);
+        rdpSimplify(right, out2, epsilon);
+
+        out = out1;
+        out.pop_back();
+        out.insert(out.end(), out2.begin(), out2.end());
+    } else {
+        out = { start, end };
+    }
+}*/
+
+/*visualization_msgs::MarkerArray SegmentPlane::computeCorners3(pcl::PointCloud<pcl::PointXYZ>::Ptr garmentCloud)
+{
+    visualization_msgs::MarkerArray marker_array;
+
+    if (!garmentCloud || garmentCloud->empty()) {
+        ROS_WARN("Empty garment cloud.");
+        return marker_array;
+    }
+
+    // Step 1: Filter outliers
+    pcl::PointCloud<pcl::PointXYZ>::Ptr filteredCloud(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::StatisticalOutlierRemoval<pcl::PointXYZ> sor;
+    sor.setInputCloud(garmentCloud);
+    sor.setMeanK(20);
+    sor.setStddevMulThresh(1.0);
+    sor.filter(*filteredCloud);
+
+    // Step 2: Project to XY plane
+    pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
+    coefficients->values = { 0.0, 0.0, 1.0, 0.0 }; // Plane Z=0
+
+    pcl::PointCloud<pcl::PointXYZ>::Ptr projected(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::ProjectInliers<pcl::PointXYZ> projector;
+    projector.setModelType(pcl::SACMODEL_PLANE);
+    projector.setInputCloud(filteredCloud);
+    projector.setModelCoefficients(coefficients);
+    projector.filter(*projected);
+
+    // Step 3: Compute Convex Hull
+    pcl::PointCloud<pcl::PointXYZ>::Ptr hull(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::ConvexHull<pcl::PointXYZ> chull;
+    chull.setInputCloud(projected);
+    chull.setDimension(2);
+    chull.reconstruct(*hull);
+
+    if (hull->points.size() < 4) {
+        ROS_WARN("Convex hull returned fewer than 4 points.");
+        return marker_array;
+    }
+
+    // Step 4: Simplify to 4 points using RDP
+    std::vector<pcl::PointXYZ> simplified;
+    rdpSimplify(hull->points, simplified, 0.01);  // epsilon can be tuned
+
+    // Ensure exactly 4 corners
+    while (simplified.size() > 4) {
+        simplified.erase(simplified.begin() + 1);  // remove midpoints until 4
+    }
+
+    if (simplified.size() != 4) {
+        ROS_WARN("Could not reduce to exactly 4 corners. Found %lu", simplified.size());
+        return marker_array;
+    }
+
+    // Step 5: Create visualization
+    visualization_msgs::Marker line_strip;
+    line_strip.header.frame_id = garmentCloud->header.frame_id;
+    line_strip.header.stamp = ros::Time::now();
+    line_strip.ns = "cloth_corners";
+    line_strip.id = 0;
+    line_strip.type = visualization_msgs::Marker::LINE_STRIP;
+    line_strip.action = visualization_msgs::Marker::ADD;
+    line_strip.scale.x = 0.01;
+    line_strip.color.r = 0.0;
+    line_strip.color.g = 0.0;
+    line_strip.color.b = 1.0;
+    line_strip.color.a = 1.0;
+    line_strip.pose.orientation.w = 1.0;
+
+    for (const auto& pt : simplified) {
+        geometry_msgs::Point gpt;
+        gpt.x = pt.x;
+        gpt.y = pt.y;
+        gpt.z = pt.z;
+        line_strip.points.push_back(gpt);
+    }
+    line_strip.points.push_back(line_strip.points.front());  // close loop
+    marker_array.markers.push_back(line_strip);
+
+    // Add corner spheres
+    int id = 1;
+    for (const auto& pt : simplified) {
+        visualization_msgs::Marker sphere;
+        sphere.header = line_strip.header;
+        sphere.ns = "cloth_corner_points";
+        sphere.id = id++;
+        sphere.type = visualization_msgs::Marker::SPHERE;
+        sphere.action = visualization_msgs::Marker::ADD;
+        sphere.pose.position.x = pt.x;
+        sphere.pose.position.y = pt.y;
+        sphere.pose.position.z = pt.z;
+        sphere.scale.x = 0.02;
+        sphere.scale.y = 0.02;
+        sphere.scale.z = 0.02;
+        sphere.color.r = 0.0;
+        sphere.color.g = 1.0;
+        sphere.color.b = 0.0;
+        sphere.color.a = 1.0;
+        sphere.pose.orientation.w = 1.0;
+
+        marker_array.markers.push_back(sphere);
+    }
+
+    return marker_array;
+}*/
+
+
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr SegmentPlane::filterPointCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pclCloud, std::string axis, double min, double max)
   {
+    ROS_DEBUG("SegmentPlane:filterPointCloud");
+
     // Apply passthrough filter for Pick zone
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr passThroughCloud(new pcl::PointCloud<pcl::PointXYZRGB>);
     if ( !axis.empty() )

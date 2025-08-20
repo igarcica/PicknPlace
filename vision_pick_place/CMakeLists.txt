@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(vision_pick_place)
 
-find_package(catkin REQUIRED COMPONENTS
+find_package(catkin REQUIRED OpenCV REQUIRED COMPONENTS
   pcl_conversions
   pcl_ros
   roscpp
@@ -37,12 +37,13 @@ catkin_package(
 include_directories(SYSTEM
   include
   ${catkin_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
 )
 
 
 add_library(${PROJECT_NAME}
             src/pcl_filters.cpp)
-target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
 add_executable(segment_table src/nodes/segment_table.cpp)
 target_link_libraries(segment_table ${catkin_LIBRARIES})

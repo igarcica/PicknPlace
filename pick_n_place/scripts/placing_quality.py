@@ -4,6 +4,7 @@ import ros_numpy
 from sensor_msgs.msg import PointCloud2
 from pick_n_place.srv import GetPlacingQual, GetPlacingQualResponse
 import placing_grid_metric_ros as placing_grid_metric
+import placing_grid_metric_ros2 as placing_grid_metric2
 import numpy as np
 
 n_divisions = 3
@@ -45,6 +46,7 @@ CLOTH_SIZE = {
     "linenap_16l": (0.13,0.13, 0.02),
     "check_4l": (0.25,0.35),
     "check_6l": (0.24,0.25, 0.01),
+    # "check_8l": (0.23,0.27, 0.01),
     "check_8l": (0.18,0.25, 0.01),
     "check_12l": (0.12,0.25),
     "check_16l": (0.13,0.18),
@@ -120,8 +122,8 @@ def process_pointcloud(data, grasp_edge_size, nongrasp_edge_size, obj_thickness,
 
 def handle_service(req):
     
-    msg = rospy.wait_for_message('/segment_table/place', PointCloud2) # Get next message from the topic /segment_table/place (segmented pointcloud of the placed object)
     # msg = rospy.wait_for_message('/cloud_pcd', PointCloud2) # Get next message from the topic /segment_table/place (segmented pointcloud of the placed object)
+    msg = rospy.wait_for_message('/segment_table/place', PointCloud2) # Get next message from the topic /segment_table/place (segmented pointcloud of the placed object)
     
     ## ---Get object dimensions for creating canonical---
     object_layers = req.object_name + "_" + req.layers
@@ -150,6 +152,12 @@ def handle_service(req):
     placing_quality = np.where(placing_quality < 0, 0, np.where(placing_quality>100, 100, placing_quality))
     print("placing quality:", placing_quality)
     print("Placing error:", 100-placing_quality)
+
+    placing_quality2 = placing_grid_metric2.compute_quality(grid_metric, n_divisions, object_thickness)
+    print("RESULT: ", placing_quality2)
+
+    placing_quality3 = placing_grid_metric2.hybrid(grid_metric, n_divisions, object_thickness, n_objects)
+    print("RESULT: ", placing_quality3)
     
     return GetPlacingQualResponse(placing_quality)
 

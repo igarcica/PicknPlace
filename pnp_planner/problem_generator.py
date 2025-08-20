@@ -44,9 +44,9 @@ def generate_problem(objects, placing_costs, piling_costs):
     content += "\t (known_obj " + str(obj1) + ") (garment_state " + str(obj1) + " notgrasped) (garment_at " + str(obj1) + " rotws) (at_pose " + str(obj1) + " long) (not (corners_pos_known " + str(obj1) + ")) (defstate " + str(obj1) + " flat) \n"
     content += "\n"
     content += "\t ;; objects to pile (cloth-to-cloth costs) \n"
-    for idx, obj in enumerate(objects[1:]):
-    content += "\n"
+    for idx, obj in enumerate(objects[1:]):    
         content += "\t (not (known_obj " + obj + ")) (garment_state " + str(obj) + " notgrasped) (garment_at " + str(obj) + " rotws) (at_pose " + str(obj) + " long) (not (corners_pos_known " + str(obj) + ")) (defstate " + str(obj) + " flat) \n"
+    content += "\n"
     content += "\t (= (time_cost) 0) \n\t (= (place_qual) 0) \n"
 
     ## cloth-to-table costs
@@ -77,7 +77,7 @@ def generate_problem(objects, placing_costs, piling_costs):
     ## Deformation classes
     for idx, obj in enumerate(objects):
         content += "\t (obj_grasp_class " + str(obj) + " short A) \n"
-        content += "\t (obj_grasp_class " + str(obj) + " short A) \n"
+        content += "\t (obj_grasp_class " + str(obj) + " long A) \n"
     content += ")\n\n"
 
     ## GOAL - objects to pile

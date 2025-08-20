@@ -10,7 +10,7 @@ from scipy.interpolate import CubicSpline
 # from scipy.interpolate import make_interp_spline
 
 ## UTIL FUNCTIONS
-activate_print=False
+activate_print=True
 
 def print_info(activate, arg1, arg2="", arg3="", arg4="", arg5="", arg6=""):
     if(activate):
@@ -190,7 +190,7 @@ class CostUpdater:
         # alpha = self.alpha_0 + (1-t)*t #en pruebas
         # alpha = self.alpha_stab + (self.alpha_0-self.alpha_stab)/(1+np.exp(10*(t-6))) #at t=8 changes to 0.3
         if(t<7):
-            alpha = 0.5
+            alpha = 0.3 #0.5
         else:
             alpha = 0.3
         # alpha = self.alpha_0 / (1 + self.beta * t) + self.alpha_stab    # inverse time decay
@@ -211,14 +211,20 @@ class CostUpdater:
 
         residual = observed_error - self.cost_table[i, j] #et(dt, pt) - Ct(dt, pt)
         print_info(activate_print,"Residual: ", residual)
+        print_info(activate_print,"Previous Cost update: ", self.cost_table[i, j])
 
         self.huber = self.huber_psi(residual)
-
         self.alpha = self.get_alpha(n_exp)
+
         # self.cost_table[i, j] += self.alpha * self.huber_psi(residual)
         # print_info(activate_print,"Cost update: ", self.alpha * self.huber_psi(residual))
-        self.cost_table[i, j] += self.alpha * self.huber
-        print_info(activate_print,"Cost update: ", self.alpha * self.huber)
+        # self.cost_table[i, j] += self.alpha * self.huber
+        # print_info(activate_print,"Cost update: ", self.alpha * self.huber)
+        result = self.alpha * self.huber
+        self.cost_table[i, j] += round(result)
+        print_info(activate_print,"Cost update: ", result)
+        print_info(activate_print,"Cost update: ", round(result))
+        print_info(activate_print,"Rounded Cost update: ", self.cost_table[i, j])
 
         return self.cost_table[i, j]
 
@@ -265,7 +271,7 @@ class CostUpdater:
 
         axes.scatter(x, points, color='black', zorder=3)
 
-        axes.axvline(x=20, color='gray', linestyle='--', linewidth=2) #Plot a dashed line when plotting the pillowcase + towel results
+        # axes.axvline(x=20, color='gray', linestyle='--', linewidth=2) #Plot a dashed line when plotting the pillowcase + towel results
 
         ## Plot config
         axes.set_xticks(x)
@@ -309,7 +315,7 @@ class CostUpdater:
         # for i,j in zip(x,placed_quality_results):
         #     plt.annotate(labels[i], (i+0.05,j+0.05))
 
-        plt.axvline(x=20, color='gray', linestyle='--', linewidth=2) #Plot a dashed line when plotting the pillowcase + towel results
+        # plt.axvline(x=20, color='gray', linestyle='--', linewidth=2) #Plot a dashed line when plotting the pillowcase + towel results
 
         plt.xticks(x)
         plt.xlabel("Trial", fontsize=18)
