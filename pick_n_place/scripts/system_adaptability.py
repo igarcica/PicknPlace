@@ -2,6 +2,7 @@
 ### This script collects the placing_costs_update.py and the plot_placing_quality.py
 
 import numpy as np
+import pandas as pd
 import statistics as sts
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
@@ -9,7 +10,7 @@ from scipy.interpolate import make_interp_spline
 import cost_update as cost_update
 
 ## UTIL FUNCTIONS
-activate_print=False
+activate_print=True
 
 def print_info(activate, arg1, arg2="", arg3="", arg4="", arg5="", arg6=""):
     if(activate):
@@ -129,19 +130,19 @@ pile_initial_cost_table = np.array([ # Init cost table (placing error to minimiz
 
 
 ################## SYSTEM'S ADAPTABILITY 2 ##################
-######### CHECKERED 8L ######### - 
 #exps: 4.1 to 6.2 of system performance
-placed_quality_results = np.array([0, 98, 96, 97, 0, 96, 97, 95, 94, 92, 94])#, 100]) 
+######### CHECKERED 8L ######### - 
+placed_quality_results = np.array([0, 98, 96, 97, 83, 96, 97, 95, 94, 92, 94, 96, 97, 96])#, 100]) 
 placing_errors = 100-placed_quality_results
-placing_str = ["0", "v", "d", "r", "v", "d", "r", "d", "r", "d", "r"]#, "v"]
-placing_def_classes = ["0", "C", "C", "C", "B", "B", "B", "B", "B", "B", "B"]#, "B"]
+placing_str = ["0", "v", "d", "r", "v", "d", "r", "d", "r", "d", "r", "v", "d", "r"]#, "v"]
+placing_def_classes = ["0", "C", "C", "C", "B", "B", "B", "B", "B", "B", "B", "A", "A", "A"]#, "B"]
 
-piled_quality_results = np.array([0, 11, 67, 64, 46, 87, 92, 98, 97, 94, 93])#, 98]) 
+piled_quality_results = np.array([0, 11, 67, 64, 0, 87, 92, 98, 97, 94, 93, 92, 95, 92])#, 98]) 
 piling_errors = 100-piled_quality_results
-piling_str = ["0", "v", "d", "r", "v", "d", "r", "r", "r", "r", "r"]#, "r"]
-piling_def_classes = ["0", "C", "C", "C", "B", "B", "B", "B", "B", "B", "B"]#, "B"]
+piling_str = ["0", "v", "d", "r", "v", "d", "r", "r", "r", "r", "r", "v", "d", "r"]#, "r"]
+piling_def_classes = ["0", "C", "C", "C", "B", "B", "B", "B", "B", "B", "B", "A", "A", "A"]#, "B"]
 
-labels = np.array(["0", "vv", "dd", "rr", "vv", "dd", "rr", "dr", "rr", "rr", "dr"])#, "vr"])
+labels = np.array(["0", "vv", "dd", "rr", "vv", "dd", "rr", "dr", "rr", "rr", "dr", "vv", "dd", "rr"])#, "vr"])
 
 
 ##########################################
@@ -207,14 +208,12 @@ for m in range(0,len(errors)):
         changes[m].append(hola)
         cost_table_evolution[m].append(costs_matrix.copy())
 
-        print_info(activate_print,"--------------------")
+        print("----------")
     print("---------------------------------------------")
     print("Last cost table: \n", costs_matrix)
     print("---------------------------------------------")
 
 ############################
-
-# print("Final PLACING cost table: ")
 
 # print("Final PILING cost table: ")
 # print(costs_history[1])
@@ -485,3 +484,67 @@ def on_click(event):
 fig.canvas.mpl_connect('button_press_event', on_click)
 
 plt.show()
+
+
+
+
+
+############################### Plot cost evolution as table
+
+# labels
+def_classes = ["A", "B", "C"]
+placing_str = ["vertical", "diagonal", "rotating"]
+
+#### cloth-to-table costs
+arr = costs_history[0]
+rows = [] # build rows
+for i, dclass in enumerate(def_classes):
+    for j, place in enumerate(placing_str):
+        rows.append([dclass, place] + arr[i][j])
+
+# create dataframe
+df1 = pd.DataFrame(rows, columns=["Def class", "Placing str"] + [f"trial {k}" for k in range(len(arr[0][0]))])
+
+# plot table
+fig, ax = plt.subplots(figsize=(12, 4))
+ax.axis("off")
+table = ax.table(
+    cellText=df1.values,
+    colLabels=df1.columns,
+    loc="center",
+    cellLoc="center"
+)
+table.auto_set_font_size(False)
+table.set_fontsize(10)
+table.scale(1.2, 1.2)
+
+plt.show()
+
+#### cloth-to-cloth costs
+arr = costs_history[1]
+rows = []
+for i, dclass in enumerate(def_classes):
+    for j, place in enumerate(placing_str):
+        rows.append([dclass, place] + arr[i][j])
+
+# create dataframe
+df2 = pd.DataFrame(rows, columns=["Def class", "Placing str"] + [f"trial {k}" for k in range(len(arr[0][0]))])
+
+# plot table
+fig, ax = plt.subplots(figsize=(12, 4))
+ax.axis("off")
+table = ax.table(
+    cellText=df2.values,
+    colLabels=df2.columns,
+    loc="center",
+    cellLoc="center"
+)
+table.auto_set_font_size(False)
+table.set_fontsize(10)
+table.scale(1.2, 1.2)
+
+plt.show()
+
+print(df1)
+print("-------------------------------------------------")
+print(df2)

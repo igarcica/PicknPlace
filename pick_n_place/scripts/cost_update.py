@@ -301,8 +301,8 @@ class CostUpdater:
 
         # Plot the trajectory
         fig = plt.figure(figsize=(9, 6))
-        # # plt.plot(x, placed_quality_results, 'ro')  # Waypoints as red dots
-        # # plt.plot(x_smooth, yplaced_smooth, 'g-', label="Placed quality")  # Smooth curve
+        plt.plot(x, placed_quality_results, 'bo')  # Waypoints as red dots
+        plt.plot(x_smooth, yplaced_smooth, 'g-', label="Placed quality")  # Smooth curve
         # # plt.plot(x, piled_quality_results, 'ro')  # Waypoints as red dots
         # # plt.plot(x_smooth, ypiled_smooth, 'b-', label="Pile quality")  # Smooth curve
         # plt.scatter(x, piled_quality_results, color='black')  

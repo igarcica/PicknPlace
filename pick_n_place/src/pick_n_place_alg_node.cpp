@@ -2442,14 +2442,14 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
       if(n_layers == "8l")
       {
         known_obj = true;
-        stiffness = 85.7;
+        stiffness = 93.6; //85.7; 
         friction = 85;
         short_edge_size = 18;
         long_edge_size = 25;
-        this->objs_stiffness.push_back(85.7);
+        this->objs_stiffness.push_back(93.6);
         this->objs_friction.push_back(85);
-    //   this->object_thickness_drag = 0.04; // For drag action
-    //   this->object_thickness_rotate = 0.065; // For rotate action
+      this->object_thickness_drag = 0.04; // For drag action
+      this->object_thickness_rotate = 0.065; // For rotate action
       }
     }
     else if (object_name.find("check") != std::string::npos) 

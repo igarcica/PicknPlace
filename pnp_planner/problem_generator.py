@@ -91,7 +91,8 @@ def generate_problem(objects, placing_costs, piling_costs):
     content += "))\n\n"
 
     ## Metric
-    content += "(:metric minimize (+ (time_cost) (place_qual))) \n"
+    # content += "(:metric minimize (+ (time_cost) (place_qual))) \n"
+    content += "(:metric minimize (+ (* 1 (time_cost)) (* 2 (place_qual)))) \n"
     content += "\n )"
 
     return content
