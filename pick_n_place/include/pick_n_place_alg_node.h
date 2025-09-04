@@ -157,6 +157,7 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     // bool piling;
     double object_thickness_drag;
     double object_thickness_rotate;
+    // std::vector<double>expected_pile_thickn;
 
     std::vector<double> pre_grasp_corner;
     kortex_driver::Pose home_pose;

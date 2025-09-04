@@ -3,10 +3,12 @@
 # grasped_edge can be "short" or "long". Indicates the edge from which is grasped to create the canonical and grid divisions accordingly
 # piling indicates if the object is the first placed or it is being piled (on top of another object), necessary as reference for placing quality
 # n_obj_in_pile indicates the objects in the pile to be evaluated, including the currently placed object
+# expected_pile_thickn indicates the cumulative pile thickness when piled objects are different
 
 string object_name
 string layers
 string grasped_edge
 int64 n_objs_pile
+int64 expected_pile_thickn
 ---
 float32 placing_quality

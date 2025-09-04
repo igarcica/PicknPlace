@@ -15,6 +15,7 @@ PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
   double close_gripper = 0.97; //0.81;
   // this->piling=false;
   this->n_obj_pile = 0;
+  // this->expected_pile_thickn.push_back(0.0);
   this->object_thickness_drag = 0.055; //default towel 8l
   this->object_thickness_rotate = 0.07; //default towel 8l
   this->placing_strategy="placevert";
@@ -1461,12 +1462,14 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                               {
                                 // this->logfile << "State: CHECK_PLACING_QUAL" << std::endl;
                                 this->logfile << "--- PLACING QUALITY ESTIMATION ---" << std::endl;
+                                // this->logfile << "Placing quality parameters --> object name: " << this->objs_names[this->n_obj_pile] << ", nearest_edge: " << this->nearest_edge << ", object number in pile: " << this->n_obj_pile+1 << ", expected thickn: " << this->expected_pile_thickn[this->n_obj_pile] << std::endl;
                                 this->logfile << "Placing quality parameters --> object name: " << this->objs_names[this->n_obj_pile] << ", nearest_edge: " << this->nearest_edge << ", object number in pile: " << this->n_obj_pile+1 << std::endl;
                                 get_placing_quality_srv_.request.object_name = this->objs_names[this->n_obj_pile]; //obtained form reconfigure
                                 get_placing_quality_srv_.request.layers = this->objs_layers[this->n_obj_pile]; //obtained form reconfigure
                                 get_placing_quality_srv_.request.grasped_edge = this->nearest_edge;
                                 // get_placing_quality_srv_.request.piling = this->piling;
-                                get_placing_quality_srv_.request.n_objs_pile = this->n_obj_pile+1;
+                                get_placing_quality_srv_.request.n_objs_pile = this->n_obj_pile+1; //starts from 0
+                                // get_placing_quality_srv_.request.expected_pile_thickn = this->expected_pile_thickn[this->n_obj_pile];
                                 if(get_placing_quality_client_.call(get_placing_quality_srv_))
                                 {
                                   this->placing_quality = get_placing_quality_srv_.response.placing_quality;
@@ -2348,6 +2351,7 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
         known_obj = true;
         short_edge_size = 23; //check
         long_edge_size = 25;
+        // this->expected_pile_thickn.push_back(this->expected_pile_thickn[i]+0.04); //Add current object thickness to pile thickness
         stiffness = 99.9;
         friction = 80;
         this->objs_stiffness.push_back(99.9);
@@ -2446,6 +2450,7 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
         friction = 85;
         short_edge_size = 18;
         long_edge_size = 25;
+        // this->expected_pile_thickn.push_back(this->expected_pile_thickn[i]+0.017); //Add current object thickness to pile thickness
         this->objs_stiffness.push_back(93.6);
         this->objs_friction.push_back(85);
       this->object_thickness_drag = 0.04; // For drag action
@@ -2474,6 +2479,7 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
         friction = 84; 
         short_edge_size = 18;
         long_edge_size = 25;
+        // this->expected_pile_thickn.push_back(this->expected_pile_thickn[i]+0.01); //Add current object thickness to pile thickness
         this->object_thickness_drag = 0.03; // For drag action
         this->object_thickness_rotate = 0.06; // For rotate action
         this->objs_stiffness.push_back(70);
@@ -2628,6 +2634,9 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
       ROS_WARN("Unkown object properties for: %s + %s", object_name.c_str(), n_layers.c_str());
 
   } //close for of list of objects to pile
+  // std::cout << " Pile thickness: " << this->expected_pile_thickn[0] << std::endl;
+  // this->expected_pile_thickn.erase(this->expected_pile_thickn.begin()); //delete first element (0)
+  // std::cout << " Pile thickness: " << this->expected_pile_thickn[0] << std::endl;
 }
  
 void PicknPlaceAlgNode::update_costs(void) //Update table of costs for the next object to pile

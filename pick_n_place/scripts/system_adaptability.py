@@ -132,17 +132,17 @@ pile_initial_cost_table = np.array([ # Init cost table (placing error to minimiz
 ################## SYSTEM'S ADAPTABILITY 2 ##################
 #exps: 4.1 to 6.2 of system performance
 ######### CHECKERED 8L ######### - 
-placed_quality_results = np.array([0, 98, 96, 97, 83, 96, 97, 95, 94, 92, 94, 96, 97, 96])#, 100]) 
+placed_quality_results = np.array([0, 98, 96, 97, 83, 96, 97, 95, 94, 92, 94, 95, 97, 96])#, 95]) 
 placing_errors = 100-placed_quality_results
-placing_str = ["0", "v", "d", "r", "v", "d", "r", "d", "r", "d", "r", "v", "d", "r"]#, "v"]
-placing_def_classes = ["0", "C", "C", "C", "B", "B", "B", "B", "B", "B", "B", "A", "A", "A"]#, "B"]
+placing_str = ["0", "v", "d", "r", "v", "d", "r", "d", "r", "d", "r", "v", "d", "r"]#, "d"]
+placing_def_classes = ["0", "C", "C", "C", "B", "B", "B", "B", "B", "B", "B", "A", "A", "A"]#, "A"]
 
-piled_quality_results = np.array([0, 11, 67, 64, 0, 87, 92, 98, 97, 94, 93, 92, 95, 92])#, 98]) 
+piled_quality_results = np.array([0, 11, 67, 64, 0, 87, 92, 98, 97, 94, 93, 89, 95, 92])#, 93]) 
 piling_errors = 100-piled_quality_results
-piling_str = ["0", "v", "d", "r", "v", "d", "r", "r", "r", "r", "r", "v", "d", "r"]#, "r"]
-piling_def_classes = ["0", "C", "C", "C", "B", "B", "B", "B", "B", "B", "B", "A", "A", "A"]#, "B"]
+piling_str = ["0", "v", "d", "r", "v", "d", "r", "r", "r", "r", "r", "v", "d", "r"]#, "d"]
+piling_def_classes = ["0", "C", "C", "C", "B", "B", "B", "B", "B", "B", "B", "A", "A", "A"]#, "A"]
 
-labels = np.array(["0", "vv", "dd", "rr", "vv", "dd", "rr", "dr", "rr", "rr", "dr", "vv", "dd", "rr"])#, "vr"])
+labels = np.array(["0", "vv", "dd", "rr", "vv", "dd", "rr", "dr", "rr", "rr", "dr", "vv", "dd", "rr"])#, "dd"])
 
 
 ##########################################

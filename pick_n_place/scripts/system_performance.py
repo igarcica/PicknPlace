@@ -5,64 +5,93 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
 from scipy.interpolate import CubicSpline
 import cost_update as cost_update
 from cycler import cycler
 
 activate_print=True
 
-## init cost table is the previous learned one from system's adaptability experiments
+# ## init cost table is the previous learned one from system's adaptability experiments
+# place_initial_cost_table = np.array([ # Init cost table (placing error to minimize)
+#     [17, 1, 1],
+#     [8, 22, 6], 
+#     [30, 25, 6], 
+# ])  
+# pile_initial_cost_table = np.array([ # Init cost table (placing error to minimize)
+#     [7, 3, 4],
+#     [30, 14, 9], 
+#     [30, 30, 30], 
+# ])  
+
+## init cost table is the previous learned one from system's adaptability2 experiments
 place_initial_cost_table = np.array([ # Init cost table (placing error to minimize)
-    [17, 1, 1],
-    [8, 22, 6], 
-    [30, 25, 6], 
+    [2, 1, 1],
+    [5, 4, 4], 
+    [1, 1, 1],
 ])  
 pile_initial_cost_table = np.array([ # Init cost table (placing error to minimize)
-    [7, 3, 4],
-    [30, 14, 9], 
-    [30, 30, 30], 
+    [3, 2, 2],
+    [30, 4, 4], 
+    [27, 10, 11]
 ])  
 
-################## SYSTEM'S PERFORMANCE ##################
-# ######### WAFFLE RAG 8L #########
-placed_quality_results = np.array([0, 99, 94, 93, 92]) #trials 20 to 23
-placing_errors = 100-placed_quality_results
-placing_str = ["0", "d", "d", "r", "r"]
-placing_def_classes = ["0", "A", "A", "B", "B"]
-
-piled_quality_results = np.array([0, 81, 86, 96, 95]) #trials 20 to 23
-piling_errors = 100-piled_quality_results
-piling_str = ["0", "r", "r", "d", "r"] 
-piling_def_classes = ["0", "B", "B", "A", "B"]
-
-labels = np.array(["0", "dr"])
-
-# # ######### CHECKERED RAG 6L #########
-# placed_quality_results = np.array([0, 96]) #trials 26
+# ################## SYSTEM'S PERFORMANCE ##################
+# # ######### WAFFLE RAG 8L #########
+# placed_quality_results = np.array([0, 99, 94, 93, 92]) #trials 20 to 23
 # placing_errors = 100-placed_quality_results
-# placing_str = ["0", "r"]
-# placing_def_classes = ["0", "B"]
+# placing_str = ["0", "d", "d", "r", "r"]
+# placing_def_classes = ["0", "A", "A", "B", "B"]
 
-# piled_quality_results = np.array([0, 95]) #trials 26
+# piled_quality_results = np.array([0, 81, 86, 96, 95]) #trials 20 to 23
 # piling_errors = 100-piled_quality_results
-# piling_str = ["0", "r"] 
-# piling_def_classes = ["0", "B"]
+# piling_str = ["0", "r", "r", "d", "r"] 
+# piling_def_classes = ["0", "B", "B", "A", "B"]
 
-# labels = np.array(["0", "rr"])
+# labels = np.array(["0", "dr"])
+
+# # # ######### CHECKERED RAG 6L #########
+# # placed_quality_results = np.array([0, 96]) #trials 26
+# # placing_errors = 100-placed_quality_results
+# # placing_str = ["0", "r"]
+# # placing_def_classes = ["0", "B"]
+
+# # piled_quality_results = np.array([0, 95]) #trials 26
+# # piling_errors = 100-piled_quality_results
+# # piling_str = ["0", "r"] 
+# # piling_def_classes = ["0", "B"]
+
+# # labels = np.array(["0", "rr"])
 
 
-######### ALL - TOWEL 8L, WAFFLE 8L, CHEKERED 6L #########
-placed_quality_results = np.array([100, 100, 99, 94, 93, 92, 95, 100, 96]) #1-3 towel (trials 4-6), 4-6 waffle (trials 21-23), 7-9 checkered (trial 28, 30, 31)
+# ######### ALL - TOWEL 8L, WAFFLE 8L, CHEKERED 6L #########
+# placed_quality_results = np.array([100, 100, 99, 94, 93, 92, 95, 100, 96]) #1-3 towel (trials 4-6), 4-6 waffle (trials 21-23), 7-9 checkered (trial 28, 30, 31)
+# placing_errors = 100-placed_quality_results
+# placing_str = ["d", "d", "d", "d", "r", "r", "r", "r", "r"]
+# placing_def_classes = ["A", "A", "A", "A", "B", "B", "B", "B", "B"]
+
+# piled_quality_results = np.array([95, 95, 99, 86, 96, 95, 22, 88, 95]) 
+# piling_errors = 100-piled_quality_results
+# piling_str = ["d", "d", "d", "r", "d", "r", "v", "r", "r"] 
+# piling_def_classes = ["A", "A", "A", "B", "A", "B", "C", "B", "B"]
+
+# labels = np.array(["dd", "dd", "dd", "rr"])
+
+
+################## SYSTEM'S PERFORMANCE2 ##################
+# ######### Towel and towel (system performance trials 4 to 6) + Checkered 8l and Waffle 8L (trials 1 to 3) + #########
+placed_quality_results = np.array([0, 100, 100, 99, 98, 95, 96]) #trials 20 to 23
 placing_errors = 100-placed_quality_results
-placing_str = ["d", "d", "d", "d", "r", "r", "r", "r", "r"]
-placing_def_classes = ["A", "A", "A", "A", "B", "B", "B", "B", "B"]
+placing_str = ["0", "d", "d", "d", "d", "d", "d"]
+placing_def_classes = ["0", "A", "A", "A", "B", "B", "B"]
 
-piled_quality_results = np.array([95, 95, 99, 86, 96, 95, 22, 88, 95]) 
+piled_quality_results = np.array([0, 95, 95, 99, 97, 93, 99]) #trials 20 to 23
 piling_errors = 100-piled_quality_results
-piling_str = ["d", "d", "d", "r", "d", "r", "v", "r", "r"] 
-piling_def_classes = ["A", "A", "A", "B", "A", "B", "C", "B", "B"]
+piling_str = ["0", "d", "d", "d", "d", "d", "r"] 
+piling_def_classes = ["0", "A", "A", "A", "B", "B", "B"]
 
-labels = np.array(["dd", "dd", "dd", "rr"])
+labels = np.array(["0", "dd", "dd"])
+
 
 ##################
 errors = [placing_errors, piling_errors]
@@ -150,7 +179,7 @@ for m in range(0,len(errors)): #cloth-table and cloth-cloth cost tables
     updater = cost_update.CostUpdater(cost_tables[m], 0.5, 0.3, 60, 0.5)
     costs_history[m] = updater.save_cell_evolution(cost_tables[m]) #Initialize cells
     cost_table_evolution[m].append(cost_tables[m].copy()) #Initialize cost tables history
-    for n in range(0,len(placed_quality_results)): 
+    for n in range(1,len(placed_quality_results)): 
         def_class = classes[m][n]
         placing_str = strategies[m][n]
         if(def_class=="A"):
@@ -200,3 +229,66 @@ fig.suptitle("Cost update over trials", fontsize=20, fontweight='bold', color="#
 handles, labels = plt.gca().get_legend_handles_labels()  # Get all lines
 fig.legend(handles[:9], labels[:9], title='State-Action Cost')  # # Def class and placing action combination cost - Show only the first 9
 plt.show()
+
+
+
+
+############################### Plot cost evolution as table
+
+# labels
+def_classes = ["A", "B", "C"]
+placing_str = ["vertical", "diagonal", "rotating"]
+
+#### cloth-to-table costs
+arr = costs_history[0]
+rows = [] # build rows
+for i, dclass in enumerate(def_classes):
+    for j, place in enumerate(placing_str):
+        rows.append([dclass, place] + arr[i][j])
+
+# create dataframe
+df1 = pd.DataFrame(rows, columns=["Def class", "Placing str"] + [f"trial {k}" for k in range(len(arr[0][0]))])
+
+# plot table
+fig, ax = plt.subplots(figsize=(12, 4))
+ax.axis("off")
+table = ax.table(
+    cellText=df1.values,
+    colLabels=df1.columns,
+    loc="center",
+    cellLoc="center"
+)
+table.auto_set_font_size(False)
+table.set_fontsize(10)
+table.scale(1.2, 1.2)
+
+plt.show()
+
+#### cloth-to-cloth costs
+arr = costs_history[1]
+rows = []
+for i, dclass in enumerate(def_classes):
+    for j, place in enumerate(placing_str):
+        rows.append([dclass, place] + arr[i][j])
+
+# create dataframe
+df2 = pd.DataFrame(rows, columns=["Def class", "Placing str"] + [f"trial {k}" for k in range(len(arr[0][0]))])
+
+# plot table
+fig, ax = plt.subplots(figsize=(12, 4))
+ax.axis("off")
+table = ax.table(
+    cellText=df2.values,
+    colLabels=df2.columns,
+    loc="center",
+    cellLoc="center"
+)
+table.auto_set_font_size(False)
+table.set_fontsize(10)
+table.scale(1.2, 1.2)
+
+plt.show()
+
+print(df1)
+print("-------------------------------------------------")
+print(df2)
