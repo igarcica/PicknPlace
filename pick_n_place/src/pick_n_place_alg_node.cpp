@@ -959,7 +959,11 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                                ROS_INFO("PicknPlaceSM: Sending to PLACE position.");
                                this->logfile << "State: PLACE_DIAGONAL1" << std::endl;
                                geometry_msgs::Pose desired_pose;
-                               desired_pose.position.x = (this->garment_edge_size + 0.12)/2; //tool_pose.x-this->garment_edge_size;///1.5; //Check
+                               if(this->n_obj_pile==0)
+                                 desired_pose.position.x = (this->garment_edge_size + 0.12)/2; //If first object place as always
+                               else
+                                 desired_pose.position.x = ((this->garment_edge_size + 0.12)/2) +0.02; //If second object place a bit further due to friction
+                              //  desired_pose.position.x = (this->garment_edge_size + 0.12)/2; //tool_pose.x-this->garment_edge_size;///1.5; //Check
                                desired_pose.position.y = -0.28; //tool_pose.y; //-0.3;
                                desired_pose.position.z = this->garment_edge_size/2 + this->pile_height + config_.table_height + 0.055;
                                //std::cout << "pile height, " << this->pile_height << " / table_height: " << config_.table_height << std::endl;
@@ -1001,7 +1005,11 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                                ROS_INFO("PicknPlaceSM: Sending to PLACE position.");
                                this->logfile << "State: PLACE_DIAGONAL2" << std::endl;
                                geometry_msgs::Pose desired_pose;
-                               desired_pose.position.x = 0.12;
+                               if(this->n_obj_pile==0)
+                                 desired_pose.position.x = 0.12; //If first object place as always
+                               else
+                                 desired_pose.position.x = 0.14;
+                              //  desired_pose.position.x = 0.12;
                                desired_pose.position.y = -0.28; //tool_pose.y;
                                desired_pose.position.z = this->pile_height +  config_.table_height + 0.055;
                                //std::cout << "pile height, " << this->pile_height << " / table_height: " << config_.table_height << std::endl;
@@ -1295,7 +1303,8 @@ void PicknPlaceAlgNode::mainNodeThread(void)
 
       // OPEN GRIPPER
       case OPEN_GRIPPER:  ROS_DEBUG("PicknPlaceAlgNode: state OPEN GRIPPER");
-			                    if(config_.ok)
+			                    // if(config_.ok)
+                          if(true)
 			                    {
                             this->logfile << "State: OPEN_GRIPPER" << std::endl;
                             this->success &= send_gripper_command(this->open_gripper);
@@ -1481,8 +1490,8 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                                   if(this->pddl_demo)
                                    {
                                      this->n_obj_pile += 1; //Next object of the list
-                                     if(this->n_obj_pile > 1) //If the object placed is not the first one (we just update the cloth-to-cloth table)
-                                       update_costs(); //Update cost table based on placing quality result
+                                    //  if(this->n_obj_pile > 1) //If the object placed is not the first one (we just update the cloth-to-cloth table)
+                                    //    update_costs(); //Update cost table based on placing quality result
                                      this->pddl_action_done=true; // End PDDL action
                                      this->state=IDLE;
                                    }
@@ -2413,6 +2422,18 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
         this->objs_stiffness.push_back(61.8);
         this->objs_friction.push_back(80);
       }
+      if(n_layers == "8l")
+      {
+        known_obj = true;
+        stiffness = 75;
+        friction = 74;
+        short_edge_size = 13;
+        long_edge_size = 25;
+        this->objs_stiffness.push_back(75);
+        this->objs_friction.push_back(74);
+        this->object_thickness_drag = 0.032; // For drag action
+        this->object_thickness_rotate = 0.057; // For rotate action
+      }
     }
     else if (object_name.find("linenap") != std::string::npos) 
     {
@@ -2453,8 +2474,8 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
         // this->expected_pile_thickn.push_back(this->expected_pile_thickn[i]+0.017); //Add current object thickness to pile thickness
         this->objs_stiffness.push_back(93.6);
         this->objs_friction.push_back(85);
-      this->object_thickness_drag = 0.04; // For drag action
-      this->object_thickness_rotate = 0.065; // For rotate action
+        this->object_thickness_drag = 0.04; // For drag action
+        this->object_thickness_rotate = 0.065; // For rotate action
       }
     }
     else if (object_name.find("check") != std::string::npos) 

@@ -22,8 +22,8 @@
 	 (= (place_qual) 0) 
 
 	 ;;placing costs 
-	 (= (place_succ waffle1 A placevert) 3)
-	 (= (place_succ waffle1 A placediag) 1) 
+	 (= (place_succ waffle1 A placevert) 1)
+	 (= (place_succ waffle1 A placediag) 3) 
 	 (= (place_succ waffle1 A placerot) 1) 
 	 (= (place_succ waffle1 B placevert) 5) 
 	 (= (place_succ waffle1 B placediag) 4) 
@@ -33,9 +33,9 @@
 	 (= (place_succ waffle1 C placerot) 1) 
 
 	 ;;piling costs 
- 	 (= (place_succ waffle2 A placevert) 9) 
-	 (= (place_succ waffle2 A placediag) 3) 
-	 (= (place_succ waffle2 A placerot) 2) 
+ 	 (= (place_succ waffle2 A placevert) 3) 
+	 (= (place_succ waffle2 A placediag) 4) 
+	 (= (place_succ waffle2 A placerot) 3) 
 	 (= (place_succ waffle2 B placevert) 30) 
 	 (= (place_succ waffle2 B placediag) 4) 
 	 (= (place_succ waffle2 B placerot) 4) 
@@ -45,12 +45,12 @@
 
 	 (obj_grasp_class waffle1 short A) 
 	 (obj_grasp_class waffle1 long A) 
-	 (obj_grasp_class waffle2 short A) 
-	 (obj_grasp_class waffle2 long A) 
+	 (obj_grasp_class waffle2 short B) 
+	 (obj_grasp_class waffle2 long C) 
 )
 
 (:goal (and (on waffle1 table) (on waffle2 waffle1) ))
 
-(:metric minimize (+ (* 1 (time_cost)) (* 2 (place_qual)))) 
+(:metric minimize (+ (* 1 (time_cost)) (* 10 (place_qual)))) 
 
  )

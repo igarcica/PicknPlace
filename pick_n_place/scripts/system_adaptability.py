@@ -10,7 +10,7 @@ from scipy.interpolate import make_interp_spline
 import cost_update as cost_update
 
 ## UTIL FUNCTIONS
-activate_print=True
+activate_print=False
 
 def print_info(activate, arg1, arg2="", arg3="", arg4="", arg5="", arg6=""):
     if(activate):
@@ -130,19 +130,19 @@ pile_initial_cost_table = np.array([ # Init cost table (placing error to minimiz
 
 
 ################## SYSTEM'S ADAPTABILITY 2 ##################
+placed_quality_results = np.array([0, 98, 96, 97, 83, 96, 97, 95, 94, 92, 93, 95, 97, 96, 97, 97]) #94, 97, 96, 97, 100])#, 95]) 
 #exps: 4.1 to 6.2 of system performance
 ######### CHECKERED 8L ######### - 
-placed_quality_results = np.array([0, 98, 96, 97, 83, 96, 97, 95, 94, 92, 94, 95, 97, 96])#, 95]) 
 placing_errors = 100-placed_quality_results
-placing_str = ["0", "v", "d", "r", "v", "d", "r", "d", "r", "d", "r", "v", "d", "r"]#, "d"]
-placing_def_classes = ["0", "C", "C", "C", "B", "B", "B", "B", "B", "B", "B", "A", "A", "A"]#, "A"]
+placing_str = ["0", "v", "d", "r", "v", "d", "r", "d", "r", "d", "r", "v", "d", "r", "d", "r"]#, "d"]
+placing_def_classes = ["0", "C", "C", "C", "B", "B", "B", "B", "B", "B", "B", "A", "A", "A", "A", "A"]
 
-piled_quality_results = np.array([0, 11, 67, 64, 0, 87, 92, 98, 97, 94, 93, 89, 95, 92])#, 93]) 
+piled_quality_results = np.array([0, 12, 67, 64, 0, 87, 92, 98, 97, 94, 95, 69, 95, 92, 93, 95])#, 93]) 
 piling_errors = 100-piled_quality_results
-piling_str = ["0", "v", "d", "r", "v", "d", "r", "r", "r", "r", "r", "v", "d", "r"]#, "d"]
-piling_def_classes = ["0", "C", "C", "C", "B", "B", "B", "B", "B", "B", "B", "A", "A", "A"]#, "A"]
+piling_str = ["0", "v", "d", "r", "v", "d", "r", "r", "r", "r", "r", "v", "d", "r", "d", "r"]#, "2d"]
+piling_def_classes = ["0", "C", "C", "C", "B", "B", "B", "B", "B", "B", "B", "A", "A", "A", "A", "A"]#, "A"]
+labels = np.array(["0", "vv", "dd", "rr", "vv", "dd", "rr", "dr", "rr", "rr", "dr", "vv", "dd", "rr", "dd", "rr"])#, "dd"])
 
-labels = np.array(["0", "vv", "dd", "rr", "vv", "dd", "rr", "dr", "rr", "rr", "dr", "vv", "dd", "rr"])#, "dd"])
 
 
 ##########################################
@@ -180,7 +180,7 @@ changes[1].append(0) #cloth-to-cloth
 # n_exp = 1
 
 for m in range(0,len(errors)):
-    updater = cost_update.CostUpdater(cost_tables[m], 0.5, 0.3, 100, 0.5)
+    updater = cost_update.CostUpdater(cost_tables[m], 0.5, 0.3, 90, 0.5)
     costs_history[m] = updater.save_cell_evolution(cost_tables[m]) #Initialize cells
     cost_table_evolution[m].append(cost_tables[m].copy()) #Initialize cost tables history
     for n in range(1,len(placed_quality_results)): 
@@ -220,104 +220,159 @@ for m in range(0,len(errors)):
 updater.plot_quality(placed_quality_results, piled_quality_results, labels)
 plt.axvline(x=10, color='gray', linestyle='--', linewidth=2) #Plot a dashed line when switching between checkered and 
 
-fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(9, 8))  # Create a 2-row, 3-column figure
-# fig = plt.figure(figsize=(8, 6))
-updater.plot_costs(axes[0], costs_history[0], changes[0])
-axes[0].set_ylabel("cloth-to-table cost", fontsize=18)
-axes[0].axvline(x=10, color='gray', linestyle='--', linewidth=2) #Plot a dashed line when switching between checkered and 
-# plt.title("PLACE Cost update evolution")
+# fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(9, 8))  # Create a 2-row, 3-column figure
+# # fig = plt.figure(figsize=(8, 6))
+# updater.plot_costs(axes[0], costs_history[0], changes[0])
+# axes[0].set_ylabel("cloth-to-table cost", fontsize=18)
+# axes[0].axvline(x=10, color='gray', linestyle='--', linewidth=2) #Plot a dashed line when switching between checkered and 
+# # plt.title("PLACE Cost update evolution")
 
-updater.plot_costs(axes[1], costs_history[1], changes[1])
-axes[1].set_ylabel("cloth-to-cloth cost", fontsize=18)
-axes[1].axvline(x=10, color='gray', linestyle='--', linewidth=2) #Plot a dashed line when switching between checkered and 
-# plt.title("PILE Cost update evolution")
+# updater.plot_costs(axes[1], costs_history[1], changes[1])
+# axes[1].set_ylabel("cloth-to-cloth cost", fontsize=18)
+# axes[1].axvline(x=10, color='gray', linestyle='--', linewidth=2) #Plot a dashed line when switching between checkered and 
+# # plt.title("PILE Cost update evolution")
 
-fig.suptitle("Cost update over trials", fontsize=20, fontweight='bold', color="#333333")
-handles, labels = plt.gca().get_legend_handles_labels()  # Get all lines
-fig.legend(handles[:9], labels[:9], title='State-Action Cost')  # # Def class and placing action combination cost - Show only the first 9
+# fig.suptitle("Cost update over trials", fontsize=20, fontweight='bold', color="#333333")
+# handles, labels = plt.gca().get_legend_handles_labels()  # Get all lines
+# fig.legend(handles[:9], labels[:9], title='State-Action Cost')  # # Def class and placing action combination cost - Show only the first 9
 plt.show()
 
 
-##########################################################################################
-###### ANIMATED PLOTS
-### ----Placing quality evolution----
+# ##########################################################################################
+# ###### ANIMATED PLOTS
+# ### ----Placing quality evolution----
 
-# x = np.linspace(0, 27, len(piled_quality_results))
+# # x = np.linspace(0, 27, len(piled_quality_results))
 
-# # Interpolation
-# x_smooth = np.linspace(x.min(), x.max(), 500)
-# spline = make_interp_spline(x, piled_quality_results, k=3)
-# y_smooth = spline(x_smooth)
+# # # Interpolation
+# # x_smooth = np.linspace(x.min(), x.max(), 500)
+# # spline = make_interp_spline(x, piled_quality_results, k=3)
+# # y_smooth = spline(x_smooth)
 
-# # Setup
-# fig, ax = plt.subplots(figsize=(10, 6))
-# line, = ax.plot([], [], lw=2, color='#1f77b4')
-# point, = ax.plot([], [], 'ro')
-# scatter = ax.scatter([], [], color='black', s=50, zorder=3)  # Hollow circles
+# # # Setup
+# # fig, ax = plt.subplots(figsize=(10, 6))
+# # line, = ax.plot([], [], lw=2, color='#1f77b4')
+# # point, = ax.plot([], [], 'ro')
+# # scatter = ax.scatter([], [], color='black', s=50, zorder=3)  # Hollow circles
 
-# ax.set_xlim(x.min(), x.max())
-# ax.set_ylim(piled_quality_results.min() - 10, piled_quality_results.max() + 10)
+# # ax.set_xlim(x.min(), x.max())
+# # ax.set_ylim(piled_quality_results.min() - 10, piled_quality_results.max() + 10)
 
-# # plt.axvline(x=x[20], color='gray', linestyle='--', linewidth=2) #Plot a dashed line when plotting the pillowcase + towel results
+# # # plt.axvline(x=x[20], color='gray', linestyle='--', linewidth=2) #Plot a dashed line when plotting the pillowcase + towel results
 
-# # Styling
-# ax.set_xlabel("Trial", fontsize=18)
-# ax.set_ylabel("Pile quality (%)", fontsize=18)
-# ax.set_title("Pile quality evolution over trials", fontsize=20, fontweight='bold', color="#333333")
-# ax.grid(True, linewidth=0.8, alpha=0.5)
-# ax.spines["top"].set_visible(False)
-# ax.spines["right"].set_visible(False)
+# # # Styling
+# # ax.set_xlabel("Trial", fontsize=18)
+# # ax.set_ylabel("Pile quality (%)", fontsize=18)
+# # ax.set_title("Pile quality evolution over trials", fontsize=20, fontweight='bold', color="#333333")
+# # ax.grid(True, linewidth=0.8, alpha=0.5)
+# # ax.spines["top"].set_visible(False)
+# # ax.spines["right"].set_visible(False)
 
-# # Example custom labels (must match length of x)
-# custom_labels = [f"{i}" for i in range(len(x))]  # e.g., T0, T1, ..., T26
-# ax.set_xticks(x) # Set ticks at original data point positions
-# ax.set_xticklabels(custom_labels, fontsize=10)  # Rotate for readability
-
-
-# # Animation
-# def init_plot_quality_anim():
-#     line.set_data([], [])
-#     point.set_data([], [])
-#     scatter.set_offsets([])
-#     return line, point, scatter
-
-# def update_plot_quality_anim(frame):
-#     # Curve line + red dot
-#     line.set_data(x_smooth[:frame], y_smooth[:frame])
-#     point.set_data(x_smooth[frame - 1], y_smooth[frame - 1])
-
-#     # Show markers up to the current x_smooth point
-#     current_x = x_smooth[frame - 1]
-#     visible_indices = np.where(x <= current_x)[0]
-#     scatter.set_offsets(np.column_stack((x[visible_indices], piled_quality_results[visible_indices])))
-
-#     return line, point, scatter
-
-# # Animate
-# ani = FuncAnimation(fig, update_plot_quality_anim, frames=len(x_smooth), init_func=init_plot_quality_anim,
-#                     blit=False, interval=15, repeat=False)
-
-# plt.tight_layout()
-
-# # Save as video
-# ani.save("pile_quality_animation.mp4", writer="ffmpeg", fps=30)
-# plt.show()
+# # # Example custom labels (must match length of x)
+# # custom_labels = [f"{i}" for i in range(len(x))]  # e.g., T0, T1, ..., T26
+# # ax.set_xticks(x) # Set ticks at original data point positions
+# # ax.set_xticklabels(custom_labels, fontsize=10)  # Rotate for readability
 
 
+# # # Animation
+# # def init_plot_quality_anim():
+# #     line.set_data([], [])
+# #     point.set_data([], [])
+# #     scatter.set_offsets([])
+# #     return line, point, scatter
 
-##########################################################################################
-######## ---Cost table evolution 
+# # def update_plot_quality_anim(frame):
+# #     # Curve line + red dot
+# #     line.set_data(x_smooth[:frame], y_smooth[:frame])
+# #     point.set_data(x_smooth[frame - 1], y_smooth[frame - 1])
 
-# matrices=cost_table_evolution[1]
+# #     # Show markers up to the current x_smooth point
+# #     current_x = x_smooth[frame - 1]
+# #     visible_indices = np.where(x <= current_x)[0]
+# #     scatter.set_offsets(np.column_stack((x[visible_indices], piled_quality_results[visible_indices])))
+
+# #     return line, point, scatter
+
+# # # Animate
+# # ani = FuncAnimation(fig, update_plot_quality_anim, frames=len(x_smooth), init_func=init_plot_quality_anim,
+# #                     blit=False, interval=15, repeat=False)
+
+# # plt.tight_layout()
+
+# # # Save as video
+# # ani.save("pile_quality_animation.mp4", writer="ffmpeg", fps=30)
+# # plt.show()
+
+
+
+# ##########################################################################################
+# ######## ---Cost table evolution 
+
+# # matrices=cost_table_evolution[1]
+# # nrows, ncols = matrices[0].shape
+# # print(len(matrices))
+# # print(matrices[0])
+
+# # # Create plot
+# # fig, ax = plt.subplots()
+# # heatmap = ax.imshow(matrices[0], cmap='YlOrRd', vmin=0, vmax=50)
+
+# # # Color bar
+# # cbar = plt.colorbar(heatmap, ax=ax)
+# # cbar.set_label("Value", fontsize=12)
+
+# # # Axis styling
+# # ax.set_xticks(np.arange(ncols))
+# # ax.set_yticks(np.arange(nrows))
+# # ax.set_xticklabels(['Vertical', 'Diagonal', 'Rotating'])
+# # ax.set_yticklabels(['A', 'B', 'C'])
+# # ax.set_title("Cost Evolution", fontsize=16, fontweight='bold')
+
+# # # Grid lines
+# # for edge, spine in ax.spines.items():
+# #     spine.set_visible(False)
+# # ax.set_xticks(np.arange(-.5, ncols, 1), minor=True)
+# # ax.set_yticks(np.arange(-.5, nrows, 1), minor=True)
+# # ax.grid(which='minor', color='gray', linestyle='-', linewidth=1)
+# # ax.tick_params(which='minor', bottom=False, left=False)
+
+# # # Initialize cell labels
+# # cell_texts = [[ax.text(j, i, "", ha="center", va="center", color="black", fontsize=12)
+# #                for j in range(ncols)] for i in range(nrows)]
+
+# # # Animation update
+# # def update(frame):
+# #     data = matrices[frame]
+# #     heatmap.set_data(data)
+# #     for i in range(nrows):
+# #         for j in range(ncols):
+# #             cell_texts[i][j].set_text(f"{data[i, j]}")
+# #     return [heatmap] + [text for row in cell_texts for text in row]
+
+# # # Animate
+# # ani = FuncAnimation(fig, update, frames=len(matrices), interval=1000, repeat=False)
+
+# # # ani.save("cost_update.mp4", writer="ffmpeg", fps=30)
+# # plt.show()
+
+
+
+
+
+
+
+
+
+
+# ########### MATRIX EVOLUTION WITH MOUSE CLICKS
+# matrices=cost_table_evolution[0]
 # nrows, ncols = matrices[0].shape
-# print(len(matrices))
-# print(matrices[0])
 
 # # Create plot
 # fig, ax = plt.subplots()
 # heatmap = ax.imshow(matrices[0], cmap='YlOrRd', vmin=0, vmax=50)
 
-# # Color bar
+# # Add color bar
 # cbar = plt.colorbar(heatmap, ax=ax)
 # cbar.set_label("Value", fontsize=12)
 
@@ -336,160 +391,105 @@ plt.show()
 # ax.grid(which='minor', color='gray', linestyle='-', linewidth=1)
 # ax.tick_params(which='minor', bottom=False, left=False)
 
-# # Initialize cell labels
-# cell_texts = [[ax.text(j, i, "", ha="center", va="center", color="black", fontsize=12)
-#                for j in range(ncols)] for i in range(nrows)]
+# # --- Add text annotations ---
+# text_objects = []
+# for i in range(nrows):
+#     row_texts = []
+#     for j in range(ncols):
+#         val = matrices[0][i, j]
+#         text = ax.text(j, i, f'{val:.1f}', ha='center', va='center', color='black')
+#         row_texts.append(text)
+#     text_objects.append(row_texts)
 
-# # Animation update
-# def update(frame):
-#     data = matrices[frame]
-#     heatmap.set_data(data)
-#     for i in range(nrows):
-#         for j in range(ncols):
-#             cell_texts[i][j].set_text(f"{data[i, j]}")
-#     return [heatmap] + [text for row in cell_texts for text in row]
+# # --- Interaction logic ---
+# current_index = [0]  # Use a mutable type to allow modification inside event handler
 
-# # Animate
-# ani = FuncAnimation(fig, update, frames=len(matrices), interval=1000, repeat=False)
+# def on_click(event):
+#     if event.button == 1:  # Left mouse button
+#         current_index[0] += 1
+#         if current_index[0] >= len(matrices):
+#             current_index[0] = 0  # Loop back to beginning
+#         new_matrix = matrices[current_index[0]]
+#         heatmap.set_data(new_matrix)
+        
+#         # Update text values
+#         for i in range(nrows):
+#             for j in range(ncols):
+#                 text_objects[i][j].set_text(f'{new_matrix[i, j]:.1f}')
+        
+#         fig.canvas.draw_idle()
 
-# # ani.save("cost_update.mp4", writer="ffmpeg", fps=30)
+# # Connect the click event
+# fig.canvas.mpl_connect('button_press_event', on_click)
+
+# plt.show()
+
+
+# #################################
+# matrices=cost_table_evolution[1]
+# nrows, ncols = matrices[0].shape
+
+# # Create plot
+# fig, ax = plt.subplots()
+# heatmap = ax.imshow(matrices[0], cmap='YlOrRd', vmin=0, vmax=50)
+
+# # Add color bar
+# cbar = plt.colorbar(heatmap, ax=ax)
+# cbar.set_label("Value", fontsize=12)
+
+# # Axis styling
+# ax.set_xticks(np.arange(ncols))
+# ax.set_yticks(np.arange(nrows))
+# ax.set_xticklabels(['Vertical', 'Diagonal', 'Rotating'])
+# ax.set_yticklabels(['A', 'B', 'C'])
+# ax.set_title("Cost Evolution", fontsize=16, fontweight='bold')
+
+# # Grid lines
+# for edge, spine in ax.spines.items():
+#     spine.set_visible(False)
+# ax.set_xticks(np.arange(-.5, ncols, 1), minor=True)
+# ax.set_yticks(np.arange(-.5, nrows, 1), minor=True)
+# ax.grid(which='minor', color='gray', linestyle='-', linewidth=1)
+# ax.tick_params(which='minor', bottom=False, left=False)
+
+# # --- Add text annotations ---
+# text_objects = []
+# for i in range(nrows):
+#     row_texts = []
+#     for j in range(ncols):
+#         val = matrices[0][i, j]
+#         text = ax.text(j, i, f'{val:.1f}', ha='center', va='center', color='black')
+#         row_texts.append(text)
+#     text_objects.append(row_texts)
+
+# # --- Interaction logic ---
+# current_index = [0]  # Use a mutable type to allow modification inside event handler
+
+# def on_click(event):
+#     if event.button == 1:  # Left mouse button
+#         current_index[0] += 1
+#         if current_index[0] >= len(matrices):
+#             current_index[0] = 0  # Loop back to beginning
+#         new_matrix = matrices[current_index[0]]
+#         heatmap.set_data(new_matrix)
+        
+#         # Update text values
+#         for i in range(nrows):
+#             for j in range(ncols):
+#                 text_objects[i][j].set_text(f'{new_matrix[i, j]:.1f}')
+        
+#         fig.canvas.draw_idle()
+
+# # Connect the click event
+# fig.canvas.mpl_connect('button_press_event', on_click)
+
 # plt.show()
 
 
 
 
 
-
-
-
-
-
-########### MATRIX EVOLUTION WITH MOUSE CLICKS
-matrices=cost_table_evolution[0]
-nrows, ncols = matrices[0].shape
-
-# Create plot
-fig, ax = plt.subplots()
-heatmap = ax.imshow(matrices[0], cmap='YlOrRd', vmin=0, vmax=50)
-
-# Add color bar
-cbar = plt.colorbar(heatmap, ax=ax)
-cbar.set_label("Value", fontsize=12)
-
-# Axis styling
-ax.set_xticks(np.arange(ncols))
-ax.set_yticks(np.arange(nrows))
-ax.set_xticklabels(['Vertical', 'Diagonal', 'Rotating'])
-ax.set_yticklabels(['A', 'B', 'C'])
-ax.set_title("Cost Evolution", fontsize=16, fontweight='bold')
-
-# Grid lines
-for edge, spine in ax.spines.items():
-    spine.set_visible(False)
-ax.set_xticks(np.arange(-.5, ncols, 1), minor=True)
-ax.set_yticks(np.arange(-.5, nrows, 1), minor=True)
-ax.grid(which='minor', color='gray', linestyle='-', linewidth=1)
-ax.tick_params(which='minor', bottom=False, left=False)
-
-# --- Add text annotations ---
-text_objects = []
-for i in range(nrows):
-    row_texts = []
-    for j in range(ncols):
-        val = matrices[0][i, j]
-        text = ax.text(j, i, f'{val:.1f}', ha='center', va='center', color='black')
-        row_texts.append(text)
-    text_objects.append(row_texts)
-
-# --- Interaction logic ---
-current_index = [0]  # Use a mutable type to allow modification inside event handler
-
-def on_click(event):
-    if event.button == 1:  # Left mouse button
-        current_index[0] += 1
-        if current_index[0] >= len(matrices):
-            current_index[0] = 0  # Loop back to beginning
-        new_matrix = matrices[current_index[0]]
-        heatmap.set_data(new_matrix)
-        
-        # Update text values
-        for i in range(nrows):
-            for j in range(ncols):
-                text_objects[i][j].set_text(f'{new_matrix[i, j]:.1f}')
-        
-        fig.canvas.draw_idle()
-
-# Connect the click event
-fig.canvas.mpl_connect('button_press_event', on_click)
-
-plt.show()
-
-
-#################################
-matrices=cost_table_evolution[1]
-nrows, ncols = matrices[0].shape
-
-# Create plot
-fig, ax = plt.subplots()
-heatmap = ax.imshow(matrices[0], cmap='YlOrRd', vmin=0, vmax=50)
-
-# Add color bar
-cbar = plt.colorbar(heatmap, ax=ax)
-cbar.set_label("Value", fontsize=12)
-
-# Axis styling
-ax.set_xticks(np.arange(ncols))
-ax.set_yticks(np.arange(nrows))
-ax.set_xticklabels(['Vertical', 'Diagonal', 'Rotating'])
-ax.set_yticklabels(['A', 'B', 'C'])
-ax.set_title("Cost Evolution", fontsize=16, fontweight='bold')
-
-# Grid lines
-for edge, spine in ax.spines.items():
-    spine.set_visible(False)
-ax.set_xticks(np.arange(-.5, ncols, 1), minor=True)
-ax.set_yticks(np.arange(-.5, nrows, 1), minor=True)
-ax.grid(which='minor', color='gray', linestyle='-', linewidth=1)
-ax.tick_params(which='minor', bottom=False, left=False)
-
-# --- Add text annotations ---
-text_objects = []
-for i in range(nrows):
-    row_texts = []
-    for j in range(ncols):
-        val = matrices[0][i, j]
-        text = ax.text(j, i, f'{val:.1f}', ha='center', va='center', color='black')
-        row_texts.append(text)
-    text_objects.append(row_texts)
-
-# --- Interaction logic ---
-current_index = [0]  # Use a mutable type to allow modification inside event handler
-
-def on_click(event):
-    if event.button == 1:  # Left mouse button
-        current_index[0] += 1
-        if current_index[0] >= len(matrices):
-            current_index[0] = 0  # Loop back to beginning
-        new_matrix = matrices[current_index[0]]
-        heatmap.set_data(new_matrix)
-        
-        # Update text values
-        for i in range(nrows):
-            for j in range(ncols):
-                text_objects[i][j].set_text(f'{new_matrix[i, j]:.1f}')
-        
-        fig.canvas.draw_idle()
-
-# Connect the click event
-fig.canvas.mpl_connect('button_press_event', on_click)
-
-plt.show()
-
-
-
-
-
-############################### Plot cost evolution as table
+# ############################### Plot cost evolution as table
 
 # labels
 def_classes = ["A", "B", "C"]

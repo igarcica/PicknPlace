@@ -10,18 +10,18 @@ problem 'TASK' defined
 translating negated cond for predicate CORNERS_POS_KNOWN
 
 ff: search configuration is weighted A* with weight 0.
-Metric is ((1.00*[RF1](TIME_COST)10.00*[RF0](PLACE_QUAL)) - () + 0.00)
+Metric is ((1.00*[RF1](TIME_COST)2.00*[RF0](PLACE_QUAL)) - () + 0.00)
 COST MINIMIZATION DONE (WITH cost-minimizing relaxed plans).
 
 advancing to goal distance:    1
                                0
 
 ff: found legal plan as follows
-step    0: PLACEROT CHECKERED1 WAFFLE1 TABLE SHORT B
-plan cost: 43.000000
+step    0: PLACEROT WAFFLE2 WAFFLE1 TABLE LONG A
+plan cost: 7.000000
 
 time spent:    0.00 seconds instantiating 662 easy, 26 hard action templates
-               0.00 seconds reachability analysis, yielding 29 facts and 30 actions
+               0.00 seconds reachability analysis, yielding 27 facts and 30 actions
                0.00 seconds creating final representation with 10 relevant facts, 2 relevant fluents
                0.00 seconds computing LNF
                0.00 seconds building connectivity graph

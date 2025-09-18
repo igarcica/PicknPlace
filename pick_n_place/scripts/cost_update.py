@@ -6,6 +6,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from cycler import cycler
 from scipy.interpolate import CubicSpline
+from scipy.interpolate import make_interp_spline
+from scipy.interpolate import PchipInterpolator
 # from matplotlib.animation import FuncAnimation
 # from scipy.interpolate import make_interp_spline
 
@@ -222,8 +224,9 @@ class CostUpdater:
         # print_info(activate_print,"Cost update: ", self.alpha * self.huber)
         result = self.alpha * self.huber
         self.cost_table[i, j] += round(result)
+        # self.cost_table[i, j] += result
         print_info(activate_print,"Cost update: ", result)
-        print_info(activate_print,"Cost update: ", round(result))
+        print_info(activate_print,"Rounded Cost update: ", round(result))
         print_info(activate_print,"Rounded Cost update: ", self.cost_table[i, j])
 
         return self.cost_table[i, j]
@@ -286,30 +289,56 @@ class CostUpdater:
         # return fig
 
     def plot_quality(self, placed_quality_results, piled_quality_results, labels):
-        # Create a smooth parameterized curve using cubic splines
-        x = np.arange(0, len(placed_quality_results)) #np.linspace(0,1, len(x))
-        t = np.linspace(0, 1, len(x))  # Normalized parameter
-        cs_x = CubicSpline(t, x)  # X interpolation
-        cs_yplaced = CubicSpline(t, placed_quality_results)  # Y interpolation
-        cs_ypiled = CubicSpline(t, piled_quality_results)  # Y interpolation
+        # # Create a smooth parameterized curve using cubic splines
+        # x = np.arange(0, len(placed_quality_results)) #np.linspace(0,1, len(x))
+        # t = np.linspace(0, 1, len(x))  # Normalized parameter
+        # cs_x = CubicSpline(t, x)  # X interpolation
+        # cs_yplaced = CubicSpline(t, placed_quality_results)  # Y interpolation
+        # cs_ypiled = CubicSpline(t, piled_quality_results)  # Y interpolation
 
-        # Generate fine-grained trajectory points
-        t_fine = np.linspace(0, 1, 100)
-        x_smooth = cs_x(t_fine)
-        yplaced_smooth = cs_yplaced(t_fine)
-        ypiled_smooth = cs_ypiled(t_fine)
+        # # Generate fine-grained trajectory points
+        # t_fine = np.linspace(0, 1, 50)
+        # x_smooth = cs_x(t_fine)
+        # yplaced_smooth = cs_yplaced(t_fine)
+        # ypiled_smooth = cs_ypiled(t_fine)
 
-        # Plot the trajectory
-        fig = plt.figure(figsize=(9, 6))
-        plt.plot(x, placed_quality_results, 'bo')  # Waypoints as red dots
-        plt.plot(x_smooth, yplaced_smooth, 'g-', label="Placed quality")  # Smooth curve
-        # # plt.plot(x, piled_quality_results, 'ro')  # Waypoints as red dots
-        # # plt.plot(x_smooth, ypiled_smooth, 'b-', label="Pile quality")  # Smooth curve
-        # plt.scatter(x, piled_quality_results, color='black')  
-        # plt.plot(x_smooth, ypiled_smooth, 'b-')  # Smooth curve
+        # # cs_yplaced = make_interp_spline(t, piled_quality_results, k=1)
+        # # ypiled_smooth = cs_yplaced(t_fine)
 
-        plt.scatter(x, piled_quality_results, color='black', zorder=3) 
-        plt.plot(x_smooth, ypiled_smooth, color="royalblue", linewidth=2.5, linestyle="-", alpha=0.8) #"#FF5733 "#33CFFF"
+        # # Plot the trajectory
+        # fig = plt.figure(figsize=(9, 6))
+        # # plt.plot(x, placed_quality_results, 'bo')  # Waypoints as red dots
+        # plt.scatter(x, placed_quality_results, color='black', zorder=3) 
+        # plt.plot(x_smooth, yplaced_smooth, 'g-', label="Placing quality", linewidth=2.5, linestyle="-", alpha=0.8)  # Smooth curve
+        # # # plt.plot(x, piled_quality_results, 'ro')  # Waypoints as red dots
+        # # # plt.plot(x_smooth, ypiled_smooth, 'b-', label="Pile quality")  # Smooth curve
+        # # plt.scatter(x, piled_quality_results, color='black')  
+        # # plt.plot(x_smooth, ypiled_smooth, 'b-')  # Smooth curve
+
+        # plt.scatter(x, piled_quality_results, color='black', zorder=3) 
+        # plt.plot(x_smooth, ypiled_smooth, color="royalblue", label="Piling quality", linewidth=2.5, linestyle="-", alpha=0.8) #"#FF5733 "#33CFFF"
+        # plt.plot(x_smooth, piled_quality_results, color="royalblue", label="Piling quality", linewidth=2.5, linestyle="-", alpha=0.8) #"#FF5733 "#33CFFF"
+
+
+
+        x = np.arange(0, len(placed_quality_results))
+        t = np.linspace(0, 1, len(x))
+
+        # Use PCHIP instead of cubic spline
+        pchip_yplaced = PchipInterpolator(t, placed_quality_results)
+        pchip_ypiled = PchipInterpolator(t, piled_quality_results)
+
+        t_fine = np.linspace(0, 1, 200)
+        x_smooth = np.interp(t_fine, t, x)  # linear interp for x
+        yplaced_smooth = pchip_yplaced(t_fine)
+        ypiled_smooth = pchip_ypiled(t_fine)
+
+        fig = plt.figure(figsize=(11, 8))
+        # fig, ax = plt.subplots(figsize=(10, 9))  # create fig + axis
+        plt.scatter(x, placed_quality_results, color='black', zorder=3)
+        plt.plot(x_smooth, yplaced_smooth, 'g-', label="Placing quality", linewidth=3, alpha=0.8)
+        plt.scatter(x, piled_quality_results, color='black', zorder=3)
+        plt.plot(x_smooth, ypiled_smooth, color="royalblue", linestyle="-", label="Piling quality", linewidth=3, alpha=0.8)
 
         # #Put labels to points
         # for i,j in zip(x,placed_quality_results):
@@ -318,15 +347,25 @@ class CostUpdater:
         # plt.axvline(x=20, color='gray', linestyle='--', linewidth=2) #Plot a dashed line when plotting the pillowcase + towel results
 
         plt.xticks(x)
-        plt.xlabel("Trial", fontsize=18)
-        plt.ylabel("Pile quality (%)", fontsize=18)
-        plt.title("Pile quality evolution over trials", fontsize=20, fontweight='bold', color="#333333")
-        # plt.legend()
+        print(np.linspace(0,100,10))
+        plt.yticks(np.linspace(0,100,11))
+        # plt.xlabel("Trial (Complete pile)", fontsize=18)
+        plt.ylabel("Quality (%)", fontsize=18)
+        plt.title("Quality evolution over trials", fontsize=20, fontweight='bold', color="#333333")
+        plt.legend(loc="center right", fontsize=12) 
         # plt.grid()
         # Customize the grid and spines
         plt.grid(True,  linewidth=0.8, alpha=0.5)
         plt.gca().spines["top"].set_visible(False)
         plt.gca().spines["right"].set_visible(False)
+        # Extra labels (smaller font) placed above
+        # ax.set_xlabel("Trial (Complete pile)", fontsize=18)
+        # ax.text(0.5, -0.02, "Piles of Checkered rags", ha="center", va="center", transform=ax.transAxes, fontsize=12)
+        # ax.text(0.5, -0.18, "Piles of Waffle rags", ha="center", va="center", transform=ax.transAxes, fontsize=9)
+        plt.xlabel("Trial (Complete pile)", labelpad=25, fontsize=18)  # increase spacing
+        plt.text(0.35, -0.07, "Piles of Checkered rags", ha="center", transform=plt.gca().transAxes, fontsize=12)
+        plt.text(0.83, -0.07, "Piles of Waffle rags", ha="center", transform=plt.gca().transAxes, fontsize=12)
+
         # plt.show()
 
         return fig
