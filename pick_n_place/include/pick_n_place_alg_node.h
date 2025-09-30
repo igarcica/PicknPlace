@@ -158,6 +158,7 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     double object_thickness_drag;
     double object_thickness_rotate;
     // std::vector<double>expected_pile_thickn;
+    double expected_pile_thickn;
 
     std::vector<double> pre_grasp_corner;
     kortex_driver::Pose home_pose;
@@ -205,7 +206,6 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     //void garment_angle_callback(const std_msgs::Float64::ConstPtr& msg);
     // void compute_grasp_angle(const std_msgs::Float64& msg);
     void compute_grasp_angle(double grasping_angle);
-    void garment_edge_callback(const std_msgs::Float64::ConstPtr& msg);
     //void select_grasp_point();
     void corners_callback(const visualization_msgs::MarkerArray::ConstPtr& msg);
     void place_corners_callback(const visualization_msgs::MarkerArray::ConstPtr& msg);
@@ -331,7 +331,7 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     
     int n_obj_pile; //current piled object
     std::vector<std::string> objs_names, pddl_objs_names, objs_layers; //list of object names to pile
-    std::vector<double> objs_stiffness, objs_friction, objs_thickn; //stiffness, friction and thicnkess of objects to pile
+    std::vector<double> short_edge_sizes, long_edge_sizes, objs_stiffness, objs_friction, objs_thickness; //stiffness, friction and thicnkess of objects to pile
     void get_objects_to_pile(void); //Gets properties of the list of objects to pile, predicts deformation classes and updates KB of the planner (for initial plan)
     
 

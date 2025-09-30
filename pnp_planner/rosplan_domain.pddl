@@ -86,8 +86,8 @@
 	:effect (and
 			(not (robot_at home))
 			(robot_at high_pose)
-			(increase (time_cost) 0)
-			(increase (place_qual) 1))
+			(increase (time_cost) 1)
+			(increase (place_qual) 0))
 )
 
 (:action grasp
@@ -131,7 +131,7 @@
 			;;(robot_at drag_pose)
 			(not (garment_at ?cloth grws)) ;;Change ws
 			(garment_at ?cloth rotws)
-			(robot_at home)
+			(robot_at else)
 			(not (robot_at home))
 			(increase (time_cost) 0)
 			(increase (place_qual) 0))
@@ -204,7 +204,7 @@
 			(garment_state ?cloth placed)
 			(not (garment_state ?cloth lifted))
 			(known_obj ?new_cloth)
-			(increase (time_cost) 3)
+			(increase (time_cost) 1)
 			(increase (place_qual) (place_succ ?cloth ?class placerot)))
 )
 (:action placevert

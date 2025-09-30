@@ -9,6 +9,6 @@ string object_name
 string layers
 string grasped_edge
 int64 n_objs_pile
-int64 expected_pile_thickn
+float32 expected_pile_thickn
 ---
 float32 placing_quality

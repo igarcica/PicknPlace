@@ -50,7 +50,7 @@ def plot(data, file_name, scale, scale_color):
         fig.write_image(filename)
 
 ## Saves RGB images with the corresponding filename, GT class and metrics
-def plot_with_info(data, x_grid_divs, y_grid_divs, can_edges, obj_thickn, n_objs, scale, scale_color):
+def plot_with_info(data, x_grid_divs, y_grid_divs, can_edges, obj_thickn, n_objs, pile_thickn, scale, scale_color):
     print("\033[94m Plotting with info... \033[0m")
     data = np.array(data)
     planes_x = []
@@ -85,7 +85,8 @@ def plot_with_info(data, x_grid_divs, y_grid_divs, can_edges, obj_thickn, n_objs
     # Plot Canonical plane
     x=np.linspace(can_edges[0],can_edges[1],100)
     y=np.linspace(can_edges[2],can_edges[3],50)
-    z=(obj_thickn*n_objs)*np.ones(len(y_data))
+    # z=(obj_thickn*n_objs)*np.ones(len(y_data))
+    z=pile_thickn*np.ones(len(y_data))
     # z=0.05*np.ones(len(y_data))
     canonic = go.Surface(x=x, y=y, z=np.array([z]*len(x)).T, colorscale=bright_pink, opacity=0.3)
     canonic_plane.append(canonic)
@@ -417,29 +418,30 @@ def placing_qual(metrics, n_div, grasp_edge_size, obj_thickness, n_objs):
     return placing_quality
     
 #test - placing quality for piles of different objects (different objects thickness)
-# def dif_objs_placing_qual(metrics, n_div, grasp_edge_size, pile_thickness, n_objs):
+def dif_objs_placing_qual(metrics, n_div, grasp_edge_size, pile_thickness, n_objs):
 
-#     obj_thickness = pile_thickness/n_objs
-#     min_depth = pile_thickness  #Pile thickness should be 0 deformation
-#     max_depth = (obj_thickness*3) + (min_depth-obj_thickness)
-#     print("min depth: ", min_depth, " / max depth: ", max_depth)
+    obj_thickness = pile_thickness/n_objs
+    min_depth = pile_thickness  #Pile thickness should be 0 deformation
+    # max_depth = (obj_thickness*3) + (min_depth-obj_thickness)
+    max_depth = min_depth + (obj_thickness*3) #The pile height + two more objectss
+    print("min depth: ", min_depth, " / max depth: ", max_depth)
 
-#     metrics = np.array(metrics)
-#     flat_placement = min_depth*np.ones(n_div*n_div)
-#     bad_placement = max_depth*np.ones(n_div*n_div) #for piles of towels
-#     bad_placement = bad_placement.reshape(-1, 1)
-#     print("FLAT MATRIX: ", flat_placement)
+    metrics = np.array(metrics)
+    flat_placement = min_depth*np.ones(n_div*n_div)
+    bad_placement = max_depth*np.ones(n_div*n_div) #for piles of towels
+    bad_placement = bad_placement.reshape(-1, 1)
+    print("FLAT MATRIX: ", flat_placement)
 
-#     max_dist = np.linalg.norm(bad_placement - flat_placement, 1) #Max distance from bad placement to perfect placement (100% error) - Used for normalization
-#     print("BAD MATRIX: ", bad_placement)
-#     print("Max distance: ", max_dist)
-#     dist = np.linalg.norm(metrics - flat_placement, 1) #Ditance of current sample to perfect placement
-#     print("Distance", dist)
-#     placing_error = (dist-min_depth)/(max_dist-min_depth)*100 # Normalize distance
-#     placing_quality = 100-placing_error # Get placing quality (not error)
-#     rospy.loginfo("Placing_quality: Placing quality %f ", placing_quality)
+    max_dist = np.linalg.norm(bad_placement - flat_placement, 1) #Max distance from bad placement to perfect placement (100% error) - Used for normalization
+    print("BAD MATRIX: ", bad_placement)
+    print("Max distance: ", max_dist)
+    dist = np.linalg.norm(metrics - flat_placement, 1) #Ditance of current sample to perfect placement
+    print("Distance", dist)
+    placing_error = (dist-min_depth)/(max_dist-min_depth)*100 # Normalize distance
+    placing_quality = 100-placing_error # Get placing quality (not error)
+    rospy.loginfo("Placing_quality: Placing quality %f ", placing_quality)
 
-#     return placing_quality
+    return placing_quality
     
 
 ##################################################################################################

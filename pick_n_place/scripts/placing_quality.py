@@ -89,7 +89,7 @@ def show_save_figs(figure, name):
         figure.write_image(filename)
 
 
-def process_pointcloud(data, grasp_edge_size, nongrasp_edge_size, obj_thickness, n_objs):
+def process_pointcloud(data, grasp_edge_size, nongrasp_edge_size, obj_thickness, n_objs, pile_thickn):
 
     rospy.loginfo("Placing_quality: Received pointcloud message")
 
@@ -112,7 +112,7 @@ def process_pointcloud(data, grasp_edge_size, nongrasp_edge_size, obj_thickness,
     ## ---Plot---
     # figx = placing_grid_metric.plot_raw_data(transl_data)
     # show_save_figs(figx, "Raw")
-    fig = placing_grid_metric.plot_with_info(transl_data, can_x_grid_divs, can_y_grid_divs, can_edges, obj_thickness, n_objs, plot_scale, plot_scale_color)
+    fig = placing_grid_metric.plot_with_info(transl_data, can_x_grid_divs, can_y_grid_divs, can_edges, obj_thickness, n_objs, pile_thickn, plot_scale, plot_scale_color)
     show_save_figs(fig, "placing_plot")
     # fig2 = placing_grid_metric.plot_metrics(mean_metrics, plot_scale_color)
     fig2 = placing_grid_metric.plot_metrics(mean_metrics, obj_thickness, n_objs)
@@ -138,6 +138,8 @@ def handle_service(req):
     #     # object_thickness = obj_edge_size[2] # If it is first object placed
     n_objects = req.n_objs_pile #The pile quality depends on the number of objects in the pile (including the currently placed object), which assigns the pile thickness/height
 
+    pile_thickness = req.expected_pile_thickn
+
     if(req.grasped_edge=="short"):
         nongrasped_edge_size = obj_edge_size[1]
         grasped_edge_size = obj_edge_size[0] # shortest edge is grasped
@@ -145,7 +147,7 @@ def handle_service(req):
         grasped_edge_size = obj_edge_size[1] # longest edge is grasped
         nongrasped_edge_size = obj_edge_size[0]
 
-    grid_metric = process_pointcloud(msg, grasped_edge_size, nongrasped_edge_size, object_thickness, n_objects) # Grid metric
+    grid_metric = process_pointcloud(msg, grasped_edge_size, nongrasped_edge_size, object_thickness, n_objects, pile_thickness) # Grid metric
 
     placing_quality = placing_grid_metric.placing_qual(grid_metric, n_divisions, nongrasped_edge_size, object_thickness, n_objects) # Placing quality
     placing_quality = round(placing_quality)
@@ -158,15 +160,14 @@ def handle_service(req):
 
     # placing_quality3 = placing_grid_metric2.hybrid(grid_metric, n_divisions, object_thickness, n_objects)
     # print("RESULT: ", placing_quality3)
-
-    # pile_thickness = req.expected_pile_thickn
-    # placing_quality = placing_grid_metric.dif_objs_placing_qual(grid_metric, n_divisions, nongrasped_edge_size, pile_thickness, n_objects) # Placing quality
-    # placing_quality = round(placing_quality)
-    # placing_quality = np.where(placing_quality < 0, 0, np.where(placing_quality>100, 100, placing_quality))
-    # print("placing quality:", placing_quality)
-    # print("Placing error:", 100-placing_quality)
     
-    return GetPlacingQualResponse(placing_quality)
+    placing_quality_pile = placing_grid_metric.dif_objs_placing_qual(grid_metric, n_divisions, nongrasped_edge_size, pile_thickness, n_objects) # Placing quality
+    placing_quality_pile = round(placing_quality_pile)
+    placing_quality_pile = np.where(placing_quality_pile < 0, 0, np.where(placing_quality_pile>100, 100, placing_quality_pile))
+    print("PILE placing quality:", placing_quality_pile)
+    print("PILE Placing error:", 100-placing_quality_pile)
+    
+    return GetPlacingQualResponse(placing_quality_pile)
 
 if __name__ == '__main__':
     rospy.init_node('placing_quality', anonymous=True)

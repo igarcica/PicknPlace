@@ -26,14 +26,14 @@ activate_print=True
 
 ## init cost table is the previous learned one from system's adaptability2 experiments
 place_initial_cost_table = np.array([ # Init cost table (placing error to minimize)
-    [2, 1, 1],
+    [2, 2, 2],
     [5, 4, 4], 
-    [1, 1, 1],
+    [1, 1, 1]
 ])  
 pile_initial_cost_table = np.array([ # Init cost table (placing error to minimize)
-    [3, 2, 2],
-    [30, 4, 4], 
-    [27, 10, 11]
+    [9, 4, 3],
+    [27, 4, 4], 
+    [26, 10, 11]
 ])  
 
 # ################## SYSTEM'S PERFORMANCE ##################
@@ -79,18 +79,21 @@ pile_initial_cost_table = np.array([ # Init cost table (placing error to minimiz
 
 
 ################## SYSTEM'S PERFORMANCE2 ##################
-# ######### Towel and towel (system performance trials 4 to 6) + Checkered 8l and Waffle 8L (trials 1 to 3) + #########
-placed_quality_results = np.array([0, 100, 100, 99, 98, 95, 96]) #trials 20 to 23
+# ######### Towel and towel (system performance trials 4 to 6) + Checkered 8l and Waffle 8L (trials 1 to 3) + ######### NO
+# ######### Towel and towel (trials  to ) + cotton napkin and cotton napkin + Checkered 8l and Waffle 8L () + towel and napkin ######### 
+# placed_quality_results = np.array([0, 99, 98, 99, 95, 94, 90]) #Previous placing quality metric
+placed_quality_results = np.array([0, 97, 97, 99, 90, 95, 93, 97]) 
 placing_errors = 100-placed_quality_results
-placing_str = ["0", "d", "d", "d", "d", "d", "d"]
-placing_def_classes = ["0", "A", "A", "A", "B", "B", "B"]
+placing_str = ["0", "v", "v", "v", "d", "d", "r", "v"]
+placing_def_classes = ["0", "A", "A", "A", "B", "B", "B", "A"]
 
-piled_quality_results = np.array([0, 95, 95, 99, 97, 93, 99]) #trials 20 to 23
+# piled_quality_results = np.array([0, 96, 97, 97, 92, 98, 97]) #Previous placing quality metric
+piled_quality_results = np.array([0, 99, 98, 98, 95, 98, 97, 91]) 
 piling_errors = 100-piled_quality_results
-piling_str = ["0", "d", "d", "d", "d", "d", "r"] 
-piling_def_classes = ["0", "A", "A", "A", "B", "B", "B"]
+piling_str = ["0", "r", "r", "r", "d", "r", "r", "r"] 
+piling_def_classes = ["0", "A", "A", "A", "B", "B", "B", "B"]
 
-labels = np.array(["0", "dd", "dd"])
+labels = np.array(["0", "vr", "vr", "vr", "dd", "dr", "rr"])
 
 
 ##################
