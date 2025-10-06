@@ -2352,7 +2352,7 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
         known_obj = true;
         short_edge_size = 23; //check
         long_edge_size = 25;
-        this->short_edge_sizes.push_back(0.24);
+        this->short_edge_sizes.push_back(0.25);
         this->long_edge_sizes.push_back(0.26);
         this->objs_thickness.push_back(0.04);
         // this->expected_pile_thickn.push_back(this->expected_pile_thickn[i]+0.04); //Add current object thickness to pile thickness

@@ -7,6 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 from scipy.interpolate import CubicSpline
+from scipy.interpolate import PchipInterpolator
 import cost_update as cost_update
 from cycler import cycler
 
@@ -82,16 +83,28 @@ pile_initial_cost_table = np.array([ # Init cost table (placing error to minimiz
 # ######### Towel and towel (system performance trials 4 to 6) + Checkered 8l and Waffle 8L (trials 1 to 3) + ######### NO
 # ######### Towel and towel (trials  to ) + cotton napkin and cotton napkin + Checkered 8l and Waffle 8L () + towel and napkin ######### 
 # placed_quality_results = np.array([0, 99, 98, 99, 95, 94, 90]) #Previous placing quality metric
-placed_quality_results = np.array([0, 97, 97, 99, 90, 95, 93, 97]) 
-placing_errors = 100-placed_quality_results
+## Planner
+placed_quality_results = np.array([0, 97, 97, 99, 95, 94, 93])#, 97]) #planner
 placing_str = ["0", "v", "v", "v", "d", "d", "r", "v"]
 placing_def_classes = ["0", "A", "A", "A", "B", "B", "B", "A"]
+##Reactive
+# placed_quality_results = np.array([0, 97, 98, 98, 98, 59, 63]) 
+# placing_str = ["0", "v", "v", "v", "v", "v", "d"]
+# placing_def_classes = ["0", "A", "A", "A", "C", "C", "C"]
+
+placing_errors = 100-placed_quality_results
 
 # piled_quality_results = np.array([0, 96, 97, 97, 92, 98, 97]) #Previous placing quality metric
-piled_quality_results = np.array([0, 99, 98, 98, 95, 98, 97, 91]) 
+##Planner
+piled_quality_results = np.array([0, 99, 98, 98, 92, 98, 97])#, 91]) #planner
+piling_str = ["0", "r", "r", "r", "d", "r", "r", "r"] #Planner
+piling_def_classes = ["0", "A", "A", "A", "B", "B", "B", "B"] #Planner
+## Reactive
+# piled_quality_results = np.array([0, 97, 96, 98, 65, 17, 18]) #Reactive
+# piling_str = ["0", "r", "r", "r", "d", "r", "d"] #Reactive
+# piling_def_classes = ["0", "A", "A", "A", "C", "C", "C"] #Reactive
+
 piling_errors = 100-piled_quality_results
-piling_str = ["0", "r", "r", "r", "d", "r", "r", "r"] 
-piling_def_classes = ["0", "A", "A", "A", "B", "B", "B", "B"]
 
 labels = np.array(["0", "vr", "vr", "vr", "dd", "dr", "rr"])
 
@@ -141,40 +154,87 @@ def plot_costs(axes, data, points):
     axes.grid()
     axes.grid(True,  linewidth=0.8, alpha=0.5)
 
+# def plot_quality(placed_quality_results, piled_quality_results, labels):
+#     # Create a smooth parameterized curve using cubic splines
+#     x = np.arange(0, len(placed_quality_results)) #np.linspace(0,1, len(x))
+#     t = np.linspace(0, 1, len(x))  # Normalized parameter
+#     cs_x = CubicSpline(t, x)  # X interpolation
+#     cs_yplaced = CubicSpline(t, placed_quality_results)  # Y interpolation
+#     cs_ypiled = CubicSpline(t, piled_quality_results)  # Y interpolation
+
+#     # Generate fine-grained trajectory points
+#     t_fine = np.linspace(0, 1, 100)
+#     x_smooth = cs_x(t_fine)
+#     yplaced_smooth = cs_yplaced(t_fine)
+#     ypiled_smooth = cs_ypiled(t_fine)
+
+#     # Plot the trajectory
+#     fig = plt.figure(figsize=(9, 6))
+
+#     plt.scatter(x, piled_quality_results, color='black', zorder=3) 
+#     plt.plot(x_smooth, ypiled_smooth, color="royalblue", linewidth=2.5, linestyle="-", alpha=0.8) #"#FF5733 "#33CFFF"
+
+#     plt.axvline(x=3, color='gray', linestyle='--', linewidth=2) #Towel to waffle
+#     plt.axvline(x=6, color='gray', linestyle='--', linewidth=2) #Waffle to checkered
+
+#     plt.ylim(0,105) #Y axis range
+#     plt.xticks(x)
+#     plt.xlabel("Trial", fontsize=18)
+#     plt.ylabel("Pile quality (%)", fontsize=18)
+#     plt.title("Pile quality evolution over trials", fontsize=20, fontweight='bold', color="#333333")
+#     plt.grid(True,  linewidth=0.8, alpha=0.5)
+#     plt.gca().spines["top"].set_visible(False)
+#     plt.gca().spines["right"].set_visible(False)
+
+#     return fig
+
 def plot_quality(placed_quality_results, piled_quality_results, labels):
-    # Create a smooth parameterized curve using cubic splines
-    x = np.arange(0, len(placed_quality_results)) #np.linspace(0,1, len(x))
-    t = np.linspace(0, 1, len(x))  # Normalized parameter
-    cs_x = CubicSpline(t, x)  # X interpolation
-    cs_yplaced = CubicSpline(t, placed_quality_results)  # Y interpolation
-    cs_ypiled = CubicSpline(t, piled_quality_results)  # Y interpolation
 
-    # Generate fine-grained trajectory points
-    t_fine = np.linspace(0, 1, 100)
-    x_smooth = cs_x(t_fine)
-    yplaced_smooth = cs_yplaced(t_fine)
-    ypiled_smooth = cs_ypiled(t_fine)
+        x = np.arange(0, len(placed_quality_results))
+        t = np.linspace(0, 1, len(x))
 
-    # Plot the trajectory
-    fig = plt.figure(figsize=(9, 6))
+        # Use PCHIP instead of cubic spline
+        pchip_yplaced = PchipInterpolator(t, placed_quality_results)
+        pchip_ypiled = PchipInterpolator(t, piled_quality_results)
 
-    plt.scatter(x, piled_quality_results, color='black', zorder=3) 
-    plt.plot(x_smooth, ypiled_smooth, color="royalblue", linewidth=2.5, linestyle="-", alpha=0.8) #"#FF5733 "#33CFFF"
+        t_fine = np.linspace(0, 1, 200)
+        x_smooth = np.interp(t_fine, t, x)  # linear interp for x
+        yplaced_smooth = pchip_yplaced(t_fine)
+        ypiled_smooth = pchip_ypiled(t_fine)
 
-    plt.axvline(x=3, color='gray', linestyle='--', linewidth=2) #Towel to waffle
-    plt.axvline(x=6, color='gray', linestyle='--', linewidth=2) #Waffle to checkered
+        fig = plt.figure(figsize=(11, 8))
+        # fig, ax = plt.subplots(figsize=(10, 9))  # create fig + axis
+        plt.scatter(x, placed_quality_results, color='black', zorder=3)
+        plt.plot(x_smooth, yplaced_smooth, 'g-', label="Placing quality", linewidth=3, alpha=0.8)
+        plt.scatter(x, piled_quality_results, color='black', zorder=3)
+        plt.plot(x_smooth, ypiled_smooth, color="royalblue", linestyle="-", label="Piling quality", linewidth=3, alpha=0.8)
 
-    plt.ylim(0,105) #Y axis range
-    plt.xticks(x)
-    plt.xlabel("Trial", fontsize=18)
-    plt.ylabel("Pile quality (%)", fontsize=18)
-    plt.title("Pile quality evolution over trials", fontsize=20, fontweight='bold', color="#333333")
-    plt.grid(True,  linewidth=0.8, alpha=0.5)
-    plt.gca().spines["top"].set_visible(False)
-    plt.gca().spines["right"].set_visible(False)
+        plt.axvline(x=3.5, color='gray', linestyle='--', linewidth=2) #Towels
+        plt.axvline(x=6.5, color='gray', linestyle='--', linewidth=2) #Cotton napkins
 
-    return fig
+        plt.xticks(x)
+        print(np.linspace(0,100,10))
+        plt.yticks(np.linspace(0,100,11))
+        # plt.xlabel("Trial (Complete pile)", fontsize=18)
+        plt.ylabel("Quality (%)", fontsize=18)
+        plt.title("Quality evolution over trials", fontsize=20, fontweight='bold', color="#333333")
+        plt.legend(loc="center right", fontsize=12) 
+        # plt.grid()
+        # Customize the grid and spines
+        plt.grid(True,  linewidth=0.8, alpha=0.5)
+        plt.gca().spines["top"].set_visible(False)
+        plt.gca().spines["right"].set_visible(False)
+        # Extra labels (smaller font) placed above
+        # ax.set_xlabel("Trial (Complete pile)", fontsize=18)
+        # ax.text(0.5, -0.02, "Piles of Checkered rags", ha="center", va="center", transform=ax.transAxes, fontsize=12)
+        # ax.text(0.5, -0.18, "Piles of Waffle rags", ha="center", va="center", transform=ax.transAxes, fontsize=9)
+        plt.xlabel("Trial (Complete pile)", labelpad=25, fontsize=18)  # increase spacing
+        plt.text(0.35, -0.07, "Piles of towels", ha="center", transform=plt.gca().transAxes, fontsize=12)
+        plt.text(0.83, -0.07, "Piles of cotton napk", ha="center", transform=plt.gca().transAxes, fontsize=12)
 
+        # plt.show()
+
+        return fig
 ####################################################################################
 
 
@@ -218,22 +278,31 @@ for m in range(0,len(errors)): #cloth-table and cloth-cloth cost tables
 
 
 plot_quality(placed_quality_results, piled_quality_results, labels)
-# plt.show()
-
-fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(9, 8))  # Create a 2-row, 3-column figure
-
-plot_costs(axes[0], costs_history[0], changes[0])
-axes[0].set_ylabel("cloth-to-table cost", fontsize=18)
-
-plot_costs(axes[1], costs_history[1], changes[1])
-axes[1].set_ylabel("cloth-to-cloth cost", fontsize=18)
-
-fig.suptitle("Cost update over trials", fontsize=20, fontweight='bold', color="#333333")
-handles, labels = plt.gca().get_legend_handles_labels()  # Get all lines
-fig.legend(handles[:9], labels[:9], title='State-Action Cost')  # # Def class and placing action combination cost - Show only the first 9
 plt.show()
 
+# fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(9, 8))  # Create a 2-row, 3-column figure
 
+# plot_costs(axes[0], costs_history[0], changes[0])
+# axes[0].set_ylabel("cloth-to-table cost", fontsize=18)
+
+# plot_costs(axes[1], costs_history[1], changes[1])
+# axes[1].set_ylabel("cloth-to-cloth cost", fontsize=18)
+
+# fig.suptitle("Cost update over trials", fontsize=20, fontweight='bold', color="#333333")
+# handles, labels = plt.gca().get_legend_handles_labels()  # Get all lines
+# fig.legend(handles[:9], labels[:9], title='State-Action Cost')  # # Def class and placing action combination cost - Show only the first 9
+# plt.show()
+
+#############################
+##Planner
+placed_quality_results_planner = np.array([0, 97, 97, 99, 95, 94, 93]) #planner
+piled_quality_results_planner = np.array([0, 99, 98, 98, 92, 98, 97]) #planner
+## REactive
+placed_quality_results_reactive = np.array([0, 97, 98, 98, 98, 59, 63]) 
+piled_quality_results_reactive = np.array([0, 97, 96, 98, 65, 17, 18]) #Reactive
+
+plot_quality(piled_quality_results_planner, piled_quality_results_reactive, labels)
+plt.show()
 
 
 ############################### Plot cost evolution as table

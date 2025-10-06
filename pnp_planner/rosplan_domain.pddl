@@ -204,7 +204,7 @@
 			(garment_state ?cloth placed)
 			(not (garment_state ?cloth lifted))
 			(known_obj ?new_cloth)
-			(increase (time_cost) 1)
+			(increase (time_cost) 3)
 			(increase (place_qual) (place_succ ?cloth ?class placerot)))
 )
 (:action placevert
