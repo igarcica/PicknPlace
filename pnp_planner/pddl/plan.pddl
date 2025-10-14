@@ -17,12 +17,12 @@ advancing to goal distance:    1
                                0
 
 ff: found legal plan as follows
-step    0: PLACEDIAG COTNAP2 COTNAP1 TABLE LONG C
-plan cost: 38.000000
+step    0: PLACEROT COTNAP2 COTNAP1 TABLE LONG C
+plan cost: 25.000000
 
 time spent:    0.00 seconds instantiating 662 easy, 26 hard action templates
-               0.00 seconds reachability analysis, yielding 27 facts and 30 actions
-               0.00 seconds creating final representation with 10 relevant facts, 2 relevant fluents
+               0.00 seconds reachability analysis, yielding 24 facts and 30 actions
+               0.00 seconds creating final representation with 11 relevant facts, 2 relevant fluents
                0.00 seconds computing LNF
                0.00 seconds building connectivity graph
                0.00 seconds searching, evaluating 16 states, to a max depth of 0

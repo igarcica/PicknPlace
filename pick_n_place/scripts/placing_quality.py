@@ -122,8 +122,8 @@ def process_pointcloud(data, grasp_edge_size, nongrasp_edge_size, obj_thickness,
 
 def handle_service(req):
     
-    msg = rospy.wait_for_message('/cloud_pcd', PointCloud2) # Get next message from the topic /segment_table/place (segmented pointcloud of the placed object)
-    # msg = rospy.wait_for_message('/segment_table/place', PointCloud2) # Get next message from the topic /segment_table/place (segmented pointcloud of the placed object)
+    msg = rospy.wait_for_message('/segment_table/place', PointCloud2) # Get next message from the topic /segment_table/place (segmented pointcloud of the placed object)
+    # msg = rospy.wait_for_message('/cloud_pcd', PointCloud2) # Get next message from the topic /segment_table/place (segmented pointcloud of the placed object)
     
     ## ---Get object dimensions for creating canonical---
     object_layers = req.object_name + "_" + req.layers

@@ -84,25 +84,25 @@ pile_initial_cost_table = np.array([ # Init cost table (placing error to minimiz
 # ######### Towel and towel (trials  to ) + cotton napkin and cotton napkin + Checkered 8l and Waffle 8L () + towel and napkin ######### 
 # placed_quality_results = np.array([0, 99, 98, 99, 95, 94, 90]) #Previous placing quality metric
 ## Planner
-placed_quality_results = np.array([0, 97, 97, 99, 95, 94, 93])#, 97]) #planner
-placing_str = ["0", "v", "v", "v", "d", "d", "r", "v"]
-placing_def_classes = ["0", "A", "A", "A", "B", "B", "B", "A"]
+# placed_quality_results = np.array([0, 97, 97, 99, 96, 94, 93, 98, 98, 98]) #planner - towel, cotnap, towel+pillowc
+# placing_str = ["0", "v", "v", "v", "d", "d", "r", "v", "v", "v"]
+# placing_def_classes = ["0", "A", "A", "A", "B", "B", "B", "A", "A", "A"]
 ##Reactive
-# placed_quality_results = np.array([0, 97, 98, 98, 98, 59, 63]) 
-# placing_str = ["0", "v", "v", "v", "v", "v", "d"]
-# placing_def_classes = ["0", "A", "A", "A", "C", "C", "C"]
+placed_quality_results = np.array([0, 97, 98, 98, 93, 59, 63]) 
+placing_str = ["0", "v", "v", "v", "v", "v", "d"]
+placing_def_classes = ["0", "A", "A", "A", "C", "C", "C"]
 
 placing_errors = 100-placed_quality_results
 
 # piled_quality_results = np.array([0, 96, 97, 97, 92, 98, 97]) #Previous placing quality metric
 ##Planner
-piled_quality_results = np.array([0, 99, 98, 98, 92, 98, 97])#, 91]) #planner
-piling_str = ["0", "r", "r", "r", "d", "r", "r", "r"] #Planner
-piling_def_classes = ["0", "A", "A", "A", "B", "B", "B", "B"] #Planner
+# piled_quality_results = np.array([0, 99, 98, 98, 92, 98, 97, 95, 99, 98]) #planner
+# piling_str = ["0", "r", "r", "r", "d", "r", "r", "r", "r", "r", "r"] #Planner
+# piling_def_classes = ["0", "A", "A", "A", "B", "B", "B", "B", "B", "B", "B"] #Planner
 ## Reactive
-# piled_quality_results = np.array([0, 97, 96, 98, 65, 17, 18]) #Reactive
-# piling_str = ["0", "r", "r", "r", "d", "r", "d"] #Reactive
-# piling_def_classes = ["0", "A", "A", "A", "C", "C", "C"] #Reactive
+piled_quality_results = np.array([0, 97, 96, 98, 68, 17, 18]) #Reactive
+piling_str = ["0", "r", "r", "r", "d", "r", "d"] #Reactive
+piling_def_classes = ["0", "A", "A", "A", "C", "C", "C"] #Reactive
 
 piling_errors = 100-piled_quality_results
 
@@ -205,9 +205,9 @@ def plot_quality(placed_quality_results, piled_quality_results, labels):
         fig = plt.figure(figsize=(11, 8))
         # fig, ax = plt.subplots(figsize=(10, 9))  # create fig + axis
         plt.scatter(x, placed_quality_results, color='black', zorder=3)
-        plt.plot(x_smooth, yplaced_smooth, 'g-', label="Placing quality", linewidth=3, alpha=0.8)
+        plt.plot(x_smooth, yplaced_smooth, 'g-', label="TAMP", linewidth=3, alpha=0.8)
         plt.scatter(x, piled_quality_results, color='black', zorder=3)
-        plt.plot(x_smooth, ypiled_smooth, color="royalblue", linestyle="-", label="Piling quality", linewidth=3, alpha=0.8)
+        plt.plot(x_smooth, ypiled_smooth, color="royalblue", linestyle="-", label="Reactive planner", linewidth=3, alpha=0.8)
 
         plt.axvline(x=3.5, color='gray', linestyle='--', linewidth=2) #Towels
         plt.axvline(x=6.5, color='gray', linestyle='--', linewidth=2) #Cotton napkins
@@ -277,8 +277,8 @@ for m in range(0,len(errors)): #cloth-table and cloth-cloth cost tables
     print("---------------------------------------------")
 
 
-plot_quality(placed_quality_results, piled_quality_results, labels)
-plt.show()
+# plot_quality(placed_quality_results, piled_quality_results, labels)
+# plt.show()
 
 # fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(9, 8))  # Create a 2-row, 3-column figure
 
@@ -295,11 +295,11 @@ plt.show()
 
 #############################
 ##Planner
-placed_quality_results_planner = np.array([0, 97, 97, 99, 95, 94, 93]) #planner
-piled_quality_results_planner = np.array([0, 99, 98, 98, 92, 98, 97]) #planner
+placed_quality_results_planner = np.array([0, 97, 97, 99, 96, 94, 93, 98, 98, 98]) #planner
+piled_quality_results_planner = np.array([0, 99, 98, 98, 92, 98, 97, 95, 99, 98]) #planner
 ## REactive
-placed_quality_results_reactive = np.array([0, 97, 98, 98, 98, 59, 63]) 
-piled_quality_results_reactive = np.array([0, 97, 96, 98, 65, 17, 18]) #Reactive
+placed_quality_results_reactive = np.array([0, 97, 98, 98, 98, 59, 63, 0, 0, 0]) 
+piled_quality_results_reactive = np.array([0, 97, 96, 98, 65, 17, 18, 0, 0, 0]) #Reactive
 
 plot_quality(piled_quality_results_planner, piled_quality_results_reactive, labels)
 plt.show()

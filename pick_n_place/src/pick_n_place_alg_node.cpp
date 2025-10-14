@@ -2395,6 +2395,8 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
         this->objs_thickness.push_back(0.01); //0.006?
         this->objs_stiffness.push_back(60.1);
         this->objs_friction.push_back(79);
+        this->object_thickness_drag = 0.032; // For drag action
+        this->object_thickness_rotate = 0.057; // For rotate action
       } 
       else if (n_layers == "12l") 
       {
@@ -2429,7 +2431,7 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
         friction = 74;
         short_edge_size = 13;
         long_edge_size = 25;
-        this->short_edge_sizes.push_back(0.13);
+        this->short_edge_sizes.push_back(0.18);
         this->long_edge_sizes.push_back(0.25);
         this->objs_thickness.push_back(0.006);
         this->objs_stiffness.push_back(75);
