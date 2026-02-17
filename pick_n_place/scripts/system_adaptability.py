@@ -7,6 +7,7 @@ import statistics as sts
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from scipy.interpolate import make_interp_spline
+from scipy.interpolate import PchipInterpolator
 import cost_update as cost_update
 
 ## UTIL FUNCTIONS
@@ -239,8 +240,23 @@ plt.show()
 
 
 # ##########################################################################################
-# ###### ANIMATED PLOTS
-# ### ----Placing quality evolution----
+# ##### ANIMATED PLOTS
+
+# ## ----Placing quality evolution---- NOT smooth
+# x = np.arange(0, len(placed_quality_results))
+# t = np.linspace(0, 1, len(x))
+
+# # Use PCHIP instead of cubic spline
+# pchip_yplaced = PchipInterpolator(t, placed_quality_results)
+# pchip_ypiled = PchipInterpolator(t, piled_quality_results)
+
+# t_fine = np.linspace(0, 1, 200)
+# x_smooth = np.interp(t_fine, t, x)  # linear interp for x
+# yplaced_smooth = pchip_yplaced(t_fine)
+# ypiled_smooth = pchip_ypiled(t_fine)
+
+
+# # ## ----Placing quality evolution---- smooth
 
 # # x = np.linspace(0, 27, len(piled_quality_results))
 
@@ -249,111 +265,129 @@ plt.show()
 # # spline = make_interp_spline(x, piled_quality_results, k=3)
 # # y_smooth = spline(x_smooth)
 
-# # # Setup
-# # fig, ax = plt.subplots(figsize=(10, 6))
-# # line, = ax.plot([], [], lw=2, color='#1f77b4')
-# # point, = ax.plot([], [], 'ro')
-# # scatter = ax.scatter([], [], color='black', s=50, zorder=3)  # Hollow circles
+# # Setup
+# fig, ax = plt.subplots(figsize=(10, 6))
+# line, = ax.plot([], [], lw=2, color='#1f77b4', label="Piling quality")
+# point, = ax.plot([], [], 'ro')
+# scatter = ax.scatter([], [], color='black', s=50, zorder=3)  # Hollow circles
 
-# # ax.set_xlim(x.min(), x.max())
-# # ax.set_ylim(piled_quality_results.min() - 10, piled_quality_results.max() + 10)
+# line2, = ax.plot([], [], lw=2, color='green', label="Placing quality")
+# point2, = ax.plot([], [], 'ro')
+# scatter2 = ax.scatter([], [], color='black', s=50, zorder=3)  # Hollow circles
+
+# ax.set_xlim(x.min(), x.max())
+# ax.set_ylim(piled_quality_results.min() - 10, piled_quality_results.max() + 10)
 
 # # # plt.axvline(x=x[20], color='gray', linestyle='--', linewidth=2) #Plot a dashed line when plotting the pillowcase + towel results
 
-# # # Styling
-# # ax.set_xlabel("Trial", fontsize=18)
-# # ax.set_ylabel("Pile quality (%)", fontsize=18)
-# # ax.set_title("Pile quality evolution over trials", fontsize=20, fontweight='bold', color="#333333")
-# # ax.grid(True, linewidth=0.8, alpha=0.5)
-# # ax.spines["top"].set_visible(False)
-# # ax.spines["right"].set_visible(False)
+# # Styling
+# # ax.set_xlabel("Trial (complete pile)", fontsize=18)
+# ax.set_ylabel("Quality (%)", fontsize=18)
+# ax.set_title("Quality evolution over trials", fontsize=20, fontweight='bold', color="#333333")
+# ax.grid(True, linewidth=0.8, alpha=0.5)
+# ax.spines["top"].set_visible(False)
+# ax.spines["right"].set_visible(False)
 
-# # # Example custom labels (must match length of x)
-# # custom_labels = [f"{i}" for i in range(len(x))]  # e.g., T0, T1, ..., T26
-# # ax.set_xticks(x) # Set ticks at original data point positions
-# # ax.set_xticklabels(custom_labels, fontsize=10)  # Rotate for readability
+# # Example custom labels (must match length of x)
+# custom_labels = [f"{i}" for i in range(len(x))]  # e.g., T0, T1, ..., T26
+# ax.set_xticks(x) # Set ticks at original data point positions
+# ax.set_xticklabels(custom_labels, fontsize=10)  # Rotate for readability
 
+# plt.xlabel("Trial (Complete pile)", labelpad=25, fontsize=18)  # increase spacing
+# plt.text(0.35, -0.09, "Piles of Checkered rags", ha="center", transform=plt.gca().transAxes, fontsize=12)
+# plt.text(0.83, -0.09, "Piles of Waffle rags", ha="center", transform=plt.gca().transAxes, fontsize=12)
 
-# # # Animation
-# # def init_plot_quality_anim():
-# #     line.set_data([], [])
-# #     point.set_data([], [])
-# #     scatter.set_offsets([])
-# #     return line, point, scatter
+# ax.legend(loc="center right", frameon=True, fontsize=14)
 
-# # def update_plot_quality_anim(frame):
-# #     # Curve line + red dot
-# #     line.set_data(x_smooth[:frame], y_smooth[:frame])
-# #     point.set_data(x_smooth[frame - 1], y_smooth[frame - 1])
+# plt.axvline(x=10, color='gray', linestyle='--', linewidth=2) #Plot a dashed line when switching between checkered and 
 
-# #     # Show markers up to the current x_smooth point
-# #     current_x = x_smooth[frame - 1]
-# #     visible_indices = np.where(x <= current_x)[0]
-# #     scatter.set_offsets(np.column_stack((x[visible_indices], piled_quality_results[visible_indices])))
+# # Animation
+# def init_plot_quality_anim():
+#     line.set_data([], [])
+#     point.set_data([], [])
+#     line2.set_data([], [])
+#     point2.set_data([], [])
+#     scatter.set_offsets([])
+#     scatter2.set_offsets([])
+#     return line, point, line2, point2, scatter, scatter2
 
-# #     return line, point, scatter
+# def update_plot_quality_anim(frame):
+#     # Curve line + red dot
+#     line.set_data(x_smooth[:frame], ypiled_smooth[:frame])
+#     point.set_data(x_smooth[frame - 1], ypiled_smooth[frame - 1])
 
-# # # Animate
-# # ani = FuncAnimation(fig, update_plot_quality_anim, frames=len(x_smooth), init_func=init_plot_quality_anim,
-# #                     blit=False, interval=15, repeat=False)
+#     line2.set_data(x_smooth[:frame], yplaced_smooth[:frame])
+#     point2.set_data(x_smooth[frame - 1], yplaced_smooth[frame - 1])
 
-# # plt.tight_layout()
+#     # Show markers up to the current x_smooth point
+#     current_x = x_smooth[frame - 1]
+#     visible_indices = np.where(x <= current_x)[0]
+#     scatter.set_offsets(np.column_stack((x[visible_indices], piled_quality_results[visible_indices])))
+#     scatter2.set_offsets(np.column_stack((x[visible_indices], placed_quality_results[visible_indices])))
 
-# # # Save as video
-# # ani.save("pile_quality_animation.mp4", writer="ffmpeg", fps=30)
-# # plt.show()
+#     return line, point, line2, point2, scatter, scatter2
+
+# # Animate
+# ani = FuncAnimation(fig, update_plot_quality_anim, frames=len(x_smooth), init_func=init_plot_quality_anim,
+#                     blit=False, interval=15, repeat=False)
+
+# plt.tight_layout()
+
+# # Save as video
+# ani.save("pile_quality_animation.mp4", writer="ffmpeg", fps=30)
+# plt.show()
 
 
 
 # ##########################################################################################
-# ######## ---Cost table evolution 
+####### ---Cost table evolution 
 
-# # matrices=cost_table_evolution[1]
-# # nrows, ncols = matrices[0].shape
-# # print(len(matrices))
-# # print(matrices[0])
+matrices=cost_table_evolution[0]
+nrows, ncols = matrices[0].shape
+print(len(matrices))
+print(matrices[0])
 
-# # # Create plot
-# # fig, ax = plt.subplots()
-# # heatmap = ax.imshow(matrices[0], cmap='YlOrRd', vmin=0, vmax=50)
+# Create plot
+fig, ax = plt.subplots()
+heatmap = ax.imshow(matrices[0], cmap='YlOrRd', vmin=0, vmax=50)
 
-# # # Color bar
-# # cbar = plt.colorbar(heatmap, ax=ax)
-# # cbar.set_label("Value", fontsize=12)
+# Color bar
+cbar = plt.colorbar(heatmap, ax=ax)
+cbar.set_label("Value", fontsize=12)
 
-# # # Axis styling
-# # ax.set_xticks(np.arange(ncols))
-# # ax.set_yticks(np.arange(nrows))
-# # ax.set_xticklabels(['Vertical', 'Diagonal', 'Rotating'])
-# # ax.set_yticklabels(['A', 'B', 'C'])
-# # ax.set_title("Cost Evolution", fontsize=16, fontweight='bold')
+# Axis styling
+ax.set_xticks(np.arange(ncols))
+ax.set_yticks(np.arange(nrows))
+ax.set_xticklabels(['Vertical', 'Diagonal', 'Rotating'], fontsize=14)
+ax.set_yticklabels(['A', 'B', 'C'], fontsize=14)
+ax.set_title("Cost Evolution", fontsize=16, fontweight='bold')
 
-# # # Grid lines
-# # for edge, spine in ax.spines.items():
-# #     spine.set_visible(False)
-# # ax.set_xticks(np.arange(-.5, ncols, 1), minor=True)
-# # ax.set_yticks(np.arange(-.5, nrows, 1), minor=True)
-# # ax.grid(which='minor', color='gray', linestyle='-', linewidth=1)
-# # ax.tick_params(which='minor', bottom=False, left=False)
+# Grid lines
+for edge, spine in ax.spines.items():
+    spine.set_visible(False)
+ax.set_xticks(np.arange(-.5, ncols, 1), minor=True)
+ax.set_yticks(np.arange(-.5, nrows, 1), minor=True)
+ax.grid(which='minor', color='gray', linestyle='-', linewidth=1)
+ax.tick_params(which='minor', bottom=False, left=False)
 
-# # # Initialize cell labels
-# # cell_texts = [[ax.text(j, i, "", ha="center", va="center", color="black", fontsize=12)
-# #                for j in range(ncols)] for i in range(nrows)]
+# Initialize cell labels
+cell_texts = [[ax.text(j, i, "", ha="center", va="center", color="black", fontsize=12)
+               for j in range(ncols)] for i in range(nrows)]
 
-# # # Animation update
-# # def update(frame):
-# #     data = matrices[frame]
-# #     heatmap.set_data(data)
-# #     for i in range(nrows):
-# #         for j in range(ncols):
-# #             cell_texts[i][j].set_text(f"{data[i, j]}")
-# #     return [heatmap] + [text for row in cell_texts for text in row]
+# Animation update
+def update(frame):
+    data = matrices[frame]
+    heatmap.set_data(data)
+    for i in range(nrows):
+        for j in range(ncols):
+            cell_texts[i][j].set_text(f"{data[i, j]}")
+    return [heatmap] + [text for row in cell_texts for text in row]
 
-# # # Animate
-# # ani = FuncAnimation(fig, update, frames=len(matrices), interval=1000, repeat=False)
+# Animate
+ani = FuncAnimation(fig, update, frames=len(matrices), interval=1000, repeat=False)
 
-# # # ani.save("cost_update.mp4", writer="ffmpeg", fps=30)
-# # plt.show()
+ani.save("cost_update1.mp4", writer="ffmpeg", fps=30)
+plt.show()
 
 
 

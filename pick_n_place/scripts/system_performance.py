@@ -190,7 +190,7 @@ def plot_costs(axes, data, points):
 
 def plot_quality(placed_quality_results, piled_quality_results, labels):
 
-        x = np.arange(0, len(placed_quality_results))
+        x = np.arange(1, len(placed_quality_results)+1)
         t = np.linspace(0, 1, len(x))
 
         # Use PCHIP instead of cubic spline
@@ -203,34 +203,36 @@ def plot_quality(placed_quality_results, piled_quality_results, labels):
         ypiled_smooth = pchip_ypiled(t_fine)
 
         fig = plt.figure(figsize=(11, 8))
-        # fig, ax = plt.subplots(figsize=(10, 9))  # create fig + axis
         plt.scatter(x, placed_quality_results, color='black', zorder=3)
-        plt.plot(x_smooth, yplaced_smooth, 'g-', label="TAMP", linewidth=3, alpha=0.8)
+        plt.plot(x_smooth, yplaced_smooth, 'g-', label="Placing quality", linewidth=3, alpha=0.8)
         plt.scatter(x, piled_quality_results, color='black', zorder=3)
-        plt.plot(x_smooth, ypiled_smooth, color="royalblue", linestyle="-", label="Reactive planner", linewidth=3, alpha=0.8)
+        plt.plot(x_smooth, ypiled_smooth, color="royalblue", linestyle="-", label="Piling quality", linewidth=3, alpha=0.8)
 
-        plt.axvline(x=3.5, color='gray', linestyle='--', linewidth=2) #Towels
-        plt.axvline(x=6.5, color='gray', linestyle='--', linewidth=2) #Cotton napkins
+        plt.axvline(x=3.5, color='gray', linestyle='--', linewidth=2) #Towels to cotton napkins
+        plt.axvline(x=6.5, color='gray', linestyle='--', linewidth=2) #Cotton napkins to towel+pillowc
+        plt.legend(loc="lower right", fontsize=12) 
 
+        ## Axis
+        plt.gca().set_ylim(0, 106)
+        plt.gca().ticklabel_format(axis='y', style='plain', useOffset=False)
+        plt.xlim(0.5, 9.5)
+        # plt.ylim=(0, 105)
         plt.xticks(x)
-        print(np.linspace(0,100,10))
+        print(np.linspace(0,100,11))
         plt.yticks(np.linspace(0,100,11))
-        # plt.xlabel("Trial (Complete pile)", fontsize=18)
         plt.ylabel("Quality (%)", fontsize=18)
-        plt.title("Quality evolution over trials", fontsize=20, fontweight='bold', color="#333333")
-        plt.legend(loc="center right", fontsize=12) 
+        
+        ## Extra labels (smaller font) placed above
+        plt.xlabel("Trial (Complete pile)", labelpad=25, fontsize=18)  # increase spacing
+        plt.text(0.18, -0.07, "Piles of towels", ha="center", transform=plt.gca().transAxes, fontsize=12)
+        plt.text(0.5, -0.07, "Piles of cotton napkin", ha="center", transform=plt.gca().transAxes, fontsize=12)
+        plt.text(0.84, -0.07, "Piles of Towel + pillowcase", ha="center", transform=plt.gca().transAxes, fontsize=12)
+
+        ## Customize the grid and spines
         # plt.grid()
-        # Customize the grid and spines
         plt.grid(True,  linewidth=0.8, alpha=0.5)
         plt.gca().spines["top"].set_visible(False)
         plt.gca().spines["right"].set_visible(False)
-        # Extra labels (smaller font) placed above
-        # ax.set_xlabel("Trial (Complete pile)", fontsize=18)
-        # ax.text(0.5, -0.02, "Piles of Checkered rags", ha="center", va="center", transform=ax.transAxes, fontsize=12)
-        # ax.text(0.5, -0.18, "Piles of Waffle rags", ha="center", va="center", transform=ax.transAxes, fontsize=9)
-        plt.xlabel("Trial (Complete pile)", labelpad=25, fontsize=18)  # increase spacing
-        plt.text(0.35, -0.07, "Piles of towels", ha="center", transform=plt.gca().transAxes, fontsize=12)
-        plt.text(0.83, -0.07, "Piles of cotton napk", ha="center", transform=plt.gca().transAxes, fontsize=12)
 
         # plt.show()
 
@@ -295,14 +297,21 @@ for m in range(0,len(errors)): #cloth-table and cloth-cloth cost tables
 
 #############################
 ##Planner
-placed_quality_results_planner = np.array([0, 97, 97, 99, 96, 94, 93, 98, 98, 98]) #planner
-piled_quality_results_planner = np.array([0, 99, 98, 98, 92, 98, 97, 95, 99, 98]) #planner
+placed_quality_results_planner = np.array([97, 97, 99, 96, 94, 93, 98, 98, 98]) #planner
+piled_quality_results_planner = np.array([99, 98, 98, 92, 98, 97, 95, 99, 98]) #planner
 ## REactive
-placed_quality_results_reactive = np.array([0, 97, 98, 98, 98, 59, 63, 0, 0, 0]) 
-piled_quality_results_reactive = np.array([0, 97, 96, 98, 65, 17, 18, 0, 0, 0]) #Reactive
+placed_quality_results_reactive = np.array([97, 98, 98, 98, 96, 95, 98, 99, 99]) 
+piled_quality_results_reactive = np.array([97, 96, 98, 65, 57, 69, 42, 52, 49]) #Reactive
 
-plot_quality(piled_quality_results_planner, piled_quality_results_reactive, labels)
+plot_quality(placed_quality_results_planner, piled_quality_results_planner, labels)
+plt.title("TAMP system", fontsize=20, fontweight='bold', color="#333333")
 plt.show()
+
+plot_quality(placed_quality_results_reactive, piled_quality_results_reactive, labels)
+plt.title("Reactive system", fontsize=20, fontweight='bold', color="#333333")
+plt.show()
+
+# plot_quality(piled_quality_results_planner, piled_quality_results_reactive, labels)
 
 
 ############################### Plot cost evolution as table

@@ -1457,7 +1457,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
 
       case CHECK_PLACING_QUAL: ROS_INFO("PicknPlaceAlgNode: state CHECK PLACING QUALITY");
                               {
-                                this->expected_pile_thickn = this->expected_pile_thickn + this->objs_thickness[this->n_obj_pile]; //sum previous current obj thickness to pile thickness
+                                this->expected_pile_thickn = this->expected_pile_thickn + this->objs_thickness[this->n_obj_pile]; //sum previous current obj thickness to pile thickness 
                                 // this->logfile << "State: CHECK_PLACING_QUAL" << std::endl;
                                 this->logfile << "--- PLACING QUALITY ESTIMATION ---" << std::endl;
                                 this->logfile << "Placing quality parameters --> object name: " << this->objs_names[this->n_obj_pile] << ", nearest_edge: " << this->nearest_edge << ", object number in pile: " << this->n_obj_pile+1 << ", expected thickn: " << this->expected_pile_thickn << std::endl;
@@ -2352,10 +2352,9 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
         known_obj = true;
         short_edge_size = 23; //check
         long_edge_size = 25;
-        this->short_edge_sizes.push_back(0.25);
-        this->long_edge_sizes.push_back(0.26);
-        this->objs_thickness.push_back(0.04);
-        // this->expected_pile_thickn.push_back(this->expected_pile_thickn[i]+0.04); //Add current object thickness to pile thickness
+        this->short_edge_sizes.push_back(0.25); //For placing
+        this->long_edge_sizes.push_back(0.26);  //For placing
+        this->objs_thickness.push_back(0.04);   //For placing quality
         stiffness = 99.9;
         friction = 80;
         this->objs_stiffness.push_back(99.9);
@@ -2476,11 +2475,14 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
         friction = 85;
         short_edge_size = 18;
         long_edge_size = 25;
-        // this->expected_pile_thickn.push_back(this->expected_pile_thickn[i]+0.017); //Add current object thickness to pile thickness
+        this->short_edge_sizes.push_back(0.18); //to check
+        this->long_edge_sizes.push_back(0.25); //to check
+        this->objs_thickness.push_back(0.017);
         this->objs_stiffness.push_back(93.6);
         this->objs_friction.push_back(85);
         this->object_thickness_drag = 0.04; // For drag action
         this->object_thickness_rotate = 0.065; // For rotate action
+        
       }
     }
     else if (object_name.find("check") != std::string::npos) 
@@ -2505,7 +2507,9 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
         friction = 84; 
         short_edge_size = 18;
         long_edge_size = 25;
-        // this->expected_pile_thickn.push_back(this->expected_pile_thickn[i]+0.01); //Add current object thickness to pile thickness
+        this->short_edge_sizes.push_back(0.18); //to check
+        this->long_edge_sizes.push_back(0.25); //to check
+        this->objs_thickness.push_back(0.01);
         this->object_thickness_drag = 0.03; // For drag action
         this->object_thickness_rotate = 0.06; // For rotate action
         this->objs_stiffness.push_back(70);
@@ -2522,8 +2526,13 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
         friction = 90; //to check
         short_edge_size = 18;
         long_edge_size = 25;
+        this->short_edge_sizes.push_back(0.18); //to check
+        this->long_edge_sizes.push_back(0.25); //to check
+        this->objs_thickness.push_back(0.02);
         this->objs_stiffness.push_back(94);
         this->objs_friction.push_back(90);
+        this->object_thickness_drag = 0.04; // For drag action
+        this->object_thickness_rotate = 0.065; // For rotate action
       }
     } 
     else if (object_name.find("linrag") != std::string::npos) 
@@ -2536,8 +2545,13 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
         friction = 83; //to check
         short_edge_size = 18;
         long_edge_size = 25;
+        this->short_edge_sizes.push_back(0.18); //to check
+        this->long_edge_sizes.push_back(0.25); //to check
+        this->objs_thickness.push_back(0.005);
         this->objs_stiffness.push_back(65);
         this->objs_friction.push_back(83);
+        this->object_thickness_drag = 0.03; // For drag action
+        this->object_thickness_rotate = 0.06; // For rotate action
       }
     } 
     
