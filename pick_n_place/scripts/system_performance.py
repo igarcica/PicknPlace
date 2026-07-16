@@ -10,6 +10,7 @@ from scipy.interpolate import CubicSpline
 from scipy.interpolate import PchipInterpolator
 import cost_update as cost_update
 from cycler import cycler
+from matplotlib.lines import Line2D #custom text in legend
 
 activate_print=True
 
@@ -28,7 +29,7 @@ activate_print=True
 ## init cost table is the previous learned one from system's adaptability2 experiments
 place_initial_cost_table = np.array([ # Init cost table (placing error to minimize)
     [2, 2, 2],
-    [5, 4, 4], 
+    [6, 4, 4], 
     [1, 1, 1]
 ])  
 pile_initial_cost_table = np.array([ # Init cost table (placing error to minimize)
@@ -84,25 +85,25 @@ pile_initial_cost_table = np.array([ # Init cost table (placing error to minimiz
 # ######### Towel and towel (trials  to ) + cotton napkin and cotton napkin + Checkered 8l and Waffle 8L () + towel and napkin ######### 
 # placed_quality_results = np.array([0, 99, 98, 99, 95, 94, 90]) #Previous placing quality metric
 ## Planner
-# placed_quality_results = np.array([0, 97, 97, 99, 96, 94, 93, 98, 98, 98]) #planner - towel, cotnap, towel+pillowc
-# placing_str = ["0", "v", "v", "v", "d", "d", "r", "v", "v", "v"]
-# placing_def_classes = ["0", "A", "A", "A", "B", "B", "B", "A", "A", "A"]
+placed_quality_results = np.array([0, 98, 98, 97, 96, 94, 93, 98, 97, 98]) #planner - towel, cotnap, towel+pillowc
+placing_str = ["0", "v", "v", "v", "d", "d", "r", "v", "v", "v"]
+placing_def_classes = ["0", "A", "A", "A", "B", "B", "B", "A", "A", "A"]
 ##Reactive
-placed_quality_results = np.array([0, 97, 98, 98, 93, 59, 63]) 
-placing_str = ["0", "v", "v", "v", "v", "v", "d"]
-placing_def_classes = ["0", "A", "A", "A", "C", "C", "C"]
+# placed_quality_results = np.array([0, 98, 98, 97]) 
+# placing_str = ["0", "v", "v", "v", "v", "v", "d"]
+# placing_def_classes = ["0", "A", "A", "A", "C", "C", "C"]
 
 placing_errors = 100-placed_quality_results
 
 # piled_quality_results = np.array([0, 96, 97, 97, 92, 98, 97]) #Previous placing quality metric
 ##Planner
-# piled_quality_results = np.array([0, 99, 98, 98, 92, 98, 97, 95, 99, 98]) #planner
-# piling_str = ["0", "r", "r", "r", "d", "r", "r", "r", "r", "r", "r"] #Planner
-# piling_def_classes = ["0", "A", "A", "A", "B", "B", "B", "B", "B", "B", "B"] #Planner
+piled_quality_results = np.array([0, 98, 99, 98, 92, 98, 97, 95, 99, 99]) #planner
+piling_str = ["0", "r", "r", "r", "d", "r", "r", "r", "r", "r"] #Planner
+piling_def_classes = ["0", "A", "A", "A", "B", "B", "B", "B", "B", "B"] #Planner
 ## Reactive
-piled_quality_results = np.array([0, 97, 96, 98, 68, 17, 18]) #Reactive
-piling_str = ["0", "r", "r", "r", "d", "r", "d"] #Reactive
-piling_def_classes = ["0", "A", "A", "A", "C", "C", "C"] #Reactive
+# piled_quality_results = np.array([0, 97, 97, 96]) #Reactive
+# piling_str = ["0", "r", "r", "r", "d", "r", "d"] #Reactive
+# piling_def_classes = ["0", "A", "A", "A", "C", "C", "C"] #Reactive
 
 piling_errors = 100-piled_quality_results
 
@@ -188,7 +189,7 @@ def plot_costs(axes, data, points):
 
 #     return fig
 
-def plot_quality(placed_quality_results, piled_quality_results, labels):
+def plot_quality(placed_quality_results, piled_quality_results, placing_labels, placing_pose_labels, piling_labels, piling_pose_labels):
 
         x = np.arange(1, len(placed_quality_results)+1)
         t = np.linspace(0, 1, len(x))
@@ -203,14 +204,60 @@ def plot_quality(placed_quality_results, piled_quality_results, labels):
         ypiled_smooth = pchip_ypiled(t_fine)
 
         fig = plt.figure(figsize=(11, 8))
-        plt.scatter(x, placed_quality_results, color='black', zorder=3)
-        plt.plot(x_smooth, yplaced_smooth, 'g-', label="Placing quality", linewidth=3, alpha=0.8)
+        plt.scatter(x, placed_quality_results, color='black', zorder=3) #points
+        plt.plot(x_smooth, yplaced_smooth, 'g-', label="Placing quality", linewidth=3, alpha=0.8) #line
         plt.scatter(x, piled_quality_results, color='black', zorder=3)
         plt.plot(x_smooth, ypiled_smooth, color="royalblue", linestyle="-", label="Piling quality", linewidth=3, alpha=0.8)
 
+        ##Add vertical lines to separate trials with different objects
         plt.axvline(x=3.5, color='gray', linestyle='--', linewidth=2) #Towels to cotton napkins
         plt.axvline(x=6.5, color='gray', linestyle='--', linewidth=2) #Cotton napkins to towel+pillowc
-        plt.legend(loc="lower right", fontsize=12) 
+        ## Add legend
+        # plt.legend(loc="lower right", fontsize=12) 
+        # plt.legend(
+        #     handles=[
+        #         Line2D([0], [0], color='g', lw=3, label='Placing quality'),
+        #         Line2D([0], [0], color='royalblue', lw=3, label='Piling quality'),
+        #         Line2D([0], [0], color='none',
+        #             label='v: vertical\nACTIONS  d: diagonal\nr: rotating')
+        #     ],
+        #     loc="lower right",
+        #     fontsize=12
+        # )
+        plt.legend(
+            handles = [
+            Line2D([0], [0], color='g', lw=3, label='Placing quality'),
+            Line2D([0], [0], color='royalblue', lw=3, label='Piling quality'),
+            Line2D([0], [0], color='none', label=''), # Empty spacer row
+            Line2D( # STATES text
+                [0], [0],
+                color='none',
+                label=r'$\bf{STATES}$' + '\n'
+                    'deformation\n'
+                    'A, B or C\n'
+            ),
+            Line2D( # ACTIONS text
+                [0], [0],
+                color='none',
+                label=r'$\bf{ACTIONS}$' + '\n'
+                    'v: vertical\n'
+                    'd: diagonal\n'
+                    'r: rotating'
+            )
+            ],
+            loc="lower right",
+            fontsize=12,
+            handlelength=1.5,
+            frameon=True
+        )
+
+
+
+        for xi, yi, lab, pos_lab in zip(x, placed_quality_results, placing_labels, placing_pose_labels): #placing state-action labels
+            plt.text(xi, yi + pos_lab, lab, fontsize=15, ha='center', color='green')
+
+        for xi, yi, lab, pos_lab in zip(x, piled_quality_results, piling_labels, piling_pose_labels): #piling state-action labels
+            plt.text(xi, yi + pos_lab, lab, fontsize=15, ha='center', color='royalblue')
 
         ## Axis
         plt.gca().set_ylim(0, 106)
@@ -297,17 +344,25 @@ for m in range(0,len(errors)): #cloth-table and cloth-cloth cost tables
 
 #############################
 ##Planner
-placed_quality_results_planner = np.array([97, 97, 99, 96, 94, 93, 98, 98, 98]) #planner
-piled_quality_results_planner = np.array([99, 98, 98, 92, 98, 97, 95, 99, 98]) #planner
-## REactive
-placed_quality_results_reactive = np.array([97, 98, 98, 98, 96, 95, 98, 99, 99]) 
-piled_quality_results_reactive = np.array([97, 96, 98, 65, 57, 69, 42, 52, 49]) #Reactive
+placed_quality_results_planner = np.array([98, 98, 97, 96, 95, 93, 98, 97, 98]) #planner
+piled_quality_results_planner = np.array([98, 99, 98, 92, 98, 97, 95, 99, 99]) #planner
+placing_labels_planner = ["A-v", "A-v", "A-v", "B-d", "B-d", "B-r", "A-v", "A-v", "A-v"]
+placing_labels_pose_planner = [-4.0, -4.0, -4.0, 2.0, -4.0, -4.0, 2.0, -4.0, -4.0]
+piling_labels_planner = ["A-r", "A-r", "A-r", "B-d", "B-r", "B-r", "B-r", "B-r", "B-r"]
+piling_labels_pose_planner = [2.0, 2.0, 2.0, -4.0, 2.0, 2.0, -4.0, 2.0, 2.0]
+## Reactive
+placed_quality_results_reactive = np.array([98, 98, 96, 98, 96, 95, 98, 99, 99]) 
+piled_quality_results_reactive = np.array([97, 97, 96, 65, 57, 69, 42, 52, 49]) #Reactive
+placing_labels_react = ["Av", "Av", "Av", "Cv", "Cd", "Cd", "x", "x", "x"]
+placing_labels_pose_react = [-4.0, -4.0, -4.0, 2.0, -4.0, -4.0, 2.0, -4.0, -4.0]
+piling_labels_react = ["Ar", "Ar", "Ar", "Cd", "Cr", "Cr", "X", "X", "X"]
+piling_labels_pose_react = [2.0, 2.0, 2.0, -4.0, 2.0, 2.0, -4.0, 2.0, 2.0]
 
-plot_quality(placed_quality_results_planner, piled_quality_results_planner, labels)
+plot_quality(placed_quality_results_planner, piled_quality_results_planner, placing_labels_planner, placing_labels_pose_planner, piling_labels_planner, piling_labels_pose_planner)
 plt.title("TAMP system", fontsize=20, fontweight='bold', color="#333333")
 plt.show()
 
-plot_quality(placed_quality_results_reactive, piled_quality_results_reactive, labels)
+plot_quality(placed_quality_results_reactive, piled_quality_results_reactive, placing_labels_react, placing_labels_pose_react, piling_labels_react, piling_labels_pose_react)
 plt.title("Reactive system", fontsize=20, fontweight='bold', color="#333333")
 plt.show()
 

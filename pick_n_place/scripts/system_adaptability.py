@@ -6,6 +6,7 @@ import pandas as pd
 import statistics as sts
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+from matplotlib.lines import Line2D #custom text in legend
 from scipy.interpolate import make_interp_spline
 from scipy.interpolate import PchipInterpolator
 import cost_update as cost_update
@@ -131,7 +132,7 @@ pile_initial_cost_table = np.array([ # Init cost table (placing error to minimiz
 
 
 ################## SYSTEM'S ADAPTABILITY 2 ##################
-placed_quality_results = np.array([0, 98, 96, 97, 83, 96, 97, 95, 94, 92, 93, 95, 97, 96, 97, 97]) #94, 97, 96, 97, 100])#, 95]) 
+placed_quality_results = np.array([0, 98, 96, 97, 81, 96, 97, 95, 94, 92, 93, 95, 97, 96, 97, 97]) #94, 97, 96, 97, 100])#, 95]) 
 #exps: 4.1 to 6.2 of system performance
 ######### CHECKERED 8L ######### - 
 placing_errors = 100-placed_quality_results
@@ -236,6 +237,45 @@ plt.axvline(x=10, color='gray', linestyle='--', linewidth=2) #Plot a dashed line
 # fig.suptitle("Cost update over trials", fontsize=20, fontweight='bold', color="#333333")
 # handles, labels = plt.gca().get_legend_handles_labels()  # Get all lines
 # fig.legend(handles[:9], labels[:9], title='State-Action Cost')  # # Def class and placing action combination cost - Show only the first 9
+
+plt.legend(
+    handles = [
+    Line2D([0], [0], color='g', lw=3, label='Placing quality'),
+    Line2D([0], [0], color='royalblue', lw=3, label='Piling quality'),
+    Line2D([0], [0], color='none', label=''), # Empty spacer row
+    Line2D( # STATES text
+        [0], [0],
+        color='none',
+            label=r'$\bf{STATES}$' + '\n'
+            'deformation\n'
+            'A, B or C\n'
+    ),
+    Line2D( # ACTIONS text
+        [0], [0],
+        color='none',
+        label=r'$\bf{ACTIONS}$' + '\n'
+            'v: vertical\n'
+            'd: diagonal\n'
+            'r: rotating'
+    )
+    ],
+    loc="lower right",
+    fontsize=12,
+    handlelength=1.5,
+    frameon=True
+)
+
+placing_labels = ["", "C-v", "C-d", "C-r", "B-v", "B-d", "B-r", "B-d", "B-r", "B-d", "B-r", "A-v", "A-d", "A-r", "A-d", "A-r"]
+placing_labels_pose = [0, 2.0, 2.0, 2.0, -4.0, 2.0, 2.0, -4.0, -4.0, -4.0, -4, 2, 2, 2, 2, 2]
+x = np.arange(0, len(placed_quality_results))
+for xi, yi, lab, pos_lab in zip(x, placed_quality_results, placing_labels, placing_labels_pose): #placing state-action labels
+            plt.text(xi, yi + pos_lab, lab, fontsize=15, ha='center', color='green')
+
+piling_labels = ["", "C-v", "C-d", "C-r", "B-v", "B-d", "B-r", "B-r", "B-r", "B-r", "B-r", "A-v", "A-d", "A-r", "A-d", "A-r"]
+piling_labels_pose = [0, -4.0, 2.0, 2.0, -4.0, -4.0, -4.0, 2.0, 2.0, 2.0, 2, -4, -4, -4, -4, -4]
+for xi, yi, lab, pos_lab in zip(x, piled_quality_results, piling_labels, piling_labels_pose): #piling state-action labels
+            plt.text(xi, yi + pos_lab, lab, fontsize=15, ha='center', color='royalblue')
+
 plt.show()
 
 

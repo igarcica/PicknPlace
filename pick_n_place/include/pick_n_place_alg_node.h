@@ -155,8 +155,6 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     double close_gripper;
     double open_gripper;
     // bool piling;
-    double object_thickness_drag;
-    double object_thickness_rotate;
     double expected_pile_thickn;
 
     std::vector<double> pre_grasp_corner;
@@ -330,7 +328,7 @@ class PicknPlaceAlgNode : public algorithm_base::IriBaseAlgorithm<PicknPlaceAlgo
     
     int n_obj_pile; //current piled object
     std::vector<std::string> objs_names, pddl_objs_names, objs_layers; //list of object names to pile
-    std::vector<double> short_edge_sizes, long_edge_sizes, objs_stiffness, objs_friction, objs_thickness; //stiffness, friction and thicnkess of objects to pile
+    std::vector<double> short_edge_sizes, long_edge_sizes, objs_stiffness, objs_friction, objs_thickness, objs_thickness_drag, objs_thickness_rotate; //stiffness, friction and thicnkess of objects to pile
     void get_objects_to_pile(void); //Gets properties of the list of objects to pile, predicts deformation classes and updates KB of the planner (for initial plan)
     
 

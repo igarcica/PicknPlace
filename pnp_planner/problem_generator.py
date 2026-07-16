@@ -106,13 +106,15 @@ def main():
 
     # Get cloth-to-table costs
     # placing_costs = [17, 1, 1, 8, 22, 6, 30, 25, 6]
-    placing_costs = [0,0,0,0,0,0,0,0,0]
+    # placing_costs = [0,0,0,0,0,0,0,0,0]
+    placing_costs = [2,2,2,5,5,5,1,1,1]
     # input_costs = input("Enter cloth-to-table costs: ")
     # placing_costs = [costs.strip() for costs in input_costs.split(",")]
 
     # Get cloth-to-cloth costs
     # piling_costs = [7, 3, 4, 30, 14, 9, 30, 30, 30]
-    piling_costs = [0,0,0,0,0,0,0,0,0]
+    # piling_costs = [0,0,0,0,0,0,0,0,0]
+    piling_costs = [9,4,2,27,5,2,26,10,11]
     # input_costs = input("Enter cloth-to-table costs: ")
     # piling_costs = [costs.strip() for costs in input_costs.split(",")]
 

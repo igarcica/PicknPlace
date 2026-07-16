@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 import rospy
 import numpy as np
-from pick_n_place.srv import ComputeCostEntry, ComputeCostEntryResponse
 import cost_update as cost_update
+from pick_n_place.srv import ComputeCostEntry, ComputeCostEntryResponse
 
 
 

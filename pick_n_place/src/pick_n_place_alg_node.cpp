@@ -16,8 +16,8 @@ PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
   // this->piling=false;
   this->n_obj_pile = 0;
   // this->expected_pile_thickn.push_back(0.0);
-  this->object_thickness_drag = 0.055; //default towel 8l
-  this->object_thickness_rotate = 0.07; //default towel 8l
+  // this->object_thickness_drag = 0.055; //default towel 8l
+  // this->object_thickness_rotate = 0.07; //default towel 8l
   this->expected_pile_thickn = 0.0;
   this->placing_strategy="placevert";
 
@@ -135,15 +135,10 @@ PicknPlaceAlgNode::PicknPlaceAlgNode(void) :
   this->workspace="grws";
   this->stiffness=0.0;
   this->friction=0.0;
-  // this->cost_table = {{
-  //       7, 3, 4,
-  //       30, 14, 9,
-  //       30, 30, 30
-  //   }};
-    this->cost_table = {{
-        0, 0, 0,
-        0, 0, 0,
-        0, 0, 0
+  this->cost_table = {{ //initial cloth-to-cloth cost table
+        9, 7, 8,
+        27, 5, 2,
+        26, 10, 11
     }};
 
   // [init action clients]
@@ -352,7 +347,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                       //   this->dragging_pose_garment.z = 0.035; 
                       // // this->dragging_pose_garment.z = 0.032; //this->object_thickness + 0.025; //0.055; //Lower arm to cloth
                       // // std::cout << "\033[1;36m PRE_DRAG: -> \033[1;36m  x: " << this->dragging_pose_garment.x << ", y: " << this->dragging_pose_garment.y << ", z: " << this->dragging_pose_garment.z << std::endl;
-                      this->dragging_pose_garment.z = this->object_thickness_drag;
+                      this->dragging_pose_garment.z = this->objs_thickness_drag[this->n_obj_pile];
                       this->success &= send_cartesian_pose(this->dragging_pose_garment);
                       if (this->success)
                       {
@@ -458,9 +453,9 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                         }
       break;
 
-      case ROTATE_POS: ROS_DEBUG("PicknPlaceAlgNode: state DRAG_ROTATE_POS");
+      case ROTATE_POS: ROS_DEBUG("PicknPlaceAlgNode: state ROTATE_POS");
                       {
-                        ROS_INFO("PicknPlaceSM: Sending to DRAG_ROTATE position.");
+                        ROS_INFO("PicknPlaceSM: Sending to ROTATE_POS position.");
                         this->logfile << "State: ROTATE_POS" << std::endl;
                         // if(config_.object_name=="towel") //Lower arm to cloth ->TODO: based on sensed object thickness, BUT putting a max limit
                         //   this->rotating_pose_garment.z = 0.07;
@@ -468,7 +463,8 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                         //   this->rotating_pose_garment.z = 0.057;
                         // // this->rotating_pose_garment.z = 0.07;  
                         // // std::cout << "\033[1;36m DRAG_ROTATE_POS: -> \033[1;36m  x: " << this->rotating_pose_garment.x << ", y: " << this->rotating_pose_garment.y << ", z: " << this->rotating_pose_garment.z << std::endl;
-                        this->rotating_pose_garment.z = this->object_thickness_rotate;
+                        std::cout << "OBJECT THICKNESS: " << this->objs_thickness_rotate[this->n_obj_pile] << std::endl;
+                        this->rotating_pose_garment.z = this->objs_thickness_rotate[this->n_obj_pile];
                         this->success &= send_cartesian_pose(this->rotating_pose_garment);
                         if (this->success)
                         {
@@ -1168,7 +1164,7 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                               
                               geometry_msgs::Pose desired_pose;
                               if(this->n_obj_pile==0)
-                                desired_pose.position.x = 0.12; 
+                                desired_pose.position.x = 0.08; // 0.12; 
                               else
                                 desired_pose.position.x = 0.14; //Because the first one slides due to higher friction between cloth-cloth
                               desired_pose.position.y = -0.28;
@@ -1480,8 +1476,8 @@ void PicknPlaceAlgNode::mainNodeThread(void)
                                   if(this->pddl_demo)
                                    {
                                      this->n_obj_pile += 1; //Next object of the list
-                                    //  if(this->n_obj_pile > 1) //If the object placed is not the first one (we just update the cloth-to-cloth table)
-                                    //    update_costs(); //Update cost table based on placing quality result
+                                     if(this->n_obj_pile > 1) //If the object placed is not the first one (we just update the cloth-to-cloth table)
+                                       update_costs(); //Update cost table based on placing quality result
                                      this->pddl_action_done=true; // End PDDL action
                                      this->state=IDLE;
                                    }
@@ -2394,8 +2390,8 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
         this->objs_thickness.push_back(0.01); //0.006?
         this->objs_stiffness.push_back(60.1);
         this->objs_friction.push_back(79);
-        this->object_thickness_drag = 0.032; // For drag action
-        this->object_thickness_rotate = 0.057; // For rotate action
+        this->objs_thickness_drag.push_back(0.032); // For drag action
+        this->objs_thickness_rotate.push_back(0.057); // For rotate action
       } 
       else if (n_layers == "12l") 
       {
@@ -2406,8 +2402,8 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
         long_edge_size = 28;
         this->objs_stiffness.push_back(70);
         this->objs_friction.push_back(76);
-        this->object_thickness_drag = 0.032; // For drag action
-        this->object_thickness_rotate = 0.057; // For rotate action
+        this->objs_thickness_drag.push_back(0.032); // For drag action
+        this->objs_thickness_rotate.push_back(0.057); // For rotate action
       }
     }
     else if (object_name.find("cotnap") != std::string::npos)
@@ -2435,8 +2431,8 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
         this->objs_thickness.push_back(0.006);
         this->objs_stiffness.push_back(75);
         this->objs_friction.push_back(74);
-        this->object_thickness_drag = 0.032; // For drag action
-        this->object_thickness_rotate = 0.057; // For rotate action
+        this->objs_thickness_drag.push_back(0.032); // For drag action
+        this->objs_thickness_rotate.push_back(0.057); // For rotate action
       }
     }
     else if (object_name.find("linenap") != std::string::npos) 
@@ -2459,8 +2455,8 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
         friction = 81; 
         short_edge_size = 13;
         long_edge_size = 13;
-        this->object_thickness_drag = 0.03; // For drag action
-        this->object_thickness_rotate = 0.06; // For rotate action
+        this->objs_thickness_drag.push_back(0.03); // For drag action
+        this->objs_thickness_rotate.push_back(0.06); // For rotate action
         this->objs_stiffness.push_back(80);
         this->objs_friction.push_back(81);
       }
@@ -2477,11 +2473,11 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
         long_edge_size = 25;
         this->short_edge_sizes.push_back(0.18); //to check
         this->long_edge_sizes.push_back(0.25); //to check
-        this->objs_thickness.push_back(0.017);
+        this->objs_thickness.push_back(0.02);
         this->objs_stiffness.push_back(93.6);
         this->objs_friction.push_back(85);
-        this->object_thickness_drag = 0.04; // For drag action
-        this->object_thickness_rotate = 0.065; // For rotate action
+        this->objs_thickness_drag.push_back(0.04); // For drag action
+        this->objs_thickness_rotate.push_back(0.065); // For rotate action
         
       }
     }
@@ -2495,8 +2491,8 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
         friction = 87; //88.4
         short_edge_size = 16; //check
         long_edge_size = 35; //check
-        this->object_thickness_drag = 0.03; // For drag action
-        this->object_thickness_rotate = 0.06; // For rotate action
+        this->objs_thickness_drag.push_back(0.03); // For drag action
+        this->objs_thickness_rotate.push_back(0.06); // For rotate action
         this->objs_stiffness.push_back(49);
         this->objs_friction.push_back(88);
       }
@@ -2510,8 +2506,8 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
         this->short_edge_sizes.push_back(0.18); //to check
         this->long_edge_sizes.push_back(0.25); //to check
         this->objs_thickness.push_back(0.01);
-        this->object_thickness_drag = 0.03; // For drag action
-        this->object_thickness_rotate = 0.06; // For rotate action
+        this->objs_thickness_drag.push_back(0.03); // For drag action
+        this->objs_thickness_rotate.push_back(0.06); // For rotate action
         this->objs_stiffness.push_back(70);
         this->objs_friction.push_back(84);
       }
@@ -2531,8 +2527,8 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
         this->objs_thickness.push_back(0.02);
         this->objs_stiffness.push_back(94);
         this->objs_friction.push_back(90);
-        this->object_thickness_drag = 0.04; // For drag action
-        this->object_thickness_rotate = 0.065; // For rotate action
+        this->objs_thickness_drag.push_back(0.04); // For drag action
+        this->objs_thickness_rotate.push_back(0.065); // For rotate action
       }
     } 
     else if (object_name.find("linrag") != std::string::npos) 
@@ -2550,8 +2546,8 @@ void PicknPlaceAlgNode::get_objects_to_pile(void)
         this->objs_thickness.push_back(0.005);
         this->objs_stiffness.push_back(65);
         this->objs_friction.push_back(83);
-        this->object_thickness_drag = 0.03; // For drag action
-        this->object_thickness_rotate = 0.06; // For rotate action
+        this->objs_thickness_drag.push_back(0.03); // For drag action
+        this->objs_thickness_rotate.push_back(0.06); // For rotate action
       }
     } 
     
@@ -2684,7 +2680,24 @@ void PicknPlaceAlgNode::update_costs(void) //Update table of costs for the next 
   ROS_INFO("PicknPlaceAlgNode: Updating KB cost table");
   this->logfile << "\n--- UPDATING KB: place_succ ---\n";
 
+  //Save previous (initial) cost table in logfile
+  this->logfile << "New cost table: \n";
+  for (size_t i = 0; i < this->cost_table.size(); ++i) {
+    this->logfile << this->cost_table[i];
+    if ((i + 1) % 3 == 0){
+        this->logfile << "\n";  // Newline every 3 elements for 3x3 format
+        this->planningfile << "\n";
+    }else{
+        this->logfile << " ";
+        this->planningfile << " ";
+    }
+  }
+  this->logfile << std::endl;
+
+
   int new_cost;
+
+  this->logfile << "Compute new cost with data --> def class: " << this->sensed_deformation_class << ", placing str: " << this->placing_strategy << ", placing qual: " << this->placing_quality << std::endl; 
 
   //Compute new cost
   compute_cost_entry_srv_.request.cost_table = this->cost_table;

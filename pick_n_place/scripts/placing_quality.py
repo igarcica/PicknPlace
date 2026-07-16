@@ -67,8 +67,8 @@ CLOTH_SIZE = {
     "twlrag_16l": (0.13,0.18)
     }
 
-show_imgs = True
-save_imgs = True
+show_imgs = False
+save_imgs = False
 write_dir = "/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/exps_slides/"
 plot_scale = dict(xaxis=dict(range=[0, 0.4]), yaxis=dict(range=[0.2, -0.3]), zaxis=dict(range=[0, 0.3]), aspectratio=dict(x=1, y=1, z=1) ) #plot scale for grasped samples
 plot_scale_color = [0.0, 0.1] # plot depth color scale for grasped samples
@@ -122,8 +122,8 @@ def process_pointcloud(data, grasp_edge_size, nongrasp_edge_size, obj_thickness,
 
 def handle_service(req):
     
-    # msg = rospy.wait_for_message('/segment_table/place', PointCloud2) # Get next message from the topic /segment_table/place (segmented pointcloud of the placed object)
-    msg = rospy.wait_for_message('/cloud_pcd', PointCloud2) # Get next message from the topic /segment_table/place (segmented pointcloud of the placed object)
+    msg = rospy.wait_for_message('/segment_table/place', PointCloud2) # Get next message from the topic /segment_table/place (segmented pointcloud of the placed object)
+    # msg = rospy.wait_for_message('/cloud_pcd', PointCloud2) # Get next message from the topic /segment_table/place (segmented pointcloud of the placed object)
     
     ## ---Get object dimensions for creating canonical---
     object_layers = req.object_name + "_" + req.layers
