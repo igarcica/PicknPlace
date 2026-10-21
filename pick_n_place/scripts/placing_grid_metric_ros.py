@@ -133,20 +133,57 @@ def plot_with_info(data, x_grid_divs, y_grid_divs, can_edges, obj_thickn, n_objs
 
 ## Plot metrics in colored grid
 # def plot_metrics(metrics, scale_color):
-def plot_metrics(metrics, obj_thickn, n_objs):
+def plot_metrics2(metrics, obj_thickn, n_objs):
+    
     metrics = np.array(metrics)
-    # metrics = [[0.08, 0.08, 0.08], [0.08, 0.08, 0.08], [0.08, 0.08, 0.08]]
-    # metrics = [[0.08, 0.08, 0.1], [0.096, 0.092, 0.08], [0.09, 0.1, 0.094]]
     div=int(np.sqrt(len(metrics)))
     metrics = metrics.reshape(div,div)
-    # fig = px.imshow(metrics, text_auto=True, labels=dict(x='x', y='y'))
-    fig = px.imshow(metrics, text_auto=True, color_continuous_scale=colorscale) #text_auto=True, labels=dict(x='x', y='y'))
+    fig = px.imshow(metrics, text_auto=False, color_continuous_scale=colorscale) #text_auto=True, labels=dict(x='x', y='y'))
     # fig.update_coloraxes(cmin=scale_color[0], cmax=scale_color[1])#cmax=0.08, cmin=0.0)
-    # fig.update_coloraxes(cmin=0.0, cmax=0.1) #0.2
 
     min_depth = obj_thickn * n_objs
     max_depth = (obj_thickn*3) + (min_depth-obj_thickn)
+    print(max_depth)
     fig.update_coloraxes(cmin=min_depth, cmax=max_depth) 
+    fig.update_layout(xaxis=dict(showticklabels=False), yaxis=dict(showticklabels=False))
+
+    return fig
+
+def plot_metrics(metrics, obj_thickn, n_objs): #changed color scale to have the red deformation in the center (canonical thickness)
+
+    flat = obj_thickn * n_objs
+    min_depth = 0
+    max_depth = (obj_thickn*3) + (flat-obj_thickn)
+
+    ## Define custom symmetric color scale based on "jet" color codes
+    mid = (flat-min_depth)/(max_depth-min_depth) #Place canonical flat height in the center of the color scale
+    min_deviation = min(abs(min_depth - flat), abs(max_depth - flat)) #Compute min deviation above and below center to have symmetric colorscale (w/o negative values)
+    color_min = flat - min_deviation #Set colorscale min value
+    color_max = flat + min_deviation 
+    colorscale = [
+        [0.0, "rgb(255, 255, 0)"], # Yellow
+        [0.25, "rgb(255, 0, 0)"],  # Red
+        [0.5, "rgb(128, 0, 0)"],   # Maroon
+        [0.75, "rgb(255, 0, 0)"],  # Red
+        [1.0, "rgb(255, 255, 0)"]  # Yellow
+    ]
+
+    metrics = np.array(metrics)
+    div=int(np.sqrt(len(metrics)))
+    metrics = metrics.reshape(div,div)
+    fig = px.imshow(metrics, text_auto=False, color_continuous_scale=colorscale) 
+
+    ## Create colorscale labels
+    steps = (color_max-color_min)/5 # Generate evenly spaced ticks
+    ticks = np.arange(color_min, color_max + 0.001, steps) # Set number from min to max
+    ticks = np.sort(np.append(ticks, flat)) # Add the canonical value and sort iin between 
+    ## Create labels, marking the canonical value as tc
+    ticktext = [
+        "tc" if np.isclose(t, flat) else f"{t:.2f}"
+        for t in ticks
+    ]
+
+    fig.update_coloraxes(cmin=color_min, cmax=color_max, colorbar=dict(tickmode="array", tickvals=ticks, ticktext=ticktext, tickfont=dict(size=16)))
     fig.update_layout(xaxis=dict(showticklabels=False), yaxis=dict(showticklabels=False))
 
     return fig
@@ -386,8 +423,10 @@ def def_metric(grids, grasp_edge_size, obj_thickness):
 
     return means
 
+## Computes placing quality for a placed object (used for system adaptability and performance)
 def placing_qual(metrics, n_div, grasp_edge_size, obj_thickness, n_objs):
 
+    print(metrics)
     min_depth = obj_thickness * n_objs #Object/pile thickness should be 0 deformation
     # max_depth = grasp_edge_size/2 + (min_depth-obj_thickness) + 0.01 #Max depth occurs when the cloth is folded by half (grasped edge size /2) + the piled object thickness (0 for placed, obj thick for pile)
     # half_max_depth = max_depth/2
@@ -423,7 +462,7 @@ def dif_objs_placing_qual(metrics, n_div, grasp_edge_size, pile_thickness, n_obj
     obj_thickness = pile_thickness/n_objs
     min_depth = pile_thickness  #Pile thickness should be 0 deformation
     # max_depth = (obj_thickness*3) + (min_depth-obj_thickness)
-    max_depth = min_depth + (obj_thickness*3) #The pile height + two more objectss
+    max_depth = min_depth + (obj_thickness*2) #The pile height + two more objectss
     print("min depth: ", min_depth, " / max depth: ", max_depth)
 
     metrics = np.array(metrics)

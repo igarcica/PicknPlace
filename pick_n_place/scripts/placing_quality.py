@@ -47,7 +47,7 @@ CLOTH_SIZE = {
     "check_4l": (0.25,0.35),
     "check_6l": (0.24,0.25, 0.01),
     # "check_8l": (0.23,0.27, 0.01),
-    "check_8l": (0.18,0.25, 0.01),
+    "check_8l": (0.18, 0.25, 0.0175),
     "check_12l": (0.12,0.25),
     "check_16l": (0.13,0.18),
     "waffle_4l": (0.25,0.35),
@@ -62,14 +62,14 @@ CLOTH_SIZE = {
     "linrag_16l": (0.13,0.18),
     "twlrag_4l": (0.25,0.35),
     "twlrag_6l": (0.24,0.25),
-    "twlrag_8l": (0.18,0.25, 0.02),
+    "twlrag_8l": (0.18,0.25, 0.025),
     "twlrag_12l": (0.12,0.25),
     "twlrag_16l": (0.13,0.18)
     }
 
-show_imgs = False
-save_imgs = False
-write_dir = "/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/exps_slides/"
+show_imgs = True
+save_imgs = True
+write_dir = "/home/userlab/iri-lab/iri_ws/src/PicknPlace/data/save_data/placing_ex_paper/"
 plot_scale = dict(xaxis=dict(range=[0, 0.4]), yaxis=dict(range=[0.2, -0.3]), zaxis=dict(range=[0, 0.3]), aspectratio=dict(x=1, y=1, z=1) ) #plot scale for grasped samples
 plot_scale_color = [0.0, 0.1] # plot depth color scale for grasped samples
 
@@ -122,8 +122,8 @@ def process_pointcloud(data, grasp_edge_size, nongrasp_edge_size, obj_thickness,
 
 def handle_service(req):
     
-    msg = rospy.wait_for_message('/segment_table/place', PointCloud2) # Get next message from the topic /segment_table/place (segmented pointcloud of the placed object)
-    # msg = rospy.wait_for_message('/cloud_pcd', PointCloud2) # Get next message from the topic /segment_table/place (segmented pointcloud of the placed object)
+    # msg = rospy.wait_for_message('/segment_table/place', PointCloud2) # Get next message from the topic /segment_table/place (segmented pointcloud of the placed object)
+    msg = rospy.wait_for_message('/cloud_pcd', PointCloud2) # Get next message from the topic /segment_table/place (segmented pointcloud of the placed object)
     
     ## ---Get object dimensions for creating canonical---
     object_layers = req.object_name + "_" + req.layers
@@ -152,7 +152,7 @@ def handle_service(req):
     placing_quality = placing_grid_metric.placing_qual(grid_metric, n_divisions, nongrasped_edge_size, object_thickness, n_objects) # Placing quality
     placing_quality = round(placing_quality)
     placing_quality = np.where(placing_quality < 0, 0, np.where(placing_quality>100, 100, placing_quality))
-    print("placing quality:", placing_quality)
+    print("\033[94m placing quality: \033[0m", placing_quality)
     print("Placing error:", 100-placing_quality)
 
     # placing_quality2 = placing_grid_metric2.compute_quality(grid_metric, n_divisions, object_thickness)
@@ -164,7 +164,7 @@ def handle_service(req):
     placing_quality_pile = placing_grid_metric.dif_objs_placing_qual(grid_metric, n_divisions, nongrasped_edge_size, pile_thickness, n_objects) # Placing quality
     placing_quality_pile = round(placing_quality_pile)
     placing_quality_pile = np.where(placing_quality_pile < 0, 0, np.where(placing_quality_pile>100, 100, placing_quality_pile))
-    print("PILE placing quality:", placing_quality_pile)
+    print("\033[94m PILE placing quality: \033[0m", placing_quality_pile)
     print("PILE Placing error:", 100-placing_quality_pile)
     
     return GetPlacingQualResponse(placing_quality_pile)
